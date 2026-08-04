@@ -1,0 +1,2680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+
+<title>Style Templates on Lightning Maps (Beta) — GIS Link</title>
+</head>
+<body>
+
+<script>document.documentElement.setAttribute('data-theme','light');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+/* ============================================================================
+   Tokens — Sitetracker Web Design Library colour foundation (Figma
+   P7QZySjFIHNpkaCJ80yCHo, node 1344-10515), pixel-verified. The chrome is
+   Lightning/SLDS because the host page is; the map app's own icon set is
+   @esri/calcite-ui-icons (confirmed in SitetrackerGisMapsV2).
+   ========================================================================== */
+:root{
+  --gray-1:#FFFFFF; --gray-2:#FAFAF9; --gray-3:#F3F2F2; --gray-4:#ECEBEA;
+  --gray-5:#DDDBDA; --gray-6:#C9C7C5; --gray-7:#B0ADAB; --gray-8:#969492;
+  --gray-9:#706E6B; --gray-10:#514F4D; --gray-11:#3E3E3C; --gray-12:#2B2826; --gray-13:#080707;
+  --brand:#1589EE; --brand-accessible:#0070D2; --brand-active:#005FB2;
+  --teal:#00847C; --teal-dark:#00736C;
+  --success:#027E46; --success-bg:#4BCA81; --success-tint:#D9FFDF;
+  --warning:#FFB75D; --warning-ink:#844800;
+  --error:#C23934; --error-strong:#A61A14;
+  --inverse:#061C3F; --inverse-alt:#16325C; --inverse-sep:#2A426C;
+  --link:#006DCC;
+
+  --bg:var(--gray-3); --panel:var(--gray-1); --panel-2:var(--gray-2);
+  --line:var(--gray-5); --line-soft:var(--gray-4);
+  --ink:var(--gray-13); --ink-2:var(--gray-11); --ink-3:var(--gray-9);
+  --accent:var(--teal); --interactive:var(--brand-accessible);
+  --shadow-1:0 2px 3px rgba(0,0,0,.16);
+  --shadow-2:0 1px 2px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.08);
+  /* ArcGIS topographic basemap, approximated */
+  --bm-ground:#F5F2E9; --bm-green:#DFE9D2; --bm-green-2:#C8DCB6; --bm-water:#C4DCEA;
+  --bm-road:#FFFFFF; --bm-road-line:#E3DCCB; --bm-ink:#6E6A5C;
+  --ground-L:91;
+
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI","Salesforce Sans",Roboto,Helvetica,Arial,sans-serif;
+  --r:4px; --r-lg:8px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:var(--inverse); --panel:#0B2447; --panel-2:var(--inverse-alt);
+    --line:var(--inverse-sep); --line-soft:#1D3A66;
+    --ink:#FFFFFF; --ink-2:#D8E6FE; --ink-3:#AACBFF;
+    --interactive:#1B96FF; --accent:#04E1CB; --warning-ink:#FFB75D;
+    --shadow-2:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    --bm-ground:#0A1A2E; --bm-green:#12291F; --bm-green-2:#16352A; --bm-water:#0A2636;
+    --bm-road:#16325C; --bm-road-line:#2A426C; --bm-ink:#7E93B5;
+    --ground-L:14;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:var(--inverse); --panel:#0B2447; --panel-2:var(--inverse-alt);
+  --line:var(--inverse-sep); --line-soft:#1D3A66;
+  --ink:#FFFFFF; --ink-2:#D8E6FE; --ink-3:#AACBFF;
+  --interactive:#1B96FF; --accent:#04E1CB; --warning-ink:#FFB75D;
+  --shadow-2:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  --bm-ground:#0A1A2E; --bm-green:#12291F; --bm-green-2:#16352A; --bm-water:#0A2636;
+  --bm-road:#16325C; --bm-road-line:#2A426C; --bm-ink:#7E93B5;
+  --ground-L:14;
+}
+
+*{box-sizing:border-box}
+/* The app fills the viewport and does NOT scroll. The only scroller in the map
+   workspace is .lm-pbody (the left panel body); the admin tab scrolls its own
+   region. Mirrors the real console, where the map never moves. */
+html,body{margin:0;height:100%}
+body{overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:13.5px/1.5 var(--ui);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;font-weight:600;text-wrap:balance}
+button,select,input{font:inherit;color:inherit}
+a{color:var(--link)}
+:focus-visible{outline:2px solid var(--interactive);outline-offset:2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:var(--mono);font-size:11px}
+.num{font-variant-numeric:tabular-nums}
+.note{font-size:11.5px;color:var(--ink-3);line-height:1.5}
+
+/* ===================== Salesforce global header ===================== */
+.sf-global{display:flex;align-items:center;gap:14px;padding:11px 16px;background:var(--panel);
+  border-bottom:1px solid var(--line)}
+.wordmark{font-size:19px;font-weight:800;letter-spacing:.15em;white-space:nowrap;flex:none}
+.wordmark span{color:var(--teal)}
+.sf-search{flex:1;max-width:470px;margin:0 auto;display:flex;align-items:center;gap:7px;
+  border:1px solid var(--line);border-radius:999px;padding:5px 13px;background:var(--panel);
+  color:var(--ink-3);font-size:12.5px}
+.sf-gicons{display:flex;align-items:center;gap:13px;color:var(--ink-3);flex:none}
+.sf-gicons .gi{display:grid;place-items:center;cursor:pointer}
+.sf-gicons .gi:hover{color:var(--interactive)}
+.sf-gicons .gbox{display:flex;align-items:center;gap:2px;border:1px solid var(--line);
+  border-radius:var(--r);padding:3px 5px;cursor:pointer}
+.sf-search span{opacity:.85}
+.waffle{display:grid;place-items:center;padding:0 13px;color:var(--ink-3);flex:none}
+.pencil{margin-left:auto;padding:0 16px;display:flex;align-items:center;color:var(--ink-3);flex:none}
+.syncerr{color:var(--error);display:grid;place-items:center}
+.lcard .grip,.lcard .chev{display:grid;place-items:center;color:var(--gray-7)}
+.lcard .grip{cursor:grab}
+.basemapthumb .lb{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:11px;
+  color:var(--ink-2);background:var(--panel)}
+.sf-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;display:grid;place-items:center;
+  cursor:pointer;flex:none}
+
+/* ===================== GIS Link app nav ===================== */
+.sf-appnav{display:flex;align-items:stretch;gap:2px;background:var(--panel);
+  border-bottom:1px solid var(--line);box-shadow:var(--shadow-1);padding-left:8px;
+  overflow-x:auto;position:relative;z-index:20}
+.waffle{display:grid;grid-template-columns:repeat(3,3px);gap:2px;align-content:center;
+  padding:0 12px;flex:none}
+.waffle i{width:3px;height:3px;background:var(--ink-3);border-radius:1px;display:block}
+.appname{display:flex;align-items:center;font-weight:700;font-size:15px;padding-right:20px;
+  white-space:nowrap;flex:none}
+.sf-appnav .tab{background:none;border:0;border-bottom:3px solid transparent;padding:13px 14px 10px;
+  font-size:13px;color:var(--ink-2);cursor:pointer;white-space:nowrap;display:flex;
+  align-items:center;gap:5px}
+.sf-appnav .tab:hover{background:var(--panel-2)}
+.sf-appnav .tab[aria-selected="true"]{color:var(--teal);border-bottom-color:var(--teal);font-weight:600}
+.sf-appnav .tab.isnew::after{content:"NEW";font-size:8.5px;font-weight:800;letter-spacing:.06em;
+  background:var(--teal);color:#fff;border-radius:2px;padding:1px 3px}
+.caret{width:0;height:0;border:3.5px solid transparent;border-top-color:currentColor;
+  margin-top:3px;opacity:.7}
+.pencil{margin-left:auto;padding:0 14px;display:flex;align-items:center;color:var(--ink-3);flex:none}
+
+/* ===================== view switching ===================== */
+.view{display:none}
+.view.active{display:block}
+
+/* ===================== Lightning Maps shell ===================== */
+.shell{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+.shell > main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#view-maps.active{flex:1;min-height:0;display:flex;flex-direction:column}
+#view-admin.active{flex:1;min-height:0;overflow-y:auto}
+.lm{display:grid;grid-template-columns:60px 520px minmax(0,1fr);
+  flex:1;min-height:0;background:var(--panel)}
+.lm-panel{min-height:0}
+.lm-map{min-height:0}
+@media (max-width:1080px){
+  .lm{grid-template-columns:60px 1fr;min-height:auto}
+  .lm-map{grid-column:1/-1;min-height:56vh}
+  #view-maps.active{overflow-y:auto}
+}
+.lm-rail{background:var(--panel);border-right:1px solid var(--line);display:flex;
+  flex-direction:column;align-items:center;padding:0;gap:0}
+.rtab{width:60px;height:56px;display:grid;place-items:center;border:0;background:none;
+  cursor:pointer;color:var(--ink-3);position:relative}
+.rtab[aria-selected="true"]{background:var(--teal);color:#fff}
+.rtab:not([aria-selected="true"]):hover{background:var(--panel-2)}
+.lm-rail .grow{flex:1}
+.lm-rail .globe{width:60px;height:46px;display:grid;place-items:center;color:var(--teal)}
+.lm-rail .collapse{width:60px;height:42px;display:grid;place-items:center;color:var(--ink-3);
+  border:0;background:none;cursor:pointer}
+
+.lm-panel{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;
+  background:var(--panel)}
+.lm-phead{display:flex;align-items:center;gap:8px;padding:16px 18px 13px;border-bottom:1px solid var(--line-soft)}
+.lm-phead h3{font-size:17px;font-weight:500;flex:1;letter-spacing:-.01em}
+.lm-pbody{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 18px 18px;min-height:0}
+.lm-pfoot{padding:12px 18px;border-top:1px solid var(--line-soft)}
+
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);
+  padding:6px 12px;font-size:12.5px;cursor:pointer}
+.btn:hover{background:var(--panel-2)}
+.btn.pri{background:var(--interactive);border-color:var(--interactive);color:#fff;font-weight:600}
+.btn.pri:hover{background:var(--brand-active);border-color:var(--brand-active)}
+.btn.sm{padding:3px 8px;font-size:11.5px}
+.btn.wide{width:100%;justify-content:center;display:flex;align-items:center;gap:7px;
+  color:var(--teal);font-weight:600;padding:10px}
+.btn[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.iconbtn{width:30px;height:30px;border:1px solid var(--line);background:var(--panel);
+  border-radius:var(--r);display:grid;place-items:center;cursor:pointer;color:var(--ink-3);padding:0}
+.iconbtn:hover{background:var(--panel-2)}
+.iconbtn[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.iconbtn.ghost{border-color:transparent}
+
+.frow{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.fld{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.fld > span{font-size:11px;color:var(--ink-3)}
+select,.txt{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:6px 9px;font-size:12.5px;width:100%;min-width:0}
+.searchbox{display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+  border-radius:var(--r);padding:8px 11px;color:var(--ink-3);font-size:13px;margin-bottom:12px}
+.btngroup{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.btngroup > button{border:0;border-radius:0;width:32px;height:30px}
+.btngroup > button + button{border-left:1px solid var(--line)}
+
+/* layer / item cards — left teal bar, corner flag (PT) */
+.lcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--teal);
+  border-radius:var(--r);padding:12px 13px;margin-bottom:10px;background:var(--panel);
+  box-shadow:0 1px 1px rgba(0,0,0,.04)}
+/* PT cards clip their corner flag; layer cards must NOT clip, or the "..." menu is cut off. */
+.lcard.flagged{overflow:hidden}
+.lcard:has(.menu){z-index:5}
+.lcard.readonly{border-left-color:var(--gray-7)}
+.lcard.err{border-left-color:var(--error)}
+.lcard .top{display:flex;align-items:flex-start;gap:8px}
+.lcard .grip{color:var(--gray-7);cursor:grab;font-size:13px;letter-spacing:-2px;line-height:1;
+  padding-top:2px;user-select:none}
+.lcard .chev{color:var(--ink-3);font-size:11px;padding-top:2px}
+.lcard .body{flex:1;min-width:0}
+.lcard .nm{font-weight:700;font-size:14px;overflow-wrap:anywhere}
+.lcard .nm.caps{text-transform:uppercase;letter-spacing:.02em}
+.lcard .sub{font-size:12.5px;color:var(--ink-3);margin-top:2px;display:flex;
+  align-items:center;gap:5px;flex-wrap:wrap}
+.lcard .acts{display:flex;align-items:center;gap:4px;flex:none}
+.cornerflag{position:absolute;top:0;right:0;width:0;height:0;
+  border-top:20px solid var(--teal);border-left:20px solid transparent}
+.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+  border-radius:999px;padding:2px 8px;font-size:11px;background:var(--panel-2);white-space:nowrap}
+.pill.teal{background:color-mix(in srgb,var(--teal) 12%,transparent);color:var(--teal);
+  border-color:color-mix(in srgb,var(--teal) 35%,transparent);font-weight:600}
+.pill.warn{background:color-mix(in srgb,var(--warning) 24%,transparent);color:var(--warning-ink);
+  border-color:var(--warning);font-weight:600}
+.pill.err{background:color-mix(in srgb,var(--error) 12%,transparent);color:var(--error);
+  border-color:color-mix(in srgb,var(--error) 40%,transparent);font-weight:600}
+.pill.on{background:color-mix(in srgb,var(--success) 14%,transparent);color:var(--success);
+  border-color:var(--success)}
+.pill .led{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge{position:relative;display:inline-flex}
+.badge > .n{position:absolute;top:-6px;right:-7px;min-width:16px;height:16px;border-radius:999px;
+  background:var(--teal);color:#fff;font-size:9.5px;font-weight:800;display:grid;place-items:center;
+  padding:0 4px}
+.menu{position:absolute;top:30px;right:0;z-index:30;min-width:224px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:0 6px 22px rgba(0,0,0,.20);
+  padding:4px 0;text-align:left}
+.menu button{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;
+  padding:7px 12px;font-size:12.5px;cursor:pointer;text-align:left;color:var(--ink-2)}
+.menu button:hover{background:var(--panel-2)}
+.menu button:disabled{opacity:.45;cursor:not-allowed}
+.menu button.hi{color:var(--teal);font-weight:600}
+.menu .sepr{height:1px;background:var(--line-soft);margin:4px 0}
+.menu .tag{margin-left:auto;font-size:9px;font-weight:800;letter-spacing:.05em;background:var(--teal);
+  color:#fff;border-radius:2px;padding:1px 3px}
+.swatchrow{display:flex;gap:3px;flex-wrap:wrap;margin-top:7px}
+.swatchrow i{width:16px;height:9px;border-radius:2px;display:block;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+
+
+
+/* The mock's own knobs live in a dismissible dock, NOT in the product chrome —
+   with them inline the page stopped reading as Sitetracker. */
+.mockdock{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--panel);
+  border-top:2px solid var(--interactive);box-shadow:0 -6px 22px rgba(0,0,0,.16);
+  max-height:46vh;overflow:auto}
+body.mockhidden .mockdock{display:none}
+.mocktoggle{position:fixed;right:14px;bottom:14px;z-index:71;border:1px solid var(--line);
+  background:var(--panel);border-radius:999px;padding:7px 13px;font-size:12px;cursor:pointer;
+  box-shadow:var(--shadow-2);display:none;align-items:center;gap:6px;color:var(--ink-2)}
+body.mockhidden .mocktoggle{display:flex}
+.mockdock .mockbar,.mockdock .annotbar{border-bottom:1px solid var(--line-soft)}
+/* --- Esri-modelled symbology editor (panel drill-in) --- */
+.lm.focus{grid-template-columns:60px minmax(0,1.9fr) minmax(0,1fr)}
+.edtop{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.edtitle{font-weight:700;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.edsteps{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden}
+.edstep{flex:1;background:var(--panel);border:0;padding:6px 4px;font-size:11.5px;cursor:pointer;
+  color:var(--ink-3)}
+.edstep + .edstep{border-left:1px solid var(--line)}
+.edstep.on{background:var(--teal);color:#fff;font-weight:600}
+.edsec{border-top:1px solid var(--line-soft);padding:11px 0}
+.edsec:first-of-type{border-top:0;padding-top:0}
+.edhd{display:flex;align-items:center;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+.edhd .sp{flex:1}
+.fieldrow,.stylecard{display:flex;width:100%;text-align:left;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;margin-bottom:6px;
+  cursor:pointer;gap:8px;align-items:center;flex-wrap:wrap}
+.fieldrow:hover,.stylecard:hover{background:var(--panel-2)}
+.fieldrow.on,.stylecard.on{border-color:var(--teal);
+  background:color-mix(in srgb,var(--teal) 8%,transparent)}
+.fieldrow .fnm,.scnm{font-weight:600;font-size:12.5px}
+.stylecard{flex-direction:column;align-items:flex-start;gap:2px}
+.stylecard:disabled,.fieldrow:disabled{opacity:.5;cursor:not-allowed}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 9px;
+  font-size:11px;cursor:pointer;color:var(--ink-3)}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}
+.ramprow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;margin-bottom:5px;cursor:pointer}
+.ramprow:hover{background:var(--panel-2)}
+.rampsw{display:flex;gap:2px;flex:none}
+.rampsw i{width:14px;height:16px;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.rnm{font-size:12px;font-weight:600;min-width:0}
+.coverage{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;
+  font-size:12px;background:var(--panel-2)}
+.classlist{display:flex;flex-direction:column;gap:4px}
+.classrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--r);
+  padding:6px 8px;cursor:pointer;background:var(--panel)}
+.classrow:hover{background:var(--panel-2)}
+.classrow.on{border-color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal)}
+.classrow.other{background:var(--panel-2);border-style:dashed}
+.classrow .csw{flex:none;display:flex}
+.classrow .cnm{flex:1;min-width:0;display:flex;flex-direction:column;font-size:12px;overflow:hidden}
+.edbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.edfoot{display:flex;gap:8px;padding:12px 0 4px;border-top:1px solid var(--line-soft);
+  position:sticky;bottom:0;background:var(--panel);flex-wrap:wrap}
+.edfoot .btn{flex:1}
+.gallery{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;margin-top:7px}
+.grow2{display:flex;gap:5px;flex-wrap:wrap}
+.gitem{width:32px;height:32px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+  display:grid;place-items:center;cursor:pointer;padding:0}
+.gitem:hover{background:var(--panel-2);border-color:var(--teal)}
+.gitem.dim{opacity:.5}
+
+/* project chip (Production Tracking) */
+.projchip{display:flex;align-items:center;gap:10px;border:1px solid var(--line);
+  border-radius:var(--r);padding:9px 11px;margin-bottom:11px}
+.projchip .ic{width:30px;height:30px;border-radius:var(--r);
+  background:color-mix(in srgb,var(--teal) 14%,transparent);color:var(--teal);
+  display:grid;place-items:center;flex:none}
+.projchip .txt2{flex:1;min-width:0}
+.projchip .lb{font-size:10.5px;color:var(--ink-3)}
+.projchip .vl{font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px}
+
+/* ===================== map ===================== */
+.lm-map{position:relative;overflow:hidden;background:var(--bm-ground);min-width:0}
+#map{cursor:grab;touch-action:none}
+#map.dragging{cursor:grabbing}
+.zoomlvl{position:absolute;left:14px;top:108px;z-index:6;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r);padding:3px 8px;font-size:10.5px;
+  color:var(--ink-3);box-shadow:var(--shadow-1);font-variant-numeric:tabular-nums}
+#map{display:block;width:100%;height:100%}
+.mzoom{position:absolute;top:14px;left:14px;display:flex;flex-direction:column;gap:6px;z-index:6}
+.msquare{width:40px;height:40px;border-radius:var(--r);border:1px solid var(--line);
+  background:var(--panel);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-1);
+  padding:0;font-size:17px;color:var(--ink-2)}
+.msquare:hover{background:var(--panel-2)}
+.msquare[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.mtoolbar{position:absolute;top:14px;right:14px;display:flex;gap:8px;z-index:6;flex-wrap:wrap;
+  justify-content:flex-end}
+.mgroup{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-1);overflow:hidden}
+.mgroup > button{width:42px;height:40px;border:0;background:none;display:grid;place-items:center;
+  cursor:pointer;color:var(--ink-2);padding:0;position:relative}
+.mgroup > button:hover{background:var(--panel-2)}
+.mgroup > button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.mbr{position:absolute;right:14px;bottom:14px;display:flex;gap:8px;z-index:6}
+.basemapthumb{position:absolute;left:14px;bottom:14px;z-index:6;width:92px;
+  border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-1);border:1px solid var(--line);
+  cursor:pointer;background:var(--panel)}
+.basemapthumb .im{height:52px;background:
+  linear-gradient(150deg,var(--bm-green) 0%,var(--bm-ground) 55%,var(--bm-water) 100%)}
+.basemapthumb .lb{display:flex;align-items:center;gap:5px;padding:5px 7px;font-size:10.5px;
+  color:var(--ink-2);background:var(--panel)}
+.edgetab{position:absolute;right:0;top:46%;width:13px;height:44px;background:var(--panel);
+  border:1px solid var(--line);border-right:0;border-radius:var(--r) 0 0 var(--r);
+  display:grid;place-items:center;font-size:10px;color:var(--ink-3);cursor:pointer;z-index:6}
+.legend{position:absolute;z-index:8;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-2);
+  min-width:220px;max-width:min(300px,44%);max-height:min(64%,440px);overflow:auto}
+/* caret so the panel reads as hanging off the toolbar button that toggles it */
+.legend::before{content:"";position:absolute;top:-6px;width:11px;height:11px;background:var(--panel);
+  border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg);
+  left:var(--caret,18px)}
+.legend h4{padding:9px 11px 5px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3)}
+.legend .sec{padding:0 11px 9px}
+.legend .sec > .t{font-size:11px;font-weight:700;color:var(--ink-2);margin:4px 0 5px;
+  display:flex;align-items:center;gap:6px}
+.lrow{display:flex;align-items:center;gap:8px;padding:2.5px 0;font-size:11.5px}
+.lrow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .ct{color:var(--ink-3);font-size:10.5px}
+.mapbadges{position:absolute;left:62px;top:14px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;
+  max-width:calc(100% - 240px)}
+
+/* entry-point annotation pins */
+.pin{position:absolute;z-index:12;width:22px;height:22px;border-radius:50%;
+  background:var(--error);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;
+  box-shadow:0 0 0 3px var(--panel),0 2px 6px rgba(0,0,0,.35);cursor:help;
+  font-variant-numeric:tabular-nums}
+body:not(.annot) .pin{display:none}
+.mockbar{display:flex;align-items:center;gap:14px;padding:7px 14px;flex-wrap:wrap;
+  background:color-mix(in srgb,var(--interactive) 7%,var(--panel));
+  border-bottom:1px dashed color-mix(in srgb,var(--interactive) 40%,transparent);font-size:11.5px}
+.mockbar label{display:flex;align-items:center;gap:6px;color:var(--ink-3)}
+.mockbar select{width:auto;min-width:150px;padding:3px 7px;font-size:11.5px}
+.annotbar{display:none;gap:10px;padding:9px 14px;background:color-mix(in srgb,var(--error) 8%,var(--panel));
+  border-bottom:1px solid var(--line);font-size:12px;align-items:flex-start;flex-wrap:wrap}
+body.annot .annotbar{display:flex}
+.annotbar ol{margin:0;padding-left:2px;list-style:none;display:flex;gap:14px;flex-wrap:wrap;flex:1}
+.annotbar li{display:flex;align-items:flex-start;gap:6px;max-width:290px}
+.annotbar .k{flex:none;width:17px;height:17px;border-radius:50%;background:var(--error);color:#fff;
+  font-size:10px;font-weight:800;display:grid;place-items:center;margin-top:1px}
+
+/* ===================== admin tab (Style Templates) ===================== */
+.adm{padding:14px;display:flex;flex-direction:column;gap:12px}
+.subtabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;background:var(--panel);
+  border-radius:var(--r-lg) var(--r-lg) 0 0;padding:0 6px}
+.subtabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 13px;
+  font-size:12.5px;color:var(--ink-3);cursor:pointer;white-space:nowrap}
+.subtabs button[aria-selected="true"]{color:var(--interactive);border-bottom-color:var(--interactive);
+  font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-2)}
+.card > header{display:flex;align-items:center;gap:8px;padding:10px 13px;
+  border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.card > header .sp{flex:1}
+.pad{padding:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start}
+.build{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:12px;align-items:start}
+@media (max-width:1000px){.build{grid-template-columns:1fr}}
+.subview{display:none}
+.subview.active{display:block}
+
+
+/* --- Salesforce list-view chrome for the Style Templates tab --- */
+.lv{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-2);overflow:visible}
+.lvhead{display:flex;align-items:center;gap:13px;padding:13px 17px 12px}
+.objicon{width:38px;height:38px;border-radius:9px;background:var(--teal);color:#fff;
+  display:grid;place-items:center;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.lvtitle{flex:1;min-width:0}
+.lvtitle .kicker{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+.lvtitle h2{font-size:20px;font-weight:600;letter-spacing:-.015em;display:flex;align-items:center;gap:6px}
+.lvmeta{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.lvacts{display:flex;gap:8px;flex:none;align-items:center}
+.lvctrl{display:flex;align-items:center;gap:10px;padding:0 17px 11px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line)}
+.lvsearch{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:var(--r);
+  padding:5px 10px;color:var(--ink-3);font-size:12.5px;min-width:220px}
+.lvicons{display:flex;gap:5px;margin-left:auto}
+.tbl th.sortable{cursor:pointer;user-select:none}
+.tbl th.sortable:hover{background:var(--panel-2)}
+.tbl th .sar{opacity:.45;margin-left:4px;font-size:9px}
+.tbl th.sorted .sar{opacity:1;color:var(--interactive)}
+.tbl td.rowact{text-align:right;position:relative;width:34px}
+.tbl .cbx{width:30px}
+.tbl .cbx input{accent-color:var(--interactive)}
+.rowmenu{position:absolute;right:6px;top:26px;z-index:30;min-width:196px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:0 6px 22px rgba(0,0,0,.20);
+  padding:4px 0;text-align:left}
+.rowmenu button{display:block;width:100%;background:none;border:0;padding:7px 12px;font-size:12.5px;
+  cursor:pointer;text-align:left;color:var(--ink-2)}
+.rowmenu button:hover{background:var(--panel-2)}
+.rowmenu button.danger{color:var(--error)}
+.rowmenu .sepr{height:1px;background:var(--line-soft);margin:4px 0}
+.notify{display:flex;align-items:center;gap:10px;padding:9px 14px;margin-bottom:12px;
+  border:1px solid var(--warning);border-left:4px solid var(--warning);border-radius:var(--r);
+  background:color-mix(in srgb,var(--warning) 14%,transparent);font-size:12.5px}
+.notify .sp{flex:1}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+  position:sticky;top:0;background:var(--panel);z-index:1}
+.tbl td{padding:6px 10px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+.tbl tbody tr:hover{background:var(--panel-2)}
+.tbl tbody tr.sel{background:color-mix(in srgb,var(--interactive) 12%,transparent)}
+.scrollx{overflow-x:auto;max-height:min(420px,52vh);overflow-y:auto}
+
+.stops{width:100%;border-collapse:collapse}
+.stops th{text-align:left;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);padding:6px 8px;border-bottom:1px solid var(--line)}
+.stops td{padding:6px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+.stops tr.dflt td{background:var(--panel-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  flex-wrap:wrap}
+.seg button{background:var(--panel);border:0;padding:5px 11px;font-size:12px;cursor:pointer;
+  color:var(--ink-3)}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--interactive);color:#fff;font-weight:600}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.tokenbtn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);
+  background:var(--panel);border-radius:var(--r);padding:3px 7px;cursor:pointer;font-size:11px;
+  font-family:var(--mono)}
+.tokenbtn .chip{width:15px;height:15px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.offtoken{color:var(--warning-ink);border-color:var(--warning)}
+.prevbox{border:1px solid var(--line);border-radius:var(--r);padding:10px}
+
+.pop{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r-lg);box-shadow:0 8px 28px rgba(0,0,0,.24);padding:10px;display:none;
+  max-height:min(70vh,520px);overflow:auto}
+.pop.open{display:block}
+.pop .ramp,.pop .steps{display:grid;grid-template-columns:72px repeat(12,1fr);gap:3px;align-items:center}
+.pop .ramp{margin-bottom:3px}
+.pop .steps{margin-bottom:6px}
+.pop .steps span{font-size:9px;color:var(--ink-3);text-align:center}
+.pop .hn{font-size:10px;color:var(--ink-3);white-space:nowrap}
+.pop .sw{width:100%;aspect-ratio:1;border:0;border-radius:3px;cursor:pointer;padding:0;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.pop .sw[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--ink),0 0 0 2px var(--panel)}
+.pop .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+
+.step{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--line-soft)}
+.step:last-child{border-bottom:0}
+.step .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;
+  font-weight:700;background:var(--panel-2);color:var(--ink-3);border:1px solid var(--line)}
+.step.hit .n{background:var(--success);border-color:var(--success);color:#fff}
+.step.skip{opacity:.5}
+.step .k{font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.step .v{color:var(--ink-3);font-size:11.5px;margin-top:2px}
+pre{margin:0;font-family:var(--mono);font-size:11px;line-height:1.55;overflow-x:auto;
+  background:var(--panel-2);border:1px solid var(--line-soft);border-radius:var(--r);padding:10px}
+pre .k{color:var(--interactive)} pre .s{color:var(--success)} pre .n2{color:var(--warning-ink)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;font-family:var(--mono);font-size:11px;overflow-wrap:anywhere}
+
+.lintrow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;padding:9px 13px;
+  border-bottom:1px solid var(--line-soft);align-items:start}
+.lintrow:last-child{border-bottom:0}
+.sev{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 5px;
+  border-radius:3px;text-align:center}
+.sev.pass{background:color-mix(in srgb,var(--success) 16%,transparent);color:var(--success)}
+.sev.warn{background:color-mix(in srgb,var(--warning) 30%,transparent);color:var(--warning-ink)}
+.sev.fail{background:color-mix(in srgb,var(--error) 16%,transparent);color:var(--error)}
+.lintrow .msg{font-size:12px} .lintrow .why{font-size:11px;color:var(--ink-3);margin-top:2px}
+.iconstrip{display:flex;gap:11px;flex-wrap:wrap}
+.iconstrip figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:5px;width:56px}
+.iconstrip figcaption{font-size:10px;color:var(--ink-3);text-align:center}
+.ibox{width:36px;height:36px;border-radius:var(--r);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,80px);z-index:80;
+  background:var(--gray-13);color:#fff;padding:9px 16px;border-radius:var(--r);font-size:12.5px;
+  box-shadow:0 6px 20px rgba(0,0,0,.3);opacity:0;transition:transform .2s,opacity .2s;
+  pointer-events:none;max-width:calc(100vw - 32px)}
+#toast.show{transform:translate(-50%,0);opacity:1}
+</style>
+
+<!-- ============================ Salesforce chrome ============================ -->
+<div class="shell">
+<div class="sf-global">
+  <div class="wordmark">SITETRACKER</div>
+  <div class="sf-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span>Search...</span></div>
+  <div class="sf-gicons">
+    <span class="gbox"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/></svg><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></span>
+    <span class="gi"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+    <span class="gi"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10a3.4 3.4 0 00.3-6.8A5.2 5.2 0 007 10.5 3.8 3.8 0 007 18z"/><path d="M12 15.6V9.4m0 0l-2.2 2.2M12 9.4l2.2 2.2"/></svg></span>
+    <span class="gi"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 114.3 1.5c-.7.9-2 1-2 2.4"/><circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none"/></svg></span>
+    <span class="gi"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.8"/><path d="M12 3.5v2.4M12 18.1v2.4M4.9 7.8l2 1.2M17.1 15l2 1.2M4.9 16.2l2-1.2M17.1 9l2-1.2"/></svg></span>
+    <span class="gi"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 16V11a4.5 4.5 0 019 0v5l1.6 2.2H5.9z"/><path d="M10.4 18.9a1.8 1.8 0 003.2 0"/></svg></span>
+    <span class="sf-avatar" title="Darshan P B"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="#DDEDEB"/><circle cx="16" cy="13" r="5.4" fill="#00847C"/>
+      <path d="M5.6 30a10.8 10.8 0 0120.8 0z" fill="#00847C"/></svg></span>
+  </div>
+</div>
+
+<nav class="sf-appnav" role="tablist" aria-label="Sitetracker GIS Link">
+  <span class="waffle"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg></span>
+  <div class="appname">Sitetracker GIS Link</div>
+  <button class="tab" role="tab" aria-selected="false" data-inert>Sitetracker Maps</button>
+  <button class="tab" role="tab" aria-selected="false" data-inert>Areas <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></button>
+  <button class="tab" role="tab" aria-selected="false" data-inert>Sites <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></button>
+  <button class="tab" role="tab" aria-selected="false" data-inert>Map Layers <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></button>
+  <button class="tab" role="tab" aria-selected="false" data-inert>Map Object Configurations <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></button>
+  <button class="tab" role="tab" aria-selected="false" data-inert>GIS Sync Templates <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></button>
+  <button class="tab isnew" role="tab" aria-selected="false" data-view="admin" id="tab-admin"
+    style="position:relative">Style Templates<span class="pin" id="pin1"
+    style="top:4px;right:-9px" title="Entry point 1 — the admin home: a new Lightning tab beside GIS Sync Templates">1</span></button>
+  <button class="tab" role="tab" aria-selected="true" data-view="maps">Lightning Maps (Beta)</button>
+  <span class="pencil"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5h4L20 8a2.5 2.5 0 00-3.5-3.5L5 16z"/></svg></span>
+</nav>
+
+<main>
+<!-- ======================== LIGHTNING MAPS (BETA) ======================== -->
+<section class="view active" id="view-maps">
+  <div class="lm">
+    <div class="lm-rail">
+      <button class="rtab" role="tab" aria-selected="true" data-mode="layers" title="Map Layers">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4L21 8l-9 4.6L3 8z"/><path d="M3.4 12.2L12 16.6l8.6-4.4M3.4 16.1L12 20.5l8.6-4.4"/></svg>
+      </button>
+      <button class="rtab" role="tab" aria-selected="false" data-mode="pt" title="Production Tracking">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.8s6.2-6.7 6.2-11.2a6.2 6.2 0 10-12.4 0C5.8 14.1 12 20.8 12 20.8z"/><circle cx="12" cy="9.4" r="2.4"/></svg>
+      </button>
+      <div class="grow"></div>
+      <div class="globe" title="Basemap" aria-hidden="true">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2M12 3.4c3.1 3.4 3.1 13.8 0 17.2M12 3.4c-3.1 3.4-3.1 13.8 0 17.2"/></svg>
+      </div>
+      <button class="collapse" title="Collapse"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 6L7 12l5.5 6M18.5 6L13 12l5.5 6"/></svg></button>
+    </div>
+
+    <div class="lm-panel">
+      <div class="lm-phead">
+        <h3 id="panel-title">Map Layers</h3>
+        <button class="iconbtn ghost" title="Collapse panel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 6L7 12l5.5 6M18.5 6L13 12l5.5 6"/></svg></button>
+      </div>
+      <div class="lm-pbody" id="panel-body"></div>
+      <div class="lm-pfoot" id="panel-foot"></div>
+    </div>
+
+    <div class="lm-map">
+      <svg id="map" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"
+        role="img" tabindex="0"
+        aria-label="Lightning Maps with fibre segments and structures styled by the resolved style template"></svg>
+
+      <div class="mapbadges">
+        <span class="pill teal" id="badge-tmpl"></span>
+        <span class="pill" id="badge-mode"></span>
+        <span class="pill" id="badge-src"></span>
+      </div>
+
+      <div class="zoomlvl" id="zoomlvl">z 0.0</div>
+      <div class="mzoom">
+        <button class="msquare" id="zin" title="Zoom in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></button>
+        <button class="msquare" id="zout" title="Zoom out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+      </div>
+
+      <div class="mtoolbar">
+        <div class="mgroup">
+          <button title="Draw"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V4l10 4-10 4"/></svg></button>
+          <button title="Add record"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5l7-3.5 6 3 5-2v11l-5 2-6-3-7 3.5z"/><path d="M17 14v6M14 17h6"/></svg></button>
+          <button title="Attribute table" id="tbltoggle" aria-pressed="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="1.6"/><path d="M3.5 9.7h17M3.5 14.3h17M9.5 5v14"/></svg></button>
+        </div>
+        <div class="mgroup"><button title="Search"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button></div>
+        <div class="mgroup"><button title="Measure"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.6" y="8.5" width="18.8" height="7" rx="1.4" transform="rotate(-12 12 12)"/><path d="M7 9.6v2M11 8.8v2M15 8v2"/></svg></button></div>
+        <div class="mgroup" id="gearwrap" style="position:relative">
+          <button title="Progress tracking settings" id="ptgear"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><path d="M19.3 14.4a7.6 7.6 0 000-4.8l-2-.5-.9-1.6 1-1.8a7.6 7.6 0 00-4.1-2.4l-1.3 1.6H10l-1.3-1.6a7.6 7.6 0 00-4.1 2.4l1 1.8-.9 1.6-2 .5a7.6 7.6 0 000 4.8l2 .5.9 1.6-1 1.8a7.6 7.6 0 004.1 2.4l1.3-1.6h2l1.3 1.6a7.6 7.6 0 004.1-2.4l-1-1.8.9-1.6z"/></svg></button>
+          <span class="pin" id="pin4" style="top:-8px;right:-8px"
+            title="Entry point 4 — Progress Tracking gear: status colours and legend for the PT overlay">4</span>
+        </div>
+      </div>
+
+      <div class="basemapthumb" title="Basemap gallery">
+        <div class="im"></div>
+        <div class="lb"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4L21 8l-9 4.6L3 8z"/><path d="M3.4 12.2L12 16.6l8.6-4.4M3.4 16.1L12 20.5l8.6-4.4"/></svg><span>Layers</span></div>
+      </div>
+
+      <div class="legend" id="legend" hidden>
+        <span class="pin" id="pin5" style="top:-9px;right:-9px"
+          title="Entry point 5 — the legend derives from the same resolved document as the map">5</span>
+      </div>
+
+      <div class="mbr">
+        <button class="msquare" title="Full screen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15"/></svg></button>
+        <button class="msquare" title="Print"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 8.5V4h10v4.5"/><rect x="4" y="8.5" width="16" height="7" rx="1.4"/><path d="M7 15.5V20h10v-4.5"/></svg></button>
+        <button class="msquare" title="Locate me"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21"/></svg></button>
+        <button class="msquare" title="Compass"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M12 5.6l2.6 8.2L12 12l-2.6 1.8z" fill="currentColor" stroke="none"/></svg></button>
+      </div>
+      <div class="edgetab" title="Expand panel"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== STYLE TEMPLATES (admin tab) ======================== -->
+<section class="view" id="view-admin">
+  <div class="adm">
+    <div class="card" style="padding:0">
+      <div class="subtabs" role="tablist" aria-label="Style Templates">
+        <button role="tab" aria-selected="true"  data-sub="list">Templates</button>
+        <button role="tab" aria-selected="false" data-sub="bind">Layers &amp; items</button>
+        <button role="tab" aria-selected="false" data-sub="engine">Rule engine <span class="pill" style="font-size:9px">explainer</span></button>
+        <button role="tab" aria-selected="false" data-sub="doc">Compiled document <span class="pill" style="font-size:9px">explainer</span></button>
+        <button role="tab" aria-selected="false" data-sub="tokens">Tokens &amp; lint <span class="pill" style="font-size:9px">explainer</span></button>
+      </div>
+    </div>
+
+    <!-- Templates -->
+    <div class="subview active" id="sub-list">
+      <div id="draftnotice"></div>
+      <div class="lv">
+        <div class="lvhead">
+          <span class="objicon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+            aria-hidden="true"><path d="M12 3.4L21 8l-9 4.6L3 8z"/>
+            <path d="M3.4 12.2L12 16.6l8.6-4.4"/></svg></span>
+          <div class="lvtitle">
+            <div class="kicker">Map Style Template</div>
+            <h2>Style Templates</h2>
+            <div class="lvmeta" id="lvmeta"></div>
+          </div>
+          <div class="lvacts">
+            <button class="btn sm">Import</button>
+            <button class="btn sm">Printable View</button>
+            <button class="btn sm pri" id="newtemplate">New</button>
+          </div>
+        </div>
+        <div class="lvctrl">
+          <span class="lvsearch" id="lvsearch-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/>
+              <path d="M15.5 15.5L21 21"/></svg><span>Search this list...</span></span>
+          <div class="lvicons" id="lvicons"></div>
+        </div>
+        <div class="scrollx">
+          <table class="tbl"><thead><tr>
+            <th class="cbx"><input type="checkbox" aria-label="Select all"></th>
+            <th class="sortable sorted" data-sort="name">Name <span class="sar">▲</span></th>
+            <th class="sortable" data-sort="status">Status <span class="sar">▲</span></th>
+            <th class="sortable" data-sort="origin">Origin <span class="sar">▲</span></th>
+            <th class="sortable" data-sort="version">Version <span class="sar">▲</span></th>
+            <th>Rules</th><th>Stops</th>
+            <th class="sortable" data-sort="layers">Linked Layers <span class="sar">▲</span></th>
+            <th>Icon Library</th>
+            <th class="sortable" data-sort="published">Published <span class="sar">▲</span></th>
+            <th class="rowact"></th>
+          </tr></thead><tbody id="tmpltbody"></tbody></table>
+        </div>
+      </div>
+      <p class="note" style="margin:10px 2px">Resolution order for any layer: layer link →
+        object-configuration link → org default → shipped “Sitetracker Default” → the ArcGIS
+        service’s own renderer → legacy <span class="mono">Layer_Styling__c</span>. Exactly one
+        published template resolves per layer; per-layer edits are copy-on-write, never an
+        override merge.</p>
+    </div>
+
+    <!-- Layers & items: load layers, bind templates, configure items -->
+    <div class="subview" id="sub-bind">
+      <div class="card">
+        <header><h4 class="eyebrow">Load layers</h4><div class="sp"></div>
+          <button class="btn sm">Add from ArcGIS…</button>
+          <button class="btn sm">Add from file (GeoJSON / SHP)</button>
+          <button class="btn sm">Add from Vetro</button></header>
+        <div class="pad note" style="padding-bottom:0">
+          An ArcGIS feature service arrives <b>with its own renderer</b> in <span class="mono">drawingInfo</span>.
+          That is why every layer needs an explicit symbology source rather than a silent default —
+          and why read-only Living Atlas content is treated differently.
+        </div>
+        <div class="scrollx" style="max-height:none">
+          <table class="tbl"><thead><tr><th>Layer</th><th>Source</th><th>Geometry</th><th>Sync</th>
+            <th>Symbology source</th><th>Style template</th><th>Items</th><th></th>
+          </tr></thead><tbody id="bindbody"></tbody></table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <header><h4 class="eyebrow">Configure items</h4><div class="sp"></div>
+          <span class="note" id="binditemhdr"></span></header>
+        <div class="scrollx" style="max-height:none">
+          <table class="tbl"><thead><tr><th>Item</th><th>Classified value</th><th>Matched stop</th>
+            <th>Symbol</th><th>Token</th><th>Complete</th><th>Visible</th>
+          </tr></thead><tbody id="binditems"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rule engine -->
+    <div class="subview" id="sub-engine">
+      <div class="card" style="margin-bottom:12px">
+        <header><h4 class="eyebrow">Resolve a record</h4><div class="sp"></div>
+          <select id="engrec" style="max-width:340px"></select></header>
+        <div class="pad note" style="padding-top:0">One resolver feeds the map, the legend, the
+          attribute table and this trace — so they cannot disagree.</div>
+      </div>
+      <div class="grid2">
+        <div class="card"><header><h4 class="eyebrow">1 · Template precedence</h4></header>
+          <div class="pad" id="tr-precedence"></div></div>
+        <div class="card"><header><h4 class="eyebrow">2 · Rule &amp; stop match</h4></header>
+          <div class="pad" id="tr-match"></div></div>
+        <div class="card"><header><h4 class="eyebrow">3 · State overlays (fixed order)</h4></header>
+          <div class="pad" id="tr-overlay"></div></div>
+        <div class="card"><header><h4 class="eyebrow">4 · Final symbol</h4></header>
+          <div class="pad" id="tr-final"></div></div>
+      </div>
+    </div>
+
+    <!-- Compiled doc -->
+    <div class="subview" id="sub-doc">
+      <div class="grid2">
+        <div class="card"><header><h4 class="eyebrow">Compiled style document</h4><div class="sp"></div>
+          <span class="note">served to web + mobile</span></header>
+          <div class="pad"><pre id="docjson"></pre></div></div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card"><header><h4 class="eyebrow">Delivery</h4></header>
+            <div class="pad"><dl class="kv" id="delivery"></dl></div></div>
+          <div class="card"><header><h4 class="eyebrow">Contract delta proposed</h4></header>
+            <div class="pad note">Every symbol carries <span class="mono">token</span> beside
+              <span class="mono">color</span>. A client that ignores it renders identically, but a
+              re-themed org can re-resolve names and a support screenshot names the token rather than
+              just a hex. No capability flag needed.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tokens -->
+    <div class="subview" id="sub-tokens">
+      <div class="grid2">
+        <div class="card"><header><h4 class="eyebrow">Contrast rule, applied</h4></header>
+          <div class="pad"><p class="note" style="margin:0 0 10px">The library states it: every colour
+            has a value 0–100 (100 white, 0 black); <b>≥ 50 apart → 4.5:1</b> (text),
+            <b>≥ 40 apart → 3.0:1</b> (non-text). Measured below as CIE L*.</p></div>
+          <div id="contrastlint"></div></div>
+        <div class="card"><header><h4 class="eyebrow">Library defects found</h4></header>
+          <div id="defects"></div></div>
+        <div class="card" style="grid-column:1/-1"><header><h4 class="eyebrow">Vibrant palette</h4>
+          <div class="sp"></div><span class="note">12 hues × 12 steps · pixel-verified</span></header>
+          <div class="pad" id="palettegrid"></div></div>
+        <div class="card" style="grid-column:1/-1"><header><h4 class="eyebrow">Shipped map code vs the token set</h4>
+          <div class="sp"></div><span class="note">tests excluded</span></header>
+          <div class="scrollx"><table class="tbl"><thead><tr><th>Colour</th><th>Where</th>
+            <th>On token?</th><th>Nearest DS token</th><th>Δ</th></tr></thead>
+            <tbody id="compliance"></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+
+<div class="pop" id="pop" role="dialog" aria-label="Choose a palette token"></div>
+<div class="mockdock" id="mockdock">
+<!-- Not part of the product UI: the knobs that make this mock explorable. -->
+<div class="mockbar">
+  <span class="eyebrow" style="color:var(--interactive)">Mock controls</span>
+  <label>Icon library <select id="iconlib"></select></label>
+  <label>Colour by <select id="colormode">
+    <option value="base">Template symbology</option>
+    <option value="status" selected>Status overlay</option>
+    <option value="variance">Variance</option></select></label>
+  <button class="pill on" id="flag" aria-pressed="true"
+    title="Sitetracker_GIS_Configuration__mdt · Enable_Style_Templates">
+    <span class="led"></span>Style templates ON</button>
+  <button class="btn sm" id="theme">Light / dark basemap</button>
+  <button class="btn sm" id="annoton">Show entry points</button>
+  <span style="flex:1"></span>
+  <button class="btn sm" id="mockhide">Hide dock ▾</button>
+</div>
+
+<div class="annotbar">
+  <ol>
+    <li><span class="k">1</span><div><b>Style Templates tab</b> — admin home. Sits beside GIS Sync
+      Templates, the same shape of thing.</div></li>
+    <li><span class="k">2</span><div><b>Layer card “…” menu</b> — <i>Style Layer</i> on one layer.
+      The Esri-style per-layer route.</div></li>
+    <li><span class="k">3</span><div><b>View “…” menu</b> — apply a template to every layer in the
+      saved view at once.</div></li>
+    <li><span class="k">4</span><div><b>Progress Tracking gear</b> — status colours + legend for the
+      PT overlay (not base symbology).</div></li>
+    <li><span class="k">5</span><div><b>Legend</b> — reads the same resolved document, so it can
+      never disagree with the map.</div></li>
+  </ol>
+  <button class="btn sm" id="annotoff">Hide</button>
+</div>
+</div>
+<button class="mocktoggle" id="mocktoggle" title="Mock controls"><svg width="14" height="14"
+  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+  aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><path d="M12 4v2M12 18v2M5.6 7.8l1.7 1M16.7 15.2l1.7 1M5.6 16.2l1.7-1M16.7 8.8l1.7-1"/></svg>
+  <span>Mock controls</span></button>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   1. TOKENS (pixel-verified from the Web Design Library)
+   ========================================================================== */
+const STEPS = [95,90,80,70,65,60,50,40,30,20,15,10];
+const PALETTE = {
+  HOT_ORANGE:['#FEF1ED','#FFDED5','#FEB9A5','#FF906E','#FF784F','#FF5D2D','#D83A00','#AA3001','#7E2600','#541D01','#421604','#281202'],
+  ORANGE:['#FFF1EA','#FEDFD0','#FFBA90','#FE9339','#F38303','#DD7A01','#A96404','#825101','#5F3E02','#3E2B02','#371E03','#201600'],
+  YELLOW:['#FBF3E0','#F9E3B6','#FCC003','#E4A201','#D79304','#CA8501','#A86403','#8C4B02','#6F3400','#4F2100','#2E2204','#281202'],
+  GREEN:['#EBF7E6','#CDEFC4','#91DB8B','#45C65A','#41B658','#3BA755','#2E844A','#22683E','#194E31','#0E3522','#0C2912','#071B12'],
+  TEAL:['#DEF9F3','#ACF3E4','#04E1CB','#01C3B3','#03B4A7','#06A59A','#0B827C','#056764','#024D4C','#023434','#072825','#071B12'],
+  CLOUD_BLUE:['#EAF5FE','#CFE9FE','#90D0FE','#1AB9FF','#08ABED','#0D9DDA','#107CAD','#05628A','#084968','#023248','#0A2636','#001A28'],
+  BLUE:['#EEF4FF','#D8E6FE','#AACBFF','#78B0FC','#57A3FC','#1B96FF','#0176D3','#0B5CAB','#014486','#032D60','#03234D','#001639'],
+  INDIGO:['#F1F3FB','#E0E5F8','#BEC7F6','#9EA9F1','#8E9BEF','#7F8CED','#5867E8','#3A49DA','#2F2CB7','#260F8F','#1F0974','#200647'],
+  PURPLE:['#F6F2FB','#ECE1F9','#D7BFF2','#C29EF1','#B78DEF','#AD7BEE','#9050E9','#7526E3','#5A1BA9','#401075','#300B60','#240643'],
+  VIOLET:['#F9F0FF','#F2DEFE','#E5B9FE','#D892FE','#D17DFE','#CB65FF','#BA01FF','#9602C7','#730394','#3D0157','#3D0157','#2E0039'],
+  PINK:['#FEF0F3','#FCDDE3','#FCB6C5','#FE8AA7','#FE7298','#FF538A','#E3066A','#B60554','#8A033E','#61022A','#4B0620','#370114'],
+  RED:['#FEF1EE','#FEDED8','#FEB8AB','#FE8F7D','#FE7765','#FE5C4C','#EA001E','#BA0517','#8E030F','#640103','#4A0C04','#300C01']
+};
+const FOUNDATION = {
+  '$color-gray-1':'#FFFFFF','$color-gray-2':'#FAFAF9','$color-gray-3':'#F3F2F2','$color-gray-4':'#ECEBEA',
+  '$color-gray-5':'#DDDBDA','$color-gray-6':'#C9C7C5','$color-gray-7':'#B0ADAB','$color-gray-8':'#969492',
+  '$color-gray-9':'#706E6B','$color-gray-10':'#514F4D','$color-gray-11':'#3E3E3C','$color-gray-12':'#2B2826',
+  '$color-gray-13':'#080707','$brand-primary':'#1589EE','$brand-accessible':'#0070D2',
+  '$brand-accessible-active':'#005FB2','$color-background-selection':'#D8EDFF',
+  '$color-background-inverse':'#061C3F','$color-background-alt-inverse':'#16325C',
+  '$color-border-separator-inverse':'#2A426C','$color-text-link':'#006DCC','$color-text-link-active':'#00396B',
+  '$color-background-success':'#4BCA81','$color-background-success-dark':'#04844B',
+  '$color-text-success':'#027E46','$color-background-row-new':'#D9FFDF','$color-background-success-darker':'#004A29',
+  '$color-background-warning':'#FFB75D','$color-background-warning-dark':'#FF9E2C',
+  '$color-background-customer':'#FF9A3C','$color-text-warning-alt':'#844800',
+  '$color-background-error':'#D4504C','$color-background-error-dark':'#C23934',
+  '$color-background-destructive-hover':'#A61A14','$color-background-destructive-active':'#870500',
+  '$color-background-highlight':'#FAFFBD','$color-background-highlight-search':'#FFF03F',
+  '$icon-default':'#706E6B','$icon-light':'#B0ADAB','$icon-disabled':'#DDDBDA','$icon-dark':'#3E3E3C',
+  '$icon-white':'#FFFFFF','$icon-brand':'#0070D2','$icon-brand-teal':'#00847C','$icon-success':'#027E46',
+  '$icon-warning':'#FFB75D','$icon-error':'#C23934'
+};
+const TOKEN_BY_HEX = (()=>{const m=new Map();
+  for(const [h,a] of Object.entries(PALETTE)) a.forEach((x,i)=>{const k=x.toLowerCase();
+    if(!m.has(k)) m.set(k,`$PALETTE_${h}_${STEPS[i]}`);});
+  for(const [n,x] of Object.entries(FOUNDATION))
+    if(x.startsWith('#') && !m.has(x.toLowerCase())) m.set(x.toLowerCase(),n);
+  return m;})();
+const tokenFor = hex => TOKEN_BY_HEX.get(String(hex||'').toLowerCase()) || null;
+function resolveToken(t){
+  if(!t) return null;
+  if(t.startsWith('$PALETTE_')){const m=t.match(/^\$PALETTE_(.+)_(\d+)$/);
+    if(m && PALETTE[m[1]]) return PALETTE[m[1]][STEPS.indexOf(+m[2])]||null;}
+  return FOUNDATION[t]||null;
+}
+const srgb = h => {const s=h.replace('#','');return [0,2,4].map(i=>parseInt(s.substr(i,2),16)/255)};
+const lin = c => c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4);
+function lstar(h){const [r,g,b]=srgb(h).map(lin);const y=0.2126*r+0.7152*g+0.0722*b;
+  return y<=216/24389 ? y*(24389/27) : Math.cbrt(y)*116-16;}
+function relLum(h){const [r,g,b]=srgb(h).map(lin);return 0.2126*r+0.7152*g+0.0722*b;}
+function contrast(a,b){const [x,y]=[relLum(a),relLum(b)].sort((p,q)=>q-p);return (x+0.05)/(y+0.05);}
+const V = h => Math.round(lstar(h));
+const glyphInkFor = f => V(f) < 55 ? FOUNDATION['$icon-white'] : FOUNDATION['$icon-dark'];
+const nearestToken = hex => {let best=null,bd=Infinity;const [r1,g1,b1]=srgb(hex);
+  for(const [hx,name] of TOKEN_BY_HEX){const [r2,g2,b2]=srgb(hx);
+    const d=Math.hypot(r1-r2,g1-g2,b1-b2); if(d<bd){bd=d;best={name,hex:hx};}}
+  return {...best,dist:Math.round(bd*255)};};
+
+
+/* SLDS-style UI icons, 24-grid, drawn for the mock. Emoji were the biggest
+   "this is not a product" tell. */
+const UI = {
+  search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+  star:'<path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/>',
+  add:'<path d="M12 5v14M5 12h14"/>',
+  cloud:'<path d="M7 18h10a3.4 3.4 0 00.3-6.8A5.2 5.2 0 007 10.5 3.8 3.8 0 007 18z"/><path d="M12 15V9m0 0l-2.2 2.2M12 9l2.2 2.2"/>',
+  help:'<circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 114.3 1.5c-.7.9-2 1-2 2.4"/><circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none"/>',
+  setup:'<circle cx="12" cy="12" r="2.8"/><path d="M12 3.5v2.4M12 18.1v2.4M4.9 7.8l2 1.2M17.1 15l2 1.2M4.9 16.2l2-1.2M17.1 9l2-1.2"/>',
+  bell:'<path d="M7.5 16V11a4.5 4.5 0 019 0v5l1.6 2.2H5.9z"/><path d="M10.4 18.9a1.8 1.8 0 003.2 0"/>',
+  layers:'<path d="M12 3.4L21 8l-9 4.6L3 8z"/><path d="M3.4 12.2L12 16.6l8.6-4.4M3.4 16.1L12 20.5l8.6-4.4"/>',
+  pin:'<path d="M12 20.8s6.2-6.7 6.2-11.2a6.2 6.2 0 10-12.4 0C5.8 14.1 12 20.8 12 20.8z"/><circle cx="12" cy="9.4" r="2.4"/>',
+  globe:'<circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2M12 3.4c3.1 3.4 3.1 13.8 0 17.2M12 3.4c-3.1 3.4-3.1 13.8 0 17.2"/>',
+  chevL:'<path d="M14.5 5.5L8 12l6.5 6.5"/>',
+  chevR:'<path d="M9.5 5.5L16 12l-6.5 6.5"/>',
+  chevD:'<path d="M5.5 9.5L12 16l6.5-6.5"/>',
+  dblL:'<path d="M12.5 6L7 12l5.5 6M18.5 6L13 12l5.5 6"/>',
+  ellipsis:'<circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none"/>',
+  eye:'<path d="M2.6 12S6.2 6.4 12 6.4 21.4 12 21.4 12 17.8 17.6 12 17.6 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/>',
+  eyeOff:'<path d="M4.6 8.2C3.3 9.6 2.6 12 2.6 12s3.6 5.6 9.4 5.6c1.5 0 2.8-.35 4-.95M9 6.7c1-.2 2-.3 3-.3 5.8 0 9.4 5.6 9.4 5.6s-.8 1.3-2.2 2.7"/><path d="M4.4 4.4l15.2 15.2"/>',
+  collapseAll:'<path d="M6 9.5L12 15l6-5.5"/><path d="M4.5 5h15"/>',
+  expandAll:'<path d="M6 14.5L12 9l6 5.5"/><path d="M4.5 19h15"/>',
+  filter:'<path d="M4 5.5h16l-6.3 7.4v5.6l-3.4-1.7v-3.9z"/>',
+  grip:'<circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"/>',
+  plus:'<path d="M12 6v12M6 12h12"/>',
+  minus:'<path d="M6 12h12"/>',
+  draw:'<path d="M6 20V4l10 4-10 4"/>',
+  addRec:'<path d="M4 7.5l7-3.5 6 3 5-2v11l-5 2-6-3-7 3.5z"/><path d="M17 14v6M14 17h6"/>',
+  table:'<rect x="3.5" y="5" width="17" height="14" rx="1.6"/><path d="M3.5 9.7h17M3.5 14.3h17M9.5 5v14"/>',
+  ruler:'<rect x="2.6" y="8.5" width="18.8" height="7" rx="1.4" transform="rotate(-12 12 12)"/><path d="M7 9.6v2M11 8.8v2M15 8v2"/>',
+  gear:'<circle cx="12" cy="12" r="2.6"/><path d="M19.3 14.4a7.6 7.6 0 000-4.8l-2-.5-.9-1.6 1-1.8a7.6 7.6 0 00-4.1-2.4l-1.3 1.6H10l-1.3-1.6a7.6 7.6 0 00-4.1 2.4l1 1.8-.9 1.6-2 .5a7.6 7.6 0 000 4.8l2 .5.9 1.6-1 1.8a7.6 7.6 0 004.1 2.4l1.3-1.6h2l1.3 1.6a7.6 7.6 0 004.1-2.4l-1-1.8.9-1.6z"/>',
+  expand:'<path d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15"/>',
+  print:'<path d="M7 8.5V4h10v4.5"/><rect x="4" y="8.5" width="16" height="7" rx="1.4"/><path d="M7 15.5V20h10v-4.5"/>',
+  locate:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21"/>',
+  compass:'<circle cx="12" cy="12" r="8.6"/><path d="M12 5.6l2.6 8.2L12 12l-2.6 1.8z" fill="currentColor" stroke="none"/>',
+  cloudOff:'<path d="M7.6 17.6h9.1a3.3 3.3 0 001.3-6.4"/><path d="M15.6 8.7A5.1 5.1 0 007 10.3a3.7 3.7 0 00.4 7.3"/><path d="M4.3 4.3l15.4 15.4"/>',
+  ext:'<path d="M14 5h5v5"/><path d="M19 5l-7.5 7.5"/><path d="M17 13.5V19H5V7h5.5"/>',
+  close:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  doc:'<path d="M6.5 3.5h7L18 8v12.5h-11.5z"/><path d="M13.2 3.6V8H18"/><path d="M9 12h6M9 15.5h6"/>',
+  sparkle:'<path d="M12 3.5l1.7 4.8 4.8 1.7-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>'
+};
+function ic(name, px, sw){
+  const d = UI[name]; if(!d) return '';
+  return `<svg width="${px||18}" height="${px||18}" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="${sw||1.6}" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true">${d}</svg>`;
+}
+
+/* ==========================================================================
+   2. ICON LIBRARIES — four idioms. Representative glyphs drawn for this mock,
+   NOT the licensed glyph data. Calcite is the map app's real set.
+   ========================================================================== */
+const HOLE = 'rgba(255,255,255,.92)';
+const ICON_LIBS = {
+  calcite:{label:'Esri Calcite (map app)',grid:16,stroke:1.5,glyphs:{
+    site:`<path d="M8 1.6c-2.6 0-4.7 2.1-4.7 4.7 0 3.5 4.7 8.2 4.7 8.2s4.7-4.7 4.7-8.2C12.7 3.7 10.6 1.6 8 1.6z"/><circle cx="8" cy="6.2" r="1.8"/>`,
+    pole:`<path d="M8 2v12"/><path d="M4 4.2h8"/>`,
+    cabinet:`<rect x="3.2" y="2.6" width="9.6" height="10.8"/><path d="M8 6v4"/>`,
+    splice:`<circle cx="8" cy="8" r="5.2"/><circle cx="8" cy="8" r="1.7"/>`,
+    vault:`<rect x="2.4" y="6.2" width="11.2" height="7.2"/><path d="M5 6.2V3.4h6v2.8"/>`,
+    meter:`<circle cx="8" cy="8" r="5.4"/><path d="M8 8V4.3"/>`}},
+  slds:{label:'Lightning SLDS (host chrome)',grid:24,glyphs:{
+    site:`<path d="M12 2c-3.9 0-7 3.1-7 7 0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.6" fill="${HOLE}"/>`,
+    pole:`<rect x="10.8" y="3" width="2.4" height="18" rx="1.2"/><rect x="6" y="5" width="12" height="2.3" rx="1.15"/>`,
+    cabinet:`<rect x="5" y="4.5" width="14" height="15" rx="2.6"/><rect x="11.3" y="9" width="1.4" height="6" rx=".7" fill="${HOLE}"/>`,
+    splice:`<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.7" fill="${HOLE}"/>`,
+    vault:`<rect x="4" y="8.4" width="16" height="10" rx="2"/><rect x="7" y="5" width="10" height="3.2" rx="1.6"/>`,
+    meter:`<circle cx="12" cy="12" r="7.6"/><rect x="11.2" y="6" width="1.6" height="6.4" rx=".8" fill="${HOLE}"/>`}},
+  fa:{label:'FontAwesome Pro (mobile)',grid:20,glyphs:{
+    site:`<path fill-rule="evenodd" d="M10 .8C6.5.8 3.7 3.6 3.7 7.1c0 4.8 6.3 12.1 6.3 12.1s6.3-7.3 6.3-12.1C16.3 3.6 13.5.8 10 .8zm0 4a2.9 2.9 0 110 5.8 2.9 2.9 0 010-5.8z"/>`,
+    pole:`<path d="M9 1.4h2V18.6H9z"/><path d="M3.6 3h12.8v2.4H3.6z"/>`,
+    cabinet:`<path fill-rule="evenodd" d="M3.4 2.4h13.2c.6 0 1 .4 1 1v13.2c0 .6-.4 1-1 1H3.4c-.6 0-1-.4-1-1V3.4c0-.6.4-1 1-1zm5.7 5.2h1.8v4.8H9.1z"/>`,
+    splice:`<path fill-rule="evenodd" d="M10 2.4a7.6 7.6 0 100 15.2 7.6 7.6 0 000-15.2zm0 5a2.6 2.6 0 110 5.2 2.6 2.6 0 010-5.2z"/>`,
+    vault:`<path d="M1.8 7.2h16.4v9.4H1.8z"/><path d="M5.6 3.2h8.8v4H5.6z"/>`,
+    meter:`<path fill-rule="evenodd" d="M10 1.6a8.4 8.4 0 100 16.8 8.4 8.4 0 000-16.8zm.9 3.6v5.6H9.1V5.2z"/>`}},
+  maki:{label:'Maki map glyphs',grid:15,glyphs:{
+    site:`<path d="M7.5 1.1c-2.3 0-4.1 1.8-4.1 4.1 0 3 4.1 8.2 4.1 8.2s4.1-5.2 4.1-8.2c0-2.3-1.8-4.1-4.1-4.1z"/>`,
+    pole:`<path d="M6.9 2h1.2v11H6.9z"/><path d="M3.4 2.8h8.2v1.5H3.4z"/>`,
+    cabinet:`<path d="M3.1 3.1h8.8v8.8H3.1z"/>`,
+    splice:`<circle cx="7.5" cy="7.5" r="4.2"/>`,
+    vault:`<path d="M1.9 5.9h11.2v6.2H1.9z"/>`,
+    meter:`<circle cx="7.5" cy="7.5" r="4.5"/><path d="M7 3.8h1v4H7z" fill="${HOLE}"/>`}}
+};
+function iconSVG(libKey, glyph, ink, px){
+  const lib = ICON_LIBS[libKey]||ICON_LIBS.calcite, g = lib.glyphs[glyph], size = px||18;
+  if(!g) return `<svg width="${size}" height="${size}" viewBox="0 0 10 10" aria-hidden="true">
+    <circle cx="5" cy="5" r="3.2" fill="${ink}"/></svg>`;
+  const paint = lib.stroke
+    ? `fill="none" stroke="${ink}" stroke-width="${lib.stroke}" stroke-linecap="round" stroke-linejoin="round"`
+    : `fill="${ink}"`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${lib.grid} ${lib.grid}" aria-hidden="true">
+    <g ${paint}>${g}</g></svg>`;
+}
+
+/* ==========================================================================
+   3. TEMPLATE (compiled-document shape + the proposed `token` field)
+   ========================================================================== */
+const sym = (token, extra) => ({token, color:resolveToken(token), ...extra});
+const TEMPLATE = {
+  schemaVersion:1, templateId:'a0X8d0000001AbCEA2', name:'Acme Fiber Standard',
+  status:'Active', origin:'org', isOrgDefault:false, version:11,
+  publishedAt:'2026-08-01T09:14:00Z', capabilities:['simple','uniqueValue','icons'],
+  iconLibrary:'calcite',
+  rules:[
+    {geometry:'polyline',variant:'design',renderer:{type:'uniqueValue',
+      classification:{source:'record',field:'st_Unit_Code__c'},
+      stops:[
+        {value:'UC-FBR',label:'Fiber Backbone',symbol:sym('$PALETTE_VIOLET_50',{width:5})},
+        {value:'UC-CDT',label:'Conduit',symbol:sym('$PALETTE_ORANGE_50',{width:4,dash:[4,2]})},
+        {value:'UC-DRP',label:'Service Drop',symbol:sym('$PALETTE_CLOUD_BLUE_50',{width:2.5})}],
+      default:{label:'Unclassified',symbol:sym('$color-gray-9',{width:2})}}},
+    {geometry:'point',variant:'design',renderer:{type:'uniqueValue',
+      classification:{source:'record',field:'st_Structure_Type__c'},
+      stops:[
+        {value:'Pole',label:'Pole',symbol:sym('$PALETTE_TEAL_50',{size:11,shape:'circle',icon:'pole'})},
+        {value:'Cabinet',label:'Cabinet',symbol:sym('$PALETTE_INDIGO_50',{size:12,shape:'square',icon:'cabinet'})},
+        {value:'Splice',label:'Splice Closure',symbol:sym('$PALETTE_PINK_50',{size:11,shape:'circle',icon:'splice'})},
+        {value:'Vault',label:'Vault',symbol:sym('$PALETTE_YELLOW_50',{size:11,shape:'square',icon:'vault'})}],
+      default:{label:'Other structure',symbol:sym('$color-gray-9',{size:9,shape:'circle',icon:'site'})}}},
+    {geometry:'polygon',variant:'design',renderer:{type:'simple',
+      symbol:sym('$PALETTE_CLOUD_BLUE_50',{fillOpacity:0.14,outlineWidth:1.5})}}
+  ]
+};
+const STATUS_OVERLAY = {
+  'Unallocated':'$color-gray-9','Allocated':'$brand-accessible',
+  'Completed':'$color-text-success','Blocked':'$color-background-error-dark'
+};
+const VARIANCE_TOKEN = '$color-background-destructive-hover';
+const OTHER_TEMPLATES = [
+  {name:'Sitetracker Default',status:'Active',origin:'Sitetracker',version:1,rules:3,stops:6,layers:2,lib:'calcite',published:'2026-05-02'},
+  {name:'Acme Fiber Standard',status:'Active',origin:'Org',version:11,rules:3,stops:8,layers:3,lib:'calcite',published:'2026-08-01'},
+  {name:'Bozeman Training (ArcGIS parity)',status:'Draft',origin:'Org',version:0,rules:2,stops:5,layers:0,lib:'calcite',published:'—'},
+  {name:'Metro West — Permit review',status:'Archived',origin:'Org',version:4,rules:2,stops:5,layers:0,lib:'fa',published:'2026-03-18'}
+];
+
+/* ==========================================================================
+   4. DATA — layer panel rows use the real org's names from the Beta UI
+   ========================================================================== */
+const MAP_LAYER_VIEWS = ['Bozeman and Florida','All ArcGIS layers','NJ fiber build'];
+const PANEL_LAYERS = [
+  {id:'L1',name:'BOZEMAN TRAINING',caps:true,source:'ArcGIS',geometry:'polyline',sync:'error',
+   visible:'0/0',symbologySource:'service',template:null,items:0,
+   serviceRenderer:'uniqueValue on SUBTYPECD (7 classes)'},
+  {id:'L2',name:'Florida Project',source:'ArcGIS',geometry:'point',sync:'error',visible:'0/0',
+   symbologySource:'service',template:null,items:0,serviceRenderer:'simple, orange circle'},
+  {id:'L3',name:'NJ Fiber Segments',source:'Sitetracker',geometry:'polyline',sync:'ok',visible:'9/9',
+   symbologySource:'template',template:'Acme Fiber Standard',items:9,serviceRenderer:null},
+  {id:'L4',name:'NJ Structures',source:'Sitetracker',geometry:'point',sync:'ok',visible:'9/9',
+   symbologySource:'template',template:'Acme Fiber Standard',items:9,serviceRenderer:null},
+  {id:'L5',name:'Permit Envelopes',source:'Sitetracker',geometry:'polygon',sync:'ok',visible:'1/1',
+   symbologySource:'template-objconfig',template:'Acme Fiber Standard',items:1,serviceRenderer:null},
+  {id:'L6',name:'USA Structures',source:'Living Atlas',geometry:'point',sync:'ok',visible:'1/1',
+   symbologySource:'service',template:null,items:0,readOnly:true,
+   serviceRenderer:'Esri-authored, read-only content'}
+];
+/* Production Tracking items — names/percentages as they appear in the Beta UI */
+const PT_ITEMS = [
+  {name:'Bore (1.25 inch)',complete:0,visible:'0/0',code:'UC-CDT'},
+  {name:'Bore (1.25", 2")',complete:0,visible:'0/0',code:'UC-CDT'},
+  {name:'Bore (2 inch)',complete:0,visible:'0/0',code:'UC-CDT'},
+  {name:'Conduit 10m',complete:100,visible:'1/1',code:'UC-CDT'},
+  {name:'Drop Cable 5ln',complete:0,visible:'2/2',code:'UC-DRP'},
+  {name:'Electric Port Install',complete:0,visible:'3/3',code:'UC-XXX'},
+  {name:'Feeder',complete:0,visible:'0/0',code:'UC-FBR'},
+  {name:'Handhole 3m',complete:0,visible:'2/2',code:'Vault'},
+  {name:'POC Conduit Install',complete:100,visible:'1/1',code:'UC-CDT'},
+  {name:'POC Fiber Pull',complete:100,visible:'1/1',code:'UC-FBR'}
+];
+const SEGMENTS = [
+  {id:'PLA-4471',code:'UC-FBR',status:'Completed',variance:false,pts:[[80,560],[240,500],[380,400]]},
+  {id:'PLA-4472',code:'UC-FBR',status:'Completed',variance:false,pts:[[380,400],[540,315],[690,250]]},
+  {id:'PLA-4473',code:'UC-FBR',status:'Allocated',variance:true,pts:[[690,250],[820,195],[950,160]]},
+  {id:'PLA-4478',code:'UC-CDT',status:'Allocated',variance:false,pts:[[380,400],[345,265],[330,150]]},
+  {id:'PLA-4479',code:'UC-CDT',status:'Unallocated',variance:false,pts:[[690,250],[715,390],[730,520]]},
+  {id:'PLA-4482',code:'UC-DRP',status:'Completed',variance:false,pts:[[240,500],[222,605]]},
+  {id:'PLA-4483',code:'UC-DRP',status:'Allocated',variance:false,pts:[[540,315],[598,220]]},
+  {id:'PLA-4484',code:'UC-DRP',status:'Unallocated',variance:false,pts:[[820,195],[860,305]]},
+  {id:'PLA-4491',code:'UC-XXX',status:'Unallocated',variance:false,pts:[[730,520],[865,565]]}
+];
+const POINTS = [
+  {id:'STR-2201',type:'Cabinet',status:'Completed',variance:false,x:380,y:400},
+  {id:'STR-2202',type:'Splice',status:'Completed',variance:false,x:540,y:315},
+  {id:'STR-2203',type:'Splice',status:'Allocated',variance:false,x:690,y:250},
+  {id:'STR-2204',type:'Pole',status:'Allocated',variance:true,x:820,y:195},
+  {id:'STR-2205',type:'Pole',status:'Unallocated',variance:false,x:950,y:160},
+  {id:'STR-2206',type:'Vault',status:'Completed',variance:false,x:240,y:500},
+  {id:'STR-2207',type:'Vault',status:'Unallocated',variance:false,x:730,y:520},
+  {id:'STR-2208',type:'Meter',status:'Blocked',variance:false,x:330,y:150},
+  {id:'STR-2209',type:'Cabinet',status:'Unallocated',variance:false,x:860,y:305}
+];
+const AREAS = [{id:'AREA-88',name:'Permit envelope — Zone 3',pts:[[640,180],[900,128],[975,285],[755,350]]}];
+
+/* ==========================================================================
+   5. RULE ENGINE
+   ========================================================================== */
+let compareMode=false;
+const state = {
+  view:'maps', sub:'list', mode:'layers', panelMode:'layers', iconLib:'calcite', colorMode:'status',
+  flagOn:true, geometry:'polyline', variant:'design', selected:'PLA-4473',
+  statusFilters:new Set(['Unallocated','Allocated','Completed','Blocked']),
+  legendOn:true, zoom:1, dirty:false, bindLayer:'L3', annot:true, openMenu:null,
+  openRow:null, sortKey:'name', sortAsc:true
+};
+const layerFor = geometry => PANEL_LAYERS.find(l => l.geometry === geometry && l.source === 'Sitetracker')
+  || PANEL_LAYERS.find(l => l.geometry === geometry) || PANEL_LAYERS[2];
+
+function precedenceChain(layer){
+  const ss = layer.symbologySource;
+  const chain = [
+    {key:'Layer link', detail:'Map_Layer__c.st_Style_Template__c',
+     hit:state.flagOn && ss === 'template', value:layer.template},
+    {key:'Object-configuration link', detail:'Map_Object_Configuration__c.st_Style_Template__c',
+     hit:state.flagOn && ss === 'template-objconfig', value:layer.template},
+    {key:'Org default template', detail:'st_Is_Org_Default__c = true',
+     hit:state.flagOn && ss === 'org-default', value:'Sitetracker Default'},
+    {key:'Shipped “Sitetracker Default”', detail:"st_Source_Unique_Id__c = 'ST_DEFAULT'",
+     hit:state.flagOn && ss === 'shipped', value:'Sitetracker Default'},
+    {key:'ArcGIS service renderer', detail:'FeatureLayer.drawingInfo from the Esri service',
+     hit:(!state.flagOn && layer.source !== 'Sitetracker') || ss === 'service',
+     value:layer.serviceRenderer || 'service renderer'},
+    {key:'Legacy passthrough', detail:'Layer_Styling__c / hardcoded palette',
+     hit:true, value:'legacy renderer'}
+  ];
+  const first = chain.findIndex(c => c.hit);
+  return chain.map((c,i) => ({...c, resolved:i === first, skipped:i < first}));
+}
+function ruleFor(geometry, variant){
+  return TEMPLATE.rules.find(r => r.geometry === geometry &&
+    (r.variant === variant || (variant === 'asBuilt' && r.variant === 'design'))) || null;
+}
+function resolveBase(rec){
+  const rule = compareMode ? publishedRuleFor(rec.geometry) : ruleFor(rec.geometry, state.variant);
+  if(!rule) return {symbol:null, source:'no rule', rule:null, stop:null};
+  const r = rule.renderer;
+  if(r.type === 'simple') return {symbol:r.symbol, source:'simple renderer', rule, stop:null};
+  const stop = r.stops.find(s => s.value === rec.classifiedOn) || null;
+  return {symbol: stop ? stop.symbol : r.default.symbol,
+    source: stop ? `stop “${stop.value}”` : 'rule default (no matching stop)',
+    rule, stop, fallback: !stop};
+}
+function applyOverlays(base, rec){
+  const steps = [];
+  let fill = base.symbol ? base.symbol.color : FOUNDATION['$color-gray-9'];
+  let token = base.symbol ? base.symbol.token : '$color-gray-9';
+  const st = state.colorMode === 'status' && STATUS_OVERLAY[rec.status];
+  steps.push({key:'Progress-tracking status colour', hit:!!st,
+    detail: st ? `${rec.status} → ${STATUS_OVERLAY[rec.status]}`
+      : `not applied (colouring by ${state.colorMode === 'base' ? 'template symbology' : state.colorMode})`});
+  if(st){token = STATUS_OVERLAY[rec.status]; fill = resolveToken(token);}
+  const sel = rec.id === state.selected;
+  steps.push({key:'Selection casing', hit:sel,
+    detail: sel ? '3px casing in $brand-primary, symbol fill untouched' : 'record not selected'});
+  const va = state.colorMode === 'variance' && rec.variance;
+  steps.push({key:'Variance overlay', hit:va,
+    detail: va ? `as-built deviates from design → ${VARIANCE_TOKEN}`
+      : (rec.variance ? 'record has variance, but variance mode is off' : 'no variance on record')});
+  if(va){token = VARIANCE_TOKEN; fill = resolveToken(token);}
+  return {fill, token, steps, selected:sel, variance:va};
+}
+function resolveSymbol(rec){
+  const layer = layerFor(rec.geometry);
+  const chain = precedenceChain(layer);
+  const win = chain.find(c => c.resolved);
+  const viaService = win.key === 'ArcGIS service renderer';
+  const viaLegacy = win.key === 'Legacy passthrough';
+  const base = (viaService || viaLegacy)
+    ? {symbol:{token:null, color: viaService
+        ? (rec.geometry === 'polyline' ? '#E8A33D' : '#D6604D')     // typical Esri service colours
+        : (rec.geometry === 'polyline' ? '#0000FF' : '#969492'),
+        width:2, size:9, shape:'circle', icon:'site'},
+       source: viaService ? 'ArcGIS service renderer (drawingInfo)' : 'legacy Layer_Styling__c',
+       rule:null, stop:null}
+    : resolveBase(rec);
+  const ov = applyOverlays(base, rec);
+  return {layer, chain, base, ...ov, glyph: base.symbol?.icon || null,
+    glyphInk: glyphInkFor(ov.fill), width: base.symbol?.width ?? 2, size: base.symbol?.size ?? 10,
+    shape: base.symbol?.shape ?? 'circle', dash: base.symbol?.dash ?? null,
+    fillOpacity: base.symbol?.fillOpacity ?? null, viaService, viaLegacy};
+}
+function allRecords(){
+  const out = [];
+  for(const s of SEGMENTS) out.push({...s, geometry:'polyline', classifiedOn:s.code, field:'st_Unit_Code__c'});
+  for(const p of POINTS) out.push({...p, geometry:'point', classifiedOn:p.type, field:'st_Structure_Type__c'});
+  for(const a of AREAS) out.push({...a, geometry:'polygon', classifiedOn:'—', field:'—',
+    status:'Allocated', variance:false});
+  return out;
+}
+const visible = () => allRecords().filter(r => state.statusFilters.has(r.status));
+
+/* ==========================================================================
+   6. LINT — both grounds, always
+   ========================================================================== */
+const GROUNDS = [{name:'light basemap',L:91,hex:'#E8E4DC'},{name:'dark basemap',L:14,hex:'#12253F'}];
+function groundCheck(hex){
+  const v = V(hex);
+  const per = GROUNDS.map(g => ({...g, d:Math.abs(v-g.L), ok:Math.abs(v-g.L) >= 40, ratio:contrast(hex,g.hex)}));
+  const p = per.filter(x => x.ok).length;
+  return {v, per, sev: p === 0 ? 'fail' : p === 1 ? 'warn' : 'pass'};
+}
+function lintRows(){
+  const out = [], haloed = [];
+  for(const rule of TEMPLATE.rules){
+    const r = rule.renderer;
+    const syms = r.type === 'simple' ? [{label:'All',symbol:r.symbol}]
+      : [...r.stops, {label:r.default.label, symbol:r.default.symbol}];
+    for(const s of syms){
+      const g = groundCheck(s.symbol.color);
+      if(g.sev === 'warn') haloed.push({what:`${rule.geometry} · ${s.label}`, v:g.v,
+        clears:g.per.find(p=>p.ok).name.split(' ')[0]});
+      else out.push({sev:g.sev, msg:`${rule.geometry} · ${s.label} against both basemaps`,
+        why:`value ${g.v}. ${g.per.map(p=>`${p.name} ${p.d} pts (${p.ratio.toFixed(2)}:1) ${p.ok?'ok':'short'}`).join(' · ')}. `
+          + (g.sev==='pass' ? 'Clears the ≥ 40 non-text rule on both grounds.'
+             : 'Fails both grounds — this symbol cannot read on any basemap.')});
+      if(!s.symbol.token)
+        out.push({sev:'warn', msg:`${rule.geometry} · ${s.label} is off-token`,
+          why:`${s.symbol.color} is not a design-system value. Nearest is ${nearestToken(s.symbol.color).name} (${nearestToken(s.symbol.color).hex}).`});
+      if(s.symbol.icon){
+        const ink = glyphInkFor(s.symbol.color), d2 = Math.abs(V(s.symbol.color)-V(ink));
+        out.push({sev: d2 >= 40 ? 'pass':'fail', msg:`${rule.geometry} · ${s.label} glyph on fill`,
+          why:`glyph ink ${ink} (value ${V(ink)}) on fill value ${V(s.symbol.color)} → ${d2} points (${contrast(s.symbol.color,ink).toFixed(2)}:1).`});
+      }
+    }
+    if(r.type === 'uniqueValue'){
+      const hues = r.stops.map(s => (s.symbol.token||'').replace(/^\$PALETTE_(.+)_\d+$/,'$1'));
+      const dup = hues.filter((h,i) => h && hues.indexOf(h) !== i);
+      if(dup.length) out.push({sev:'warn', msg:`${rule.geometry} · two stops share a hue`,
+        why:`${[...new Set(dup)].join(', ')} used more than once. Categorical stops should differ by hue, not only by step.`});
+      for(let i=0;i<r.stops.length;i++) for(let j=i+1;j<r.stops.length;j++){
+        const a=r.stops[i], b=r.stops[j];
+        if(a.symbol.color.toLowerCase() === b.symbol.color.toLowerCase())
+          out.push({sev:'fail', msg:`${rule.geometry} · “${a.label}” and “${b.label}” are the same colour`,
+            why:`Both resolve to ${a.symbol.color}. The legend will claim a distinction the map cannot show.`});
+      }
+    }
+  }
+  for(const [st,tok] of Object.entries(STATUS_OVERLAY)){
+    const hex = resolveToken(tok);
+    if(!hex){out.push({sev:'fail',msg:`status “${st}” token does not resolve`,why:`${tok} is not a design-system token.`});continue;}
+    const g = groundCheck(hex);
+    if(g.sev === 'warn') haloed.push({what:`status · ${st}`, v:g.v, clears:g.per.find(p=>p.ok).name.split(' ')[0]});
+    else out.push({sev:g.sev, msg:`status overlay · ${st}`,
+      why:`${tok} → value ${g.v}. ${g.per.map(p=>`${p.name} ${p.d} pts ${p.ok?'ok':'needs halo'}`).join(' · ')}.`});
+  }
+  if(haloed.length){
+    const band = [...new Set(haloed.map(h=>h.clears))].join(' + ');
+    out.unshift({sev:'warn',
+      msg:`${haloed.length} symbols clear the ${band} basemap and rely on the halo for the other`,
+      why:`Values ${Math.min(...haloed.map(h=>h.v))}–${Math.max(...haloed.map(h=>h.v))}. Because the step scale is L*, `
+        + `the ≥ 40 rule leaves no step that clears a light ground (91) and a dark ground (14) at once. `
+        + `The 1.5px casing in the opposing neutral is the fix, and it is why every symbol here carries one. `
+        + `Publishable. Affected: ${haloed.map(h=>h.what).join(', ')}.`});
+  }
+  return out;
+}
+
+/* ==========================================================================
+   7. RENDER
+   ========================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+
+/* ==========================================================================
+   Map viewport. Zoom/pan is a real viewBox transform, and every symbol, stroke
+   and label is divided by the zoom scale so it keeps a constant SCREEN size —
+   which is what Mapbox and the ArcGIS JS API do. Without that, zooming in just
+   makes the lines fat.
+   ========================================================================== */
+const MAP_W = 1000, MAP_H = 700, VB_MIN = 150, VB_MAX = 1600;
+const vp = { cx:MAP_W/2, cy:MAP_H/2, w:MAP_W };
+const vbScale = () => vp.w / MAP_W;                 // <1 zoomed in, >1 zoomed out
+const zoomLevel = () => Math.round(Math.log2(MAP_W / vp.w) * 10) / 10;
+function applyViewBox(){
+  const h = vp.w * (MAP_H / MAP_W);
+  const half = vp.w / 2, halfH = h / 2;
+  // keep the centre inside the world so you cannot pan into empty space
+  vp.cx = Math.min(MAP_W - half*0.35, Math.max(half*0.35, vp.cx));
+  vp.cy = Math.min(MAP_H - halfH*0.35, Math.max(halfH*0.35, vp.cy));
+  const el = document.querySelector('#map');
+  if(el) el.setAttribute('viewBox', `${vp.cx-half} ${vp.cy-halfH} ${vp.w} ${h}`);
+  const z = document.querySelector('#zoomlvl');
+  if(z) z.textContent = `z ${zoomLevel().toFixed(1)}`;
+}
+function zoomBy(f, ax, ay){
+  const nw = Math.min(VB_MAX, Math.max(VB_MIN, vp.w * f));
+  if(nw === vp.w) return;
+  if(ax !== undefined){                            // zoom toward the cursor
+    const k = nw / vp.w;
+    vp.cx = ax + (vp.cx - ax) * k;
+    vp.cy = ay + (vp.cy - ay) * k;
+  }
+  vp.w = nw;
+  renderMap();                                     // re-render: symbol sizes depend on scale
+}
+/* screen->world for wheel/drag */
+function toWorld(ev){
+  const el = document.querySelector('#map'), r = el.getBoundingClientRect();
+  const h = vp.w * (MAP_H / MAP_W);
+  // preserveAspectRatio="slice" covers the box: the larger ratio wins
+  const sc = Math.max(r.width / vp.w, r.height / h);
+  return { x: vp.cx + (ev.clientX - r.left - r.width/2) / sc,
+           y: vp.cy + (ev.clientY - r.top - r.height/2) / sc, sc };
+}
+
+/* ==========================================================================
+   ArcGIS-topographic-style basemap. Hand-placed (not random) so the mock is
+   stable across renders. Layer order mirrors a real topo basemap: land ->
+   landcover -> hillshade -> hydrology -> road casings -> road fills -> shields
+   -> labels -> boundaries.
+   ========================================================================== */
+const TOPO = {
+  green:[ 'M0 0h430l60 70-40 110-120 40-180-60L0 120z',
+          'M700 0h300v150l-90 60-150-30-60-90z',
+          'M120 430l180-40 120 70-30 150-190 60-140-90z',
+          'M560 470l190-30 120 80-40 150-200 40-100-110z' ],
+  hill:[  'M180 60q90-40 170 20t-40 120-180-30z',
+          'M780 40q80 10 120 90t-90 100-140-60z',
+          'M240 480q90-30 150 40t-70 120-150-40z' ],
+  water:[ {d:'M0 612 Q 190 578 400 626 T 720 616 T 1000 596 L1000 700 L0 700Z', op:.95},
+          {d:'M905 0 q-55 170 25 320 t-45 330', w:15},
+          {d:'M300 250 q60 60 30 130', w:7} ],
+  lake:'M118 196 q56-34 104 4 t14 74 q-40 30-96 12 t-22-90z',
+  hwy:[ 'M-20 470 C 180 452 300 392 470 340 S 760 250 1020 214',
+        'M330 -20 C 344 130 300 260 316 400 S 350 590 336 720',
+        'M-20 214 C 200 240 420 176 640 206 S 880 250 1020 232' ],
+  art:[ 'M-20 108 C 240 92 520 128 1020 96','M-20 330 C 260 348 540 306 1020 336',
+        'M-20 560 C 280 540 620 574 1020 548','M148 -20 C 160 200 136 460 152 720',
+        'M540 -20 C 552 190 526 470 544 720','M760 -20 C 772 210 748 450 764 720' ],
+  loc:[ 'M60 -20V720','M240 -20V720','M430 -20V720','M650 -20V720','M860 -20V720',
+        'M-20 60H1020','M-20 168H1020','M-20 262H1020','M-20 412H1020','M-20 500H1020','M-20 650H1020' ],
+  shields:[{x:452,y:336,t:'78'},{x:316,y:262,t:'287'},{x:700,y:222,t:'95'},{x:196,y:452,t:'206'}],
+  places:[{x:206,y:150,t:'Hamburg',s:12},{x:470,y:96,t:'Wawayanda',s:11},
+    {x:672,y:150,t:'Ramapough',s:11},{x:836,y:118,t:'Ossining',s:12},
+    {x:150,y:352,t:'Hackettstown',s:12},{x:406,y:296,t:'Parsippany',s:13},
+    {x:600,y:262,t:'Paterson',s:13},{x:812,y:270,t:'Yonkers',s:13},
+    {x:300,y:520,t:'Bernardsville',s:11},{x:520,y:436,t:'Newark',s:14},
+    {x:700,y:430,t:'Elizabeth',s:12},{x:880,y:470,t:'Queens',s:13},
+    {x:130,y:600,t:'Flemington',s:11},{x:430,y:640,t:'Edison',s:12}],
+  ranges:[{x:250,y:230,t:'Kittatinny Mountains',r:-24},{x:640,y:350,t:'First Watchung Mountain',r:-58}],
+  bound:'M-20 258 C 220 246 300 300 520 286 S 800 240 1020 254'
+};
+function basemapHTML(G,GR,GR2,W,RD,RL,BI){
+  const k = vbScale();
+  let o = `<rect width="1000" height="700" fill="${G}"/>`;
+  o += `<g fill="${GR}" opacity=".62">${TOPO.green.map(d=>`<path d="${d}"/>`).join('')}</g>`;
+  o += `<g fill="${GR2}" opacity=".34">${TOPO.hill.map(d=>`<path d="${d}"/>`).join('')}</g>`;
+  // hydrology
+  o += `<path d="${TOPO.water[0].d}" fill="${W}" opacity="${TOPO.water[0].op}"/>`;
+  o += `<path d="${TOPO.lake}" fill="${W}" opacity=".95"/>`;
+  for(const r of TOPO.water.slice(1))
+    o += `<path d="${r.d}" fill="none" stroke="${W}" stroke-width="${r.w*k}" stroke-linecap="round"/>`;
+  // roads: casing then fill, three tiers
+  o += `<g fill="none" stroke="${RL}" stroke-linecap="round">`
+     + TOPO.loc.map(d=>`<path d="${d}" stroke-width="${4*k}"/>`).join('')
+     + TOPO.art.map(d=>`<path d="${d}" stroke-width="${9*k}"/>`).join('')
+     + TOPO.hwy.map(d=>`<path d="${d}" stroke-width="${15*k}"/>`).join('') + `</g>`;
+  o += `<g fill="none" stroke="${RD}" stroke-linecap="round">`
+     + TOPO.loc.map(d=>`<path d="${d}" stroke-width="${2.4*k}"/>`).join('')
+     + TOPO.art.map(d=>`<path d="${d}" stroke-width="${6.4*k}"/>`).join('')
+     + TOPO.hwy.map(d=>`<path d="${d}" stroke-width="${11.4*k}"/>`).join('') + `</g>`;
+  // county/state boundary
+  o += `<path d="${TOPO.bound}" fill="none" stroke="${BI}" stroke-width="${1.1*k}"
+    stroke-dasharray="${[7,4,2,4].map(n=>n*k).join(' ')}" opacity=".5"/>`;
+  // route shields
+  for(const sh of TOPO.shields)
+    o += `<g><rect x="${sh.x-12*k}" y="${sh.y-9*k}" width="${24*k}" height="${18*k}" rx="${3.4*k}"
+      fill="${RD}" stroke="${BI}" stroke-width="${k}" opacity=".95"/>
+      <text x="${sh.x}" y="${sh.y+4.4*k}" text-anchor="middle" font-size="${10*k}" font-weight="700"
+      fill="${BI}" font-family="${css('--ui')}">${sh.t}</text></g>`;
+  // range labels then settlements
+  for(const r of TOPO.ranges)
+    o += `<text x="${r.x}" y="${r.y}" font-size="${11*k}" fill="${BI}" opacity=".72"
+      font-style="italic" letter-spacing="${1.4*k}" font-family="${css('--ui')}"
+      transform="rotate(${r.r} ${r.x} ${r.y})">${r.t}</text>`;
+  for(const pl of TOPO.places)
+    o += `<g><circle cx="${pl.x-6*k}" cy="${pl.y-4*k}" r="${1.9*k}" fill="${BI}" opacity=".8"/>
+      <text x="${pl.x}" y="${pl.y}" font-size="${pl.s*k}" fill="${BI}" opacity=".92"
+      font-family="${css('--ui')}">${pl.t}</text></g>`;
+  return o;
+}
+
+function renderMap(){
+  const recs = visible();
+  const k = vbScale();          // hold symbols at constant screen size
+  const G=css('--bm-ground'), GR=css('--bm-green'), GR2=css('--bm-green-2'),
+        W=css('--bm-water'), RD=css('--bm-road'), RL=css('--bm-road-line'), BI=css('--bm-ink');
+  let s = basemapHTML(G,GR,GR2,W,RD,RL,BI);
+
+  for(const rec of recs.filter(r=>r.geometry==='polygon')){
+    const r = resolveSymbol(rec);
+    s += `<polygon points="${rec.pts.map(p=>p.join(',')).join(' ')}" fill="${r.fill}"
+      fill-opacity="${r.fillOpacity ?? .14}" stroke="${r.fill}" stroke-width="${1.6*k}"
+      stroke-dasharray="${7*k} ${4*k}"/>`;
+  }
+  for(const rec of recs.filter(r=>r.geometry==='polyline')){
+    const r = resolveSymbol(rec);
+    const d = rec.pts.map((p,i)=>`${i?'L':'M'}${p[0]} ${p[1]}`).join(' ');
+    if(r.selected) s += `<path d="${d}" fill="none" stroke="${css('--brand')}"
+      stroke-width="${(r.width+8)*k}" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>`;
+    if(r.variance) s += `<path d="${d}" fill="none" stroke="${resolveToken(VARIANCE_TOKEN)}"
+      stroke-width="${(r.width+4)*k}" stroke-linecap="round"
+      stroke-dasharray="${2*k} ${7*k}" opacity=".9"/>`;
+    // halo: what makes a step-50 symbol readable on dark imagery too
+    s += `<path d="${d}" fill="none" stroke="${V(r.fill)<50?css('--gray-1'):css('--gray-13')}"
+      stroke-width="${(r.width+3)*k}" stroke-linecap="round" stroke-linejoin="round" opacity=".38"/>`;
+    s += `<path class="feat" data-id="${rec.id}" d="${d}" fill="none" stroke="${r.fill}"
+      stroke-width="${r.width*k}" stroke-linecap="round" stroke-linejoin="round"
+      ${r.dash?`stroke-dasharray="${r.dash.map(n=>n*r.width*k).join(' ')}"`:''} style="cursor:pointer">
+      <title>${esc(rec.id)} · ${esc(rec.code)} · ${esc(rec.status)}</title></path>`;
+  }
+  for(const rec of recs.filter(r=>r.geometry==='point')){
+    const r = resolveSymbol(rec), sz = r.size*k;
+    s += `<g class="feat" data-id="${rec.id}" style="cursor:pointer">
+      <title>${esc(rec.id)} · ${esc(rec.type)} · ${esc(rec.status)}</title>`;
+    if(r.selected) s += r.shape==='square'
+      ? `<rect x="${rec.x-sz-5*k}" y="${rec.y-sz-5*k}" width="${sz*2+10*k}" height="${sz*2+10*k}"
+          rx="${4*k}" fill="none" stroke="${css('--brand')}" stroke-width="${3.5*k}" opacity=".8"/>`
+      : `<circle cx="${rec.x}" cy="${rec.y}" r="${sz+5*k}" fill="none" stroke="${css('--brand')}"
+          stroke-width="${3.5*k}" opacity=".8"/>`;
+    const ring = r.variance ? resolveToken(VARIANCE_TOKEN) : css('--gray-1');
+    s += r.shape==='square'
+      ? `<rect x="${rec.x-sz}" y="${rec.y-sz}" width="${sz*2}" height="${sz*2}" rx="${3*k}"
+          fill="${r.fill}" stroke="${ring}" stroke-width="${(r.variance?2.5:1.5)*k}"/>`
+      : `<circle cx="${rec.x}" cy="${rec.y}" r="${sz}" fill="${r.fill}" stroke="${ring}"
+          stroke-width="${(r.variance?2.5:1.5)*k}"/>`;
+    if(r.glyph){const gp = sz*1.45;
+      s += `<g transform="translate(${rec.x-gp/2} ${rec.y-gp/2})">${iconSVG(state.iconLib,r.glyph,r.glyphInk,gp)}</g>`;}
+    s += `</g>`;
+  }
+  $('#map').innerHTML = s;
+  applyViewBox();
+  $('#map').querySelectorAll('.feat').forEach(el =>
+    el.addEventListener('click', () => {
+      if(pan.moved) return;                       // a drag is not a selection
+      state.selected = el.dataset.id; renderAll();
+    }));
+}
+
+/* Anchor the legend under the toolbar button that toggles it. Computed rather than
+   hard-positioned, so it stays attached when the toolbar wraps or the panel resizes. */
+function positionLegend(){
+  const box = $('#legend'), btn = $('#tbltoggle'), map = document.querySelector('.lm-map');
+  if(!box || !btn || !map || box.hidden) return;
+  const b = btn.getBoundingClientRect(), m = map.getBoundingClientRect();
+  const w = box.offsetWidth || 240;
+  let left = b.left - m.left - 8;                       // roughly under the icon
+  left = Math.max(10, Math.min(left, m.width - w - 10)); // keep inside the map
+  box.style.left = left + 'px';
+  box.style.top = (b.bottom - m.top + 8) + 'px';
+  box.style.setProperty('--caret', Math.max(8,
+    Math.min(w - 20, (b.left - m.left) + b.width/2 - left - 5)) + 'px');
+}
+function renderLegend(){
+  const box = $('#legend');
+  const pin = `<span class="pin" id="pin5" style="top:-9px;right:-9px"
+    title="Entry point 5 — the legend derives from the same resolved document as the map">5</span>`;
+  if(!state.legendOn){box.innerHTML = pin; box.hidden = true; return;}
+  box.hidden = false;
+  const recs = visible();
+  let h = pin + `<h4>Legend</h4>`;
+  for(const rule of TEMPLATE.rules){
+    const r = rule.renderer;
+    const label = rule.geometry==='polyline' ? 'Segments' : rule.geometry==='point' ? 'Structures' : 'Permit envelopes';
+    const lyr = layerFor(rule.geometry);
+    const viaService = precedenceChain(lyr).find(c=>c.resolved).key === 'ArcGIS service renderer';
+    h += `<div class="sec"><div class="t">${label}
+      <span class="note" style="font-weight:400">${viaService ? 'ArcGIS renderer'
+        : (r.type==='simple' ? 'simple' : esc(r.classification.field))}</span></div>`;
+    const rows = r.type==='simple' ? [{label:'All',symbol:r.symbol,value:null}]
+      : [...r.stops, {...r.default, value:'__default__'}];
+    const cnt = recs.reduce((a,x)=>{a[x.classifiedOn]=(a[x.classifiedOn]||0)+1;return a;},{});
+    for(const row of rows){
+      const n = row.value==='__default__'
+        ? recs.filter(x=>x.geometry===rule.geometry && !r.stops?.some(s=>s.value===x.classifiedOn)).length
+        : (row.value ? (cnt[row.value]||0) : recs.filter(x=>x.geometry===rule.geometry).length);
+      h += `<div class="lrow">${legendSwatch(rule.geometry,row.symbol)}
+        <span class="lbl">${esc(row.label)}</span><span class="ct num">${n}</span></div>`;
+    }
+    h += `</div>`;
+  }
+  if(state.colorMode==='status'){
+    h += `<div class="sec"><div class="t">Status overlay
+      <span class="note" style="font-weight:400">over symbology</span></div>`;
+    for(const [st,tok] of Object.entries(STATUS_OVERLAY)){
+      h += `<div class="lrow"><i style="width:14px;height:14px;border-radius:3px;flex:none;
+        background:${resolveToken(tok)};box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)"></i>
+        <span class="lbl">${esc(st)}</span>
+        <span class="ct num">${recs.filter(r=>r.status===st).length}</span></div>`;
+    }
+    h += `</div>`;
+  }
+  if(state.colorMode==='variance'){
+    h += `<div class="sec"><div class="t">Variance</div><div class="lrow">
+      <i style="width:14px;height:14px;border-radius:3px;flex:none;background:${resolveToken(VARIANCE_TOKEN)}"></i>
+      <span class="lbl">As-built deviates</span>
+      <span class="ct num">${recs.filter(r=>r.variance).length}</span></div></div>`;
+  }
+  box.innerHTML = h;
+  positionLegend();
+}
+function legendSwatch(geometry, symbol){
+  if(!symbol) return `<i style="width:16px;height:16px;flex:none"></i>`;
+  if(geometry==='polyline') return `<svg width="18" height="14" viewBox="0 0 18 14" style="flex:none"
+    aria-hidden="true"><line x1="1" y1="7" x2="17" y2="7" stroke="${symbol.color}"
+    stroke-width="${Math.min(symbol.width||2,5)}" stroke-linecap="round"
+    ${symbol.dash?`stroke-dasharray="${symbol.dash.map(n=>n*2).join(' ')}"`:''}/></svg>`;
+  if(geometry==='polygon') return `<svg width="18" height="14" viewBox="0 0 18 14" style="flex:none"
+    aria-hidden="true"><rect x="1.5" y="2" width="15" height="10" fill="${symbol.color}"
+    fill-opacity="${symbol.fillOpacity||.14}" stroke="${symbol.color}" stroke-width="1.2"/></svg>`;
+  const inner = symbol.icon ? iconSVG(state.iconLib, symbol.icon, glyphInkFor(symbol.color), 11) : '';
+  return `<span style="flex:none;width:18px;height:18px;border-radius:${symbol.shape==='square'?'3px':'50%'};
+    background:${symbol.color};display:grid;place-items:center;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)">${inner}</span>`;
+}
+
+
+/* ==========================================================================
+   ESRI-MODELLED STYLE SELECTION
+   Researched against ArcGIS Online Map Viewer and ArcGIS Pro, Aug 2026:
+   - Styles is a PANE with nested sub-panes and Done/Cancel — never a modal
+     (doc.arcgis.com/.../apply-styles-mv.htm)
+   - Three steps: "Choose attributes" -> "Pick a style" (style cards) ->
+     "Style options"
+   - Smart mapping PROPOSES: the data type decides which styles are offered and
+     a sensible default is applied immediately
+   - Colour ramps are curated and FILTERED by relevance, incl. AGOL's
+     "Best for dark backgrounds" — which is Esri's answer to our two-grounds
+     problem. Ours is computed from the step scale rather than hand-curated.
+   - Class list conventions from Pro's Classes tab: "Add unlisted values",
+     "Move selected values up/down" (the keyboard equivalent to dragging),
+     "Show count", "Include all other values", "Reverse symbol order"
+   ========================================================================== */
+const FIELDS = {
+  polyline:[{name:'st_Unit_Code__c',label:'Unit Code',type:'string'},
+            {name:'st_Status__c',label:'Status',type:'string'},
+            {name:'st_Length__c',label:'Length (m)',type:'number'}],
+  point:[{name:'st_Structure_Type__c',label:'Structure Type',type:'string'},
+         {name:'st_Status__c',label:'Status',type:'string'},
+         {name:'st_Depth__c',label:'Depth (m)',type:'number'}],
+  polygon:[{name:'st_Permit_Type__c',label:'Permit Type',type:'string'}]
+};
+const STYLE_CARDS = [
+  {id:'location',name:'Location (single symbol)',needs:'none',renderer:'simple',
+   blurb:'Show where things are. One symbol for every record.'},
+  {id:'types',name:'Types (unique symbols)',needs:'string',renderer:'uniqueValue',
+   blurb:'A different symbol per category. Best for 2–10 categories.'},
+  {id:'counts-color',name:'Counts and amounts (color)',needs:'number',renderer:'classBreaks',
+   blurb:'Shade low to high across a sequential ramp.',ga:false},
+  {id:'counts-size',name:'Counts and amounts (size)',needs:'number',renderer:'classBreaks',
+   blurb:'Scale symbol size by value.',ga:false}
+];
+/* Org-wide counts. Deliberately larger than the viewport: the whole point of
+   "Show count" here is that the map in front of you is not the dataset. */
+const ORG_COUNTS = {'UC-FBR':18402,'UC-CDT':12977,'UC-DRP':7601,'UC-XXX':1204,
+  'Pole':9820,'Cabinet':612,'Splice':2044,'Vault':1187,'Meter':318};
+const orgCount = v => ORG_COUNTS[v] ?? 0;
+
+/* Qualitative ramps: N hues held at one step. Because step == L*, which grounds
+   a ramp clears is computed, not curated. */
+const QUAL_HUES = ['VIOLET','ORANGE','CLOUD_BLUE','TEAL','INDIGO','PINK','YELLOW','GREEN'];
+function qualRamps(n){
+  return [50,40,30,80,70].map(step => {
+    const colors = QUAL_HUES.slice(0,Math.max(n,3)).map(h => PALETTE[h][STEPS.indexOf(step)]);
+    const g = groundCheck(colors[0]);
+    const fits = g.per.filter(x=>x.ok).map(x=>x.name.split(' ')[0]);
+    return {step, colors, tokens:QUAL_HUES.slice(0,Math.max(n,3)).map(h=>`$PALETTE_${h}_${step}`),
+      name:`Vibrant ${step}`, fits,
+      why:g.per.map(x=>`${x.name.split(' ')[0]} ${x.d}pt ${x.ok?'ok':'halo'}`).join(' · ')};
+  });
+}
+const RAMP_FILTERS = [['all','All ramps'],['light','Best for light basemaps'],['dark','Best for dark basemaps']];
+
+const ed = { open:false, layerId:null, step:'attr', field:null, card:null, focus:false,
+  showCount:true, includeOther:true, rampFilter:'all', gallery:false, selectedStop:0 };
+
+function editorFieldsFor(geom){ return FIELDS[geom] || []; }
+function cardAvailable(card, field){
+  if(card.needs === 'none') return true;
+  if(!field) return false;
+  return card.needs === field.type;
+}
+function openEditor(layerId){
+  const l = PANEL_LAYERS.find(x=>x.id===layerId);
+  ed.open = true; ed.layerId = layerId; ed.step='attr'; ed.card=null; ed.selectedStop=0;
+  const rule = ruleFor(l.geometry,'design');
+  ed.field = rule && rule.renderer.classification
+    ? editorFieldsFor(l.geometry).find(f=>f.name===rule.renderer.classification.field) || null : null;
+  if(ed.field) ed.card = STYLE_CARDS.find(c=>c.id==='types');
+  state.panelMode = 'symbology'; state.geometry = l.geometry;
+  renderPanel();
+}
+function closeEditor(){ ed.open=false; state.panelMode='layers'; renderPanel(); }
+
+/* ---- step 1: Choose attributes ---- */
+function stepAttrHTML(l){
+  const fs = editorFieldsFor(l.geometry);
+  return `
+  <div class="edsec"><div class="edhd">Choose attributes</div>
+    <div class="note" style="margin-bottom:8px">Pick the field that carries the meaning. The styles
+      offered next depend on its type — the same way smart mapping works in Map Viewer.</div>
+    ${fs.map(f=>`<button class="fieldrow ${ed.field&&ed.field.name===f.name?'on':''}" data-field="${f.name}">
+      <span class="fnm">${esc(f.label)}</span>
+      <span class="mono note">${esc(f.name)}</span>
+      <span class="pill">${f.type}</span></button>`).join('')}
+    <button class="fieldrow" data-field="__none__">
+      <span class="fnm">No attribute</span>
+      <span class="note">one symbol for the whole layer</span></button>
+  </div>`;
+}
+/* ---- step 2: Pick a style (cards) ---- */
+function stepStyleHTML(){
+  return `
+  <div class="edsec"><div class="edhd">Pick a style</div>
+    ${STYLE_CARDS.map(c=>{
+      const ok = cardAvailable(c, ed.field), ga = c.ga === false;
+      return `<button class="stylecard ${ed.card&&ed.card.id===c.id?'on':''}" data-card="${c.id}"
+        ${!ok||ga?'disabled':''}>
+        <div class="scnm">${esc(c.name)}${ga?' <span class="pill">GA</span>':''}</div>
+        <div class="note">${esc(c.blurb)}</div>
+        ${!ok?`<div class="note" style="color:var(--warning-ink)">Needs ${
+          c.needs==='string'?'a category field':'a number field'}</div>`:''}
+      </button>`;}).join('')}
+  </div>`;
+}
+/* ---- step 3: Style options ---- */
+function stepOptionsHTML(l){
+  const rule = ruleFor(l.geometry,'design');
+  if(!rule) return '<div class="pad note">No rule for this geometry.</div>';
+  const r = rule.renderer;
+  const stops = r.type==='simple' ? [] : r.stops;
+  const ramps = qualRamps(stops.length||3)
+    .filter(rp => ed.rampFilter==='all' || rp.fits.includes(ed.rampFilter));
+  const total = stops.reduce((a,s)=>a+orgCount(s.value),0);
+  const unmatched = [...new Set(allRecords().filter(x=>x.geometry===l.geometry)
+    .map(x=>x.classifiedOn))].filter(v=>!stops.some(s=>s.value===v));
+  const fallback = unmatched.reduce((a,v)=>a+orgCount(v),0);
+  return `
+  <div class="edsec"><div class="edhd">Symbol style</div>
+    <button class="btn wide" id="ed-gallery">${ic('grid',15)} Symbol library — ${
+      esc(ICON_LIBS[state.iconLib].label)}</button>
+    ${ed.gallery?galleryHTML():''}
+  </div>
+  <div class="edsec"><div class="edhd">Colour ramp</div>
+    <div class="chips">${RAMP_FILTERS.map(([k,lb])=>
+      `<button class="chip ${ed.rampFilter===k?'on':''}" data-rampf="${k}">${lb}</button>`).join('')}</div>
+    ${ramps.length?ramps.map(rp=>`<button class="ramprow" data-ramp="${rp.step}">
+      <span class="rampsw">${rp.colors.map(c=>`<i style="background:${c}"></i>`).join('')}</span>
+      <span class="rnm">${rp.name}<span class="note"> · ${esc(rp.why)}</span></span>
+      </button>`).join('')
+      :`<div class="note">No ramp in the palette clears that ground on its own. Because step is the
+        contrast value, anything readable on light streets is too dark for imagery and vice versa —
+        pick either and the 1.5px halo carries the other.</div>`}
+  </div>
+  <div class="edsec"><div class="edhd">Classes
+    <span class="sp"></span>
+    <button class="iconbtn ghost" id="ed-more" title="More">${ic('ellipsis',15)}</button></div>
+    ${ed.showCount?`<div class="coverage">
+      <b class="num">${total.toLocaleString()}</b> records match a class ·
+      <b class="num" style="color:var(--warning-ink)">${fallback.toLocaleString()}</b> will use
+      <i>all other values</i>${unmatched.length?` (${unmatched.map(esc).join(', ')})`:''}
+      <div class="note">Counted across the org, not the current map extent.</div></div>`:''}
+    <div class="classlist">
+      ${stops.map((st,i)=>classRowHTML(l,st,i)).join('')}
+      ${ed.includeOther?classRowHTML(l,{value:'<all other values>',label:r.default.label,
+        symbol:r.default.symbol},-1):''}
+    </div>
+    <div class="edbtns">
+      <button class="btn sm" id="ed-addunlisted" ${unmatched.length?'':'disabled'}>Add unlisted values${
+        unmatched.length?` (${unmatched.length})`:''}</button>
+      <button class="btn sm" id="ed-up" title="Move selected value up">↑</button>
+      <button class="btn sm" id="ed-down" title="Move selected value down">↓</button>
+      <button class="btn sm" id="ed-reverse">Reverse symbol order</button>
+    </div>
+  </div>
+  <div class="edsec"><div class="edhd">Validation</div><div id="ed-lint"></div></div>`;
+}
+function classRowHTML(l,st,i){
+  const sel = ed.selectedStop===i;
+  return `<div class="classrow ${sel?'on':''} ${i<0?'other':''}" data-stop="${i}">
+    <span class="csw">${legendSwatch(l.geometry,st.symbol)}</span>
+    <span class="cnm"><b>${esc(st.label)}</b>
+      <span class="mono note">${esc(String(st.value))}</span></span>
+    ${ed.showCount&&i>=0?`<span class="num note">${orgCount(st.value).toLocaleString()}</span>`:''}
+    <button class="tokenbtn ${st.symbol.token?'':'offtoken'}" data-pick="${
+      i<0?'renderer.default.symbol':`renderer.stops[${i}].symbol`}">
+      <span class="chip" style="background:${st.symbol.color}"></span>${
+      esc(st.symbol.token||st.symbol.color)}</button>
+  </div>`;
+}
+function galleryHTML(){
+  const keys=['site','pole','cabinet','splice','vault','meter'];
+  return `<div class="gallery">${Object.entries(ICON_LIBS).map(([k,lib])=>`
+    <div class="gset"><div class="note" style="font-weight:600;margin:6px 0 4px">${esc(lib.label)}</div>
+      <div class="grow2">${keys.map(g=>`<button class="gitem ${
+        state.iconLib===k?'':'dim'}" data-lib="${k}" data-glyph="${g}" title="${k} · ${g}">
+        ${iconSVG(k,g,css('--ink-2'),18)}</button>`).join('')}</div></div>`).join('')}
+    <div class="note" style="margin-top:6px">Clicking a symbol applies it to the selected class
+      immediately, as the Pro gallery does. Stand-in glyphs — not licensed assets.</div></div>`;
+}
+
+function symbologyPanelHTML(){
+  const l = PANEL_LAYERS.find(x=>x.id===ed.layerId);
+  const chain = precedenceChain(l), win = chain.find(c=>c.resolved);
+  const viaService = win.key === 'ArcGIS service renderer';
+  return `
+  <div class="edtop">
+    <button class="btn sm" id="ed-back" style="display:flex;align-items:center;gap:4px">${ic('chevL',13,2)}Back</button>
+    <span class="edtitle">${esc(l.name)}</span>
+    <button class="iconbtn ghost" id="ed-focus" title="${ed.focus?'Collapse':'Expand'}">${ic('expand',16)}</button>
+  </div>
+  <div class="edsec"><div class="edhd">Style source</div>
+    <div class="seg" style="width:100%">
+      <button data-src="service" aria-pressed="${l.symbologySource==='service'}"
+        style="flex:1" ${l.readOnly?'':''}>ArcGIS service renderer</button>
+      <button data-src="template" aria-pressed="${l.symbologySource.startsWith('template')}"
+        style="flex:1" ${l.readOnly?'disabled':''}>Sitetracker template</button>
+    </div>
+    <div class="note" style="margin-top:6px">${l.readOnly
+      ? 'Living Atlas is read-only Esri content — the service renderer is the content.'
+      : viaService
+        ? `This layer draws from its ArcGIS renderer (${esc(l.serviceRenderer||'drawingInfo')}).`
+        : `Template <b>${esc(l.template)}</b> · v${TEMPLATE.version} · shared by 3 layers`}</div>
+    ${viaService && !l.readOnly ? `<button class="btn wide" id="ed-seed" style="margin-top:8px">${ic('sparkle',15)}
+      Create a template from this layer’s ArcGIS symbology</button>
+      <div class="note">Imports the service’s classes and snaps each colour to its nearest
+      design-system token, so you start on-token instead of transcribing by hand.</div>`:''}
+  </div>
+  ${viaService||l.readOnly ? '' : `
+    <div class="edsteps">
+      ${[['attr','1 Attribute'],['style','2 Style'],['options','3 Options']].map(([k,lb])=>
+        `<button class="edstep ${ed.step===k?'on':''}" data-step="${k}">${lb}</button>`).join('')}
+    </div>
+    ${ed.step==='attr'?stepAttrHTML(l):ed.step==='style'?stepStyleHTML():stepOptionsHTML(l)}
+    <div class="edfoot">
+      <button class="btn" id="ed-cancel">Cancel</button>
+      <button class="btn" id="ed-compare" title="Hold to see the published version">⟲ Hold to compare</button>
+      <button class="btn pri" id="ed-done">Done</button>
+    </div>`}`;
+}
+
+function wireEditor(){
+  const l = PANEL_LAYERS.find(x=>x.id===ed.layerId);
+  const q = sel => document.querySelectorAll(sel);
+  const on = (sel,fn)=>{const e=document.querySelector(sel); if(e) e.addEventListener('click',fn);};
+  on('#ed-back',closeEditor); on('#ed-cancel',closeEditor);
+  on('#ed-done',()=>{closeEditor(); toast('Layer style saved to the draft — publish to release it');});
+  on('#ed-focus',()=>{ed.focus=!ed.focus;
+    document.querySelector('.lm').classList.toggle('focus',ed.focus); renderPanel();});
+  q('.edstep').forEach(b=>b.addEventListener('click',()=>{ed.step=b.dataset.step; renderPanel();}));
+  q('.fieldrow').forEach(b=>b.addEventListener('click',()=>{
+    ed.field = b.dataset.field==='__none__' ? null
+      : editorFieldsFor(l.geometry).find(f=>f.name===b.dataset.field);
+    // Smart mapping: propose the MOST SPECIFIC style the field supports, not merely the
+    // first available one — a category field should suggest Types, never Single symbol.
+    ed.card = ed.field
+      ? (STYLE_CARDS.find(c=>c.needs===ed.field.type && c.ga!==false)
+         || STYLE_CARDS.find(c=>cardAvailable(c,ed.field) && c.ga!==false))
+      : STYLE_CARDS[0];
+    ed.step='style'; renderPanel();
+    toast(ed.field?`Suggested: ${ed.card.name}`:'Single symbol');}));
+  q('.stylecard').forEach(b=>b.addEventListener('click',()=>{
+    ed.card = STYLE_CARDS.find(c=>c.id===b.dataset.card); ed.step='options'; renderPanel();}));
+  q('[data-src]').forEach(b=>b.addEventListener('click',()=>{
+    l.symbologySource = b.dataset.src==='service' ? 'service' : 'template';
+    l.template = b.dataset.src==='service' ? null : TEMPLATE.name;
+    renderAll(); toast(`${l.name} → ${SRC_LABEL[l.symbologySource]}`);}));
+  on('#ed-seed',()=>{
+    // Reuses the shape legendUtils.getRendererLegendItems already produces
+    const imported = [{v:'UC-FBR',c:'#E8A33D'},{v:'UC-CDT',c:'#7B4FA8'},{v:'UC-DRP',c:'#2E9BD6'}];
+    const rule = ruleFor(l.geometry,'design');
+    rule.renderer.stops = imported.map(x=>{
+      const n = nearestToken(x.c);
+      return {value:x.v,label:x.v,symbol:sym(n.name, l.geometry==='polyline'?{width:4}
+        :{size:11,shape:'circle',icon:'site'})};
+    });
+    l.symbologySource='template'; l.template=TEMPLATE.name; state.dirty=true;
+    ed.step='options'; renderAll();
+    toast(`Imported ${imported.length} classes from ArcGIS and snapped them on-token`);});
+  q('[data-rampf]').forEach(b=>b.addEventListener('click',()=>{
+    ed.rampFilter=b.dataset.rampf; renderPanel();}));
+  q('[data-ramp]').forEach(b=>b.addEventListener('click',()=>{
+    const step=+b.dataset.ramp, rule=ruleFor(l.geometry,'design');
+    rule.renderer.stops.forEach((st,i)=>{
+      const hue=QUAL_HUES[i%QUAL_HUES.length];
+      st.symbol.token=`$PALETTE_${hue}_${step}`; st.symbol.color=resolveToken(st.symbol.token);});
+    state.dirty=true; renderAll(); toast(`Ramp applied at step ${step}`);}));
+  q('.classrow').forEach(r=>r.addEventListener('click',e=>{
+    if(e.target.closest('[data-pick]')) return;
+    ed.selectedStop=+r.dataset.stop; renderPanel();}));
+  q('[data-pick]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation(); openPicker(e.currentTarget,b.dataset.pick);}));
+  on('#ed-gallery',()=>{ed.gallery=!ed.gallery; renderPanel();});
+  q('.gitem').forEach(b=>b.addEventListener('click',()=>{
+    state.iconLib=b.dataset.lib; TEMPLATE.iconLibrary=b.dataset.lib;
+    const rule=ruleFor(l.geometry,'design');
+    const target = ed.selectedStop>=0?rule.renderer.stops[ed.selectedStop]:rule.renderer.default;
+    if(target && l.geometry==='point') target.symbol.icon=b.dataset.glyph;
+    state.dirty=true; renderAll(); toast(`${b.dataset.glyph} · ${ICON_LIBS[b.dataset.lib].label}`);}));
+  on('#ed-addunlisted',()=>{document.querySelector('#genstops')?.click();
+    if(!document.querySelector('#genstops')) addUnlisted(l);});
+  on('#ed-reverse',()=>{const rule=ruleFor(l.geometry,'design');
+    const toks=rule.renderer.stops.map(s=>s.symbol.token).reverse();
+    rule.renderer.stops.forEach((s,i)=>{s.symbol.token=toks[i]; s.symbol.color=resolveToken(toks[i]);});
+    state.dirty=true; renderAll();});
+  const move=d=>{const rule=ruleFor(l.geometry,'design'), i=ed.selectedStop, j=i+d;
+    if(i<0||j<0||j>=rule.renderer.stops.length) return;
+    const a=rule.renderer.stops; [a[i],a[j]]=[a[j],a[i]]; ed.selectedStop=j;
+    state.dirty=true; renderAll();};
+  on('#ed-up',()=>move(-1)); on('#ed-down',()=>move(1));
+  on('#ed-more',()=>{ed.showCount=!ed.showCount; renderPanel();
+    toast(ed.showCount?'Show count on':'Show count off');});
+  const cmp=document.querySelector('#ed-compare');
+  if(cmp){
+    const show=()=>{compareMode=true; renderMap();};
+    const hide=()=>{compareMode=false; renderMap();};
+    cmp.addEventListener('pointerdown',show);
+    ['pointerup','pointerleave','blur'].forEach(ev=>cmp.addEventListener(ev,hide));
+  }
+  const lint=document.querySelector('#ed-lint');
+  if(lint) lint.innerHTML = lintRows().slice(0,4).map(r=>
+    `<div class="lintrow"><span class="sev ${r.sev}">${
+      r.sev==='pass'?'ok':r.sev==='warn'?'halo':'fail'}</span>
+      <div><div class="msg">${esc(r.msg)}</div><div class="why">${r.why}</div></div></div>`).join('');
+}
+function addUnlisted(l){
+  const rule=ruleFor(l.geometry,'design');
+  const vals=[...new Set(allRecords().filter(r=>r.geometry===l.geometry).map(r=>r.classifiedOn))];
+  const missing=vals.filter(v=>!rule.renderer.stops.some(s=>s.value===v));
+  const used=new Set(rule.renderer.stops.map(s=>(s.symbol.token||'').replace(/^\$PALETTE_(.+)_\d+$/,'$1')));
+  missing.forEach(v=>{const hue=QUAL_HUES.find(h=>!used.has(h))||'GREEN'; used.add(hue);
+    rule.renderer.stops.push({value:v,label:v,
+      symbol:sym(`$PALETTE_${hue}_50`, l.geometry==='polyline'?{width:3}
+        :{size:11,shape:'circle',icon:'site'})});});
+  state.dirty=true; renderAll();
+  toast(`${missing.length} unlisted value(s) added, hue-distinct at step 50`);
+}
+/* Hold-to-compare: snapshot of what field users currently see. */
+const PUBLISHED = JSON.parse(JSON.stringify(TEMPLATE.rules));
+function publishedRuleFor(geom){ return PUBLISHED.find(r=>r.geometry===geom) || null; }
+
+/* ---- left panel: the two rail modes ---- */
+function renderPanel(){
+  const isLayers = state.panelMode === 'layers';
+  $('#panel-title').textContent = isLayers ? 'Map Layers' : 'Production Tracking';
+  document.querySelectorAll('.rtab').forEach(b =>
+    b.setAttribute('aria-selected', String(b.dataset.mode === state.panelMode)));
+  $('#panel-foot').innerHTML = isLayers ? `<button class="btn">Back</button>` :
+    `<div class="note">Items come from the project’s Production Plan Lines.</div>`;
+  if(state.panelMode === 'symbology' && ed.open){
+    $('#panel-title').textContent = 'Layer Style';
+    $('#panel-foot').innerHTML = '';
+    $('#panel-body').innerHTML = symbologyPanelHTML();
+    wireEditor();
+    return;
+  }
+  $('#panel-body').innerHTML = isLayers ? layersPanelHTML() : ptPanelHTML();
+  wirePanel();
+}
+function layersPanelHTML(){
+  return `
+  <button class="btn wide" style="margin-bottom:12px">Import <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 9.5L12 16l6.5-6.5"/></svg></button>
+  <div class="frow">
+    <div class="fld"><span>View</span>
+      <select>${MAP_LAYER_VIEWS.map(v=>`<option>${esc(v)}</option>`).join('')}</select></div>
+    <div style="position:relative;padding-top:16px">
+      <button class="iconbtn" id="viewmenu" title="View actions">${ic('ellipsis',16)}</button>
+      <span class="pin" style="top:10px;right:-9px"
+        title="Entry point 3 — View “…”: apply a style template to every layer in this saved view">3</span>
+    </div>
+  </div>
+  <div class="searchbox">${ic('search',14)}<span>Search</span></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <div class="btngroup"><button class="iconbtn" title="Collapse all">${ic('collapseAll',16)}</button>
+      <button class="iconbtn" aria-pressed="true" title="Expand all">${ic('expandAll',16)}</button></div>
+    <div class="btngroup"><button class="iconbtn" aria-pressed="true" title="Show all">${ic('eye',16)}</button>
+      <button class="iconbtn" title="Hide all">${ic('eyeOff',16)}</button></div>
+  </div>
+  ${PANEL_LAYERS.map((l,i)=>{
+    const chain = precedenceChain(l), win = chain.find(c=>c.resolved);
+    const viaTemplate = win.key.startsWith('Layer link') || win.key.startsWith('Object-config');
+    const rule = ruleFor(l.geometry,'design');
+    const sw = viaTemplate && rule ? (rule.renderer.type==='simple' ? [rule.renderer.symbol]
+      : [...rule.renderer.stops.map(s=>s.symbol), rule.renderer.default.symbol]) : [];
+    return `<div class="lcard ${l.sync==='error'?'err':''} ${l.readOnly?'readonly':''}">
+      <div class="top">
+        <span class="grip">${ic('grip',15)}</span><span class="chev">${ic('chevR',13,2)}</span>
+        <div class="body">
+          <div class="nm ${l.caps?'caps':''}">${esc(l.name)}</div>
+          <div class="sub">${esc(l.source)} • Visible: ${esc(l.visible)}
+            ${l.readOnly?'<span class="pill">read-only</span>':''}</div>
+          <div class="sub">${viaTemplate
+            ? `<span class="pill teal">${esc(win.value)}</span>`
+            : `<span class="pill warn">ArcGIS renderer</span>`}
+            ${l.sync==='error'?'<span class="pill err"><span class="led"></span>sync failed</span>':''}</div>
+          ${sw.length?`<div class="swatchrow">${sw.map(s=>`<i style="background:${s.color}"></i>`).join('')}</div>`:''}
+        </div>
+        <div class="acts" style="position:relative">
+          ${l.sync==='error'?`<span class="syncerr" title="Layer sync failed">${ic('cloudOff',17)}</span>`:''}
+          <button class="iconbtn layermenu" data-layer="${l.id}" aria-haspopup="menu"
+            aria-expanded="${state.openMenu===l.id}" title="More Options">${ic('ellipsis',16)}</button>
+          ${i===0?`<span class="pin" style="top:-9px;right:-9px"
+            title="Entry point 2 — layer “…” → Style Layer: the Esri-style per-layer route">2</span>`:''}
+          ${state.openMenu===l.id?layerMenuHTML(l):''}
+        </div>
+      </div></div>`;
+  }).join('')}`;
+}
+function ptPanelHTML(){
+  const rule = ruleFor('polyline','design');
+  return `
+  <div class="projchip">
+    <span class="ic">${ic('doc',17)}</span>
+    <div class="txt2"><div class="lb">Project</div>
+      <div class="vl">P-000056 <span style="color:var(--link)">${ic('ext',13)}</span></div></div>
+    <button class="iconbtn ghost" title="Clear project">${ic('close',15)}</button>
+  </div>
+  <div class="searchbox">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"
+      aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></svg>Search</div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+    <div class="btngroup"><button class="iconbtn" aria-pressed="true" title="Show all">${ic('eye',16)}</button>
+      <button class="iconbtn" title="Hide all">${ic('eyeOff',16)}</button></div>
+    <div class="btngroup"><button class="iconbtn" title="Collapse all">${ic('collapseAll',16)}</button>
+      <button class="iconbtn" title="Expand all">${ic('expandAll',16)}</button></div>
+    <span class="badge" style="flex:1">
+      <button class="btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px">
+      ${ic('filter',15)}Filter</button><span class="n">9</span></span>
+  </div>
+  ${PT_ITEMS.map(it=>{
+    const stop = rule.renderer.stops.find(s=>s.value===it.code);
+    const symbol = stop ? stop.symbol : rule.renderer.default.symbol;
+    return `<div class="lcard flagged">
+      <div class="cornerflag" aria-hidden="true"></div>
+      <div class="top"><div class="body">
+        <div class="nm">${esc(it.name)}</div>
+        <div class="sub">Complete: <b style="color:${it.complete?css('--success'):css('--ink-2')}">${it.complete}%</b>
+          • Visible ${esc(it.visible)}</div>
+        <div class="sub">${legendSwatch('polyline',symbol)}
+          <span class="mono">${esc(stop?stop.label:'Unclassified')}</span></div>
+      </div>
+      <div class="acts"><button class="iconbtn ghost" title="Toggle visibility">${ic('eye',16)}</button></div>
+      </div></div>`;
+  }).join('')}`;
+}
+/* Mirrors the real menu in
+   strk/js/SitetrackerGisMapsV2/src/components/features/map-layers/list-view-detail/LayerItemCard.jsx:285-350
+   — same items, same conditional branching. "Style Layer" is the one addition, placed beside
+   Filter because both are per-layer display concerns, and withheld from Living Atlas layers for the
+   same reason Sync Layer already is: read-only Esri content. */
+function layerMenuHTML(l){
+  const isST = l.source === 'Sitetracker', isLA = l.source === 'Living Atlas';
+  const isCacheableTop = !isST;
+  const items = [];
+  items.push({t:'Zoom to Layer'});
+  if(isCacheableTop) items.push({t:'Hard reload', title:'Showing cached data - click to refresh'});
+  if(!isST && !isLA) items.push({t:'Sync Layer'});
+  if(isST) items.push({t:'View Variances'});
+  items.push({t:'Filter'});
+  if(!isLA) items.push({t:'Style Layer', hi:true, act:'symbology', tag:'NEW'});
+  items.push({t:'Open Table'});
+  if(isST) items.push({t:'Export'});
+  if(isST) items.push({t:'Push to ArcGIS'});
+  items.push({t:'Add to "Bozeman and Florida"'});
+  items.push({sep:true});
+  items.push({t:'Remove layer'});
+  return `<div class="menu" role="menu">${items.map(it => it.sep ? '<div class="sepr"></div>'
+    : `<button role="menuitem" class="${it.hi?'hi':''}" ${it.act?`data-act="${it.act}" data-layer="${l.id}"`:''}
+        ${it.title?`title="${it.title}"`:''}>${esc(it.t)}${it.tag?`<span class="tag">${it.tag}</span>`:''}</button>`).join('')}
+    ${isLA?`<div class="note" style="padding:6px 12px 8px;max-width:220px">Living Atlas is read-only
+      Esri content — the service renderer is the content, so symbology is not editable here.</div>`:''}
+    </div>`;
+}
+function wirePanel(){
+  document.querySelectorAll('.layermenu').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    state.openMenu = state.openMenu === b.dataset.layer ? null : b.dataset.layer;
+    renderPanel();
+  }));
+  document.querySelectorAll('.menu [data-act="symbology"]').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      state.openMenu = null; state.bindLayer = b.dataset.layer;
+      openEditor(b.dataset.layer);
+      toast('Layer Style — the map stays visible while you edit');
+    }));
+  document.querySelectorAll('.menu button:not([data-act])').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation(); state.openMenu = null; renderPanel();
+      toast(`${b.textContent.trim()} — existing layer action, not part of this mock`);
+    }));
+  const vm = $('#viewmenu');
+  if(vm) vm.addEventListener('click', () => {
+    state.view='admin'; state.sub='bind'; syncTabs(); renderAll();
+    toast('Apply a template to every layer in this view');
+  });
+}
+
+/* ---- admin: templates / bindings / builder ---- */
+function renderTemplates(){
+  if(!document.querySelector('#tmpltbody')) return;
+  const meta=document.querySelector('#lvmeta');
+  if(meta) meta.textContent =
+    `${OTHER_TEMPLATES.length} items · sorted by Name · filtered by All Templates · updated a few seconds ago`;
+  const ics=document.querySelector('#lvicons');
+  if(ics) ics.innerHTML = ['gear','pencilSm','refresh','chart','filter'].map(n=>{
+    const g={gear:UI.setup,pencilSm:'<path d="M4.5 19.5h4L20 8a2.5 2.5 0 00-3.5-3.5L5 16z"/>',
+      refresh:'<path d="M20 12a8 8 0 10-2.6 5.9"/><path d="M20 5.5V12h-6.2"/>',
+      chart:'<path d="M4 20V9M10 20V4M16 20v-7M22 20H2"/>',filter:UI.filter}[n];
+    return `<button class="iconbtn" title="${n}"><svg width="15" height="15" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+      stroke-linejoin="round" aria-hidden="true">${g}</svg></button>`;}).join('');
+
+  const dn=document.querySelector('#draftnotice');
+  if(dn) dn.innerHTML = state.dirty
+    ? `<div class="notify"><b>${esc(TEMPLATE.name)}</b> has unpublished changes — field users still
+        see v${TEMPLATE.version}.<span class="sp"></span>
+        <button class="btn sm" id="savedraft">Save draft</button>
+        <button class="btn sm pri" id="publish">Publish</button></div>`
+    : `<div class="notify" style="border-color:var(--success);border-left-color:var(--success);
+        background:color-mix(in srgb,var(--success) 10%,transparent)">
+        <b>${esc(TEMPLATE.name)}</b> is published at v${TEMPLATE.version}. Everything is in sync.
+        <span class="sp"></span><span class="pill on" id="draftstate">Published</span></div>`;
+
+  $('#tmpltbody').innerHTML = OTHER_TEMPLATES.map((t,i)=>{
+    const b = t.status==='Active'?'pass':t.status==='Draft'?'warn':'fail';
+    const ro = t.origin==='Sitetracker';
+    return `<tr data-row="${i}">
+      <td class="cbx"><input type="checkbox" aria-label="Select ${esc(t.name)}"></td>
+      <td><a href="#" onclick="return false" style="font-weight:600">${esc(t.name)}</a>${
+        t.name===TEMPLATE.name?' <span class="pill teal">editing</span>':''}</td>
+      <td><span class="sev ${b}">${esc(t.status)}</span></td>
+      <td>${esc(t.origin)}${ro?' <span class="note">read-only</span>':''}</td>
+      <td class="num">${t.version||'—'}</td><td class="num">${t.rules}</td><td class="num">${t.stops}</td>
+      <td class="num">${t.layers}</td><td>${esc(ICON_LIBS[t.lib].label)}</td>
+      <td class="mono">${esc(t.published)}</td>
+      <td class="rowact"><button class="iconbtn ghost rowmenubtn" data-row="${i}"
+        aria-haspopup="menu" title="Show more actions">${ic('chevD',13,2)}</button>
+        ${state.openRow===i?rowMenuHTML(t,ro):''}</td></tr>`;
+  }).join('');
+  wireTemplates();
+}
+function rowMenuHTML(t,ro){
+  const items = ro
+    ? ['Clone','Set as Org Default','—','Export']
+    : ['Edit','Clone','Set as Org Default','—','Publish','Save draft','—','Export','Archive','!Delete'];
+  return `<div class="rowmenu" role="menu">${items.map(x=> x==='—'
+    ? '<div class="sepr"></div>'
+    : `<button role="menuitem" class="${x[0]==='!'?'danger':''}" data-rowact="${esc(x.replace('!',''))}"
+        >${esc(x.replace('!',''))}</button>`).join('')}</div>`;
+}
+function wireTemplates(){
+  document.querySelectorAll('.rowmenubtn').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    state.openRow = state.openRow === +b.dataset.row ? null : +b.dataset.row;
+    renderTemplates();
+  }));
+  document.querySelectorAll('[data-rowact]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const act=b.dataset.rowact; state.openRow=null;
+    if(act==='Edit'){ renderTemplates(); openTemplateForEdit(); return; }
+    renderTemplates(); toast(`${act} — existing record action, not part of this mock`);
+  }));
+  // Static elements (th, #newtemplate) must be bound ONCE. renderTemplates runs on every
+  // renderAll, and re-adding listeners to nodes that are never replaced made one click fire
+  // N times — sorting toggled twice and appeared to sort backwards.
+  if(!wireTemplates._static){
+    wireTemplates._static = true;
+    document.querySelectorAll('#sub-list .sortable').forEach(th=>th.addEventListener('click',()=>{
+    const key=th.dataset.sort;
+    state.sortAsc = state.sortKey===key ? !state.sortAsc : true; state.sortKey=key;
+    OTHER_TEMPLATES.sort((a,b)=>{
+      const x=a[key]??'', y=b[key]??'';
+      return (x>y?1:x<y?-1:0) * (state.sortAsc?1:-1);
+    });
+      document.querySelectorAll('#sub-list .sortable').forEach(t=>t.classList.remove('sorted'));
+      th.classList.add('sorted');
+      th.querySelector('.sar').textContent = state.sortAsc?'▲':'▼';
+      renderTemplates();
+    }));
+    bind('#newtemplate','click',newTemplate);
+  }
+  // these two live inside the re-rendered notice banner, so they DO rebind each time
+  bind('#savedraft','click',()=>toast(`Draft saved — field users still see v${TEMPLATE.version}`));
+  bind('#publish','click',doPublish);
+  renderBuilderLint();
+}
+/* New / Edit both land in the editor on the map — the tab never authors (doc 11 §2.2). */
+function newTemplate(){
+  const name = `New Style Template ${OTHER_TEMPLATES.length}`;
+  OTHER_TEMPLATES.unshift({name,status:'Draft',origin:'Org',version:0,rules:1,stops:0,layers:0,
+    lib:state.iconLib,published:'—'});
+  TEMPLATE.name = name; TEMPLATE.version = 0; state.dirty = true;
+  const rule = ruleFor('polyline','design');
+  if(rule) rule.renderer.stops = [];
+  openTemplateForEdit();
+  toast('New template created as a draft — pick a field to get a suggested style');
+}
+function openTemplateForEdit(){
+  state.view='maps'; state.panelMode='layers'; syncTabs();
+  const l = PANEL_LAYERS.find(x=>x.symbologySource.startsWith('template')) || PANEL_LAYERS[2];
+  openEditor(l.id); renderAll(); ed.step='attr'; renderPanel();
+}
+function doPublish(){
+  if(lintRows().some(r=>r.sev==='fail')){ toast('Blocked by validation'); return; }
+  TEMPLATE.version+=1; TEMPLATE.publishedAt='2026-08-04T11:20:00Z';
+  const t=OTHER_TEMPLATES.find(x=>x.name===TEMPLATE.name);
+  if(t){ t.version=TEMPLATE.version; t.published='2026-08-04'; t.status='Active'; }
+  state.dirty=false; renderAll();
+  toast(`Published v${TEMPLATE.version} · checksum ${compiled().checksum.slice(0,12)}…`);
+}
+const SRC_LABEL = {'template':'Sitetracker template','template-objconfig':'Template (object config)',
+  'service':'ArcGIS service renderer','org-default':'Org default template','shipped':'Sitetracker Default'};
+function renderBindings(){
+  $('#bindbody').innerHTML = PANEL_LAYERS.map(l=>{
+    const chain = precedenceChain(l), win = chain.find(c=>c.resolved);
+    const opts = ['template','service'].concat(l.geometry==='polygon'?['template-objconfig']:[]);
+    return `<tr class="${l.id===state.bindLayer?'sel':''}" data-layer="${l.id}">
+      <td><b>${esc(l.name)}</b></td>
+      <td>${esc(l.source)}${l.readOnly?' <span class="pill">read-only</span>':''}</td>
+      <td>${esc(l.geometry)}</td>
+      <td>${l.sync==='ok'?'<span class="sev pass">ok</span>':'<span class="sev fail">failed</span>'}</td>
+      <td>${l.readOnly ? '<span class="note">service only — Esri content</span>'
+        : `<select data-src="${l.id}">${opts.map(o=>
+            `<option value="${o}" ${l.symbologySource===o?'selected':''}>${SRC_LABEL[o]}</option>`).join('')}</select>`}</td>
+      <td>${l.template?`<span class="pill teal">${esc(l.template)}</span>`:'<span class="note">—</span>'}</td>
+      <td class="num">${l.items}</td>
+      <td><button class="btn sm" data-cfg="${l.id}">Configure items</button></td></tr>`;
+  }).join('');
+  $('#bindbody').querySelectorAll('[data-src]').forEach(sel =>
+    sel.addEventListener('change', () => {
+      const l = PANEL_LAYERS.find(x=>x.id===sel.dataset.src);
+      l.symbologySource = sel.value;
+      l.template = sel.value.startsWith('template') ? TEMPLATE.name : null;
+      renderAll();
+      toast(`${l.name} → ${SRC_LABEL[sel.value]}`);
+    }));
+  $('#bindbody').querySelectorAll('[data-cfg]').forEach(b =>
+    b.addEventListener('click', () => {state.bindLayer = b.dataset.cfg; renderAll();}));
+
+  const l = PANEL_LAYERS.find(x=>x.id===state.bindLayer) || PANEL_LAYERS[2];
+  const rule = ruleFor(l.geometry,'design');
+  $('#binditemhdr').textContent = `${l.name} · ${l.geometry} · ${SRC_LABEL[l.symbologySource]}`;
+  if(!rule || l.symbologySource === 'service'){
+    $('#binditems').innerHTML = `<tr><td colspan="7" class="note" style="white-space:normal;padding:12px">
+      ${l.readOnly
+        ? 'Living Atlas layers are read-only Esri content — the service renderer is the content. A template can still supply a <i>highlight</i> overlay, but it must not claim to restyle the layer.'
+        : 'This layer draws from the ArcGIS service’s own <span class="mono">drawingInfo</span>. Switch the symbology source to a Sitetracker template to configure items here.'}
+      </td></tr>`;
+    return;
+  }
+  const recs = allRecords().filter(r=>r.geometry===l.geometry);
+  const src = l.geometry==='point' || l.geometry==='polygon' ? recs
+    : PT_ITEMS.map(it=>({name:it.name, classifiedOn:it.code, complete:it.complete, visible:it.visible}));
+  $('#binditems').innerHTML = src.map(x=>{
+    const stop = rule.renderer.type==='simple' ? null
+      : rule.renderer.stops.find(s=>s.value===(x.classifiedOn));
+    const symbol = rule.renderer.type==='simple' ? rule.renderer.symbol
+      : (stop?stop.symbol:rule.renderer.default.symbol);
+    return `<tr><td>${esc(x.name||x.id)}</td><td class="mono">${esc(x.classifiedOn)}</td>
+      <td>${stop?esc(stop.label):'<span class="sev warn">rule default</span>'}</td>
+      <td>${legendSwatch(l.geometry,symbol)}</td>
+      <td class="mono">${symbol.token?esc(symbol.token):'—'}</td>
+      <td class="num">${x.complete!==undefined?x.complete+'%':'—'}</td>
+      <td class="num">${x.visible||'—'}</td></tr>`;
+  }).join('');
+}
+
+const GEOMETRIES = [['polyline','Polyline'],['point','Point'],['polygon','Polygon']];
+function renderBuilder(){
+  if(!document.querySelector('#geoseg')) return;
+  $('#geoseg').innerHTML = GEOMETRIES.map(([k,l])=>
+    `<button data-geo="${k}" aria-pressed="${state.geometry===k}">${l}</button>`).join('');
+  $('#geoseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',
+    ()=>{state.geometry=b.dataset.geo; renderAll();}));
+  $('#variantseg').innerHTML = [['design','Design'],['asBuilt','As Built']].map(([k,l])=>
+    `<button data-var="${k}" aria-pressed="${state.variant===k}">${l}</button>`).join('');
+  $('#variantseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',
+    ()=>{state.variant=b.dataset.var; renderAll();}));
+  const rule = ruleFor(state.geometry,'design');
+  $('#rendererseg').innerHTML = ['Simple','Unique Value','Class Breaks'].map(l=>{
+    const on = (rule?.renderer.type==='simple'&&l==='Simple')||(rule?.renderer.type==='uniqueValue'&&l==='Unique Value');
+    return `<button aria-pressed="${on}" ${l==='Class Breaks'?'disabled title="GA"':''}>${l}</button>`;
+  }).join('');
+  if(!rule){$('#classify').innerHTML=''; $('#stopsbody').innerHTML=''; return;}
+  const r = rule.renderer;
+  $('#classify').innerHTML = r.type==='simple'
+    ? `<p class="note" style="margin:0">Simple renderer — one symbol for every record in the layer.</p>`
+    : `<div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="fld" style="max-width:170px"><span>Classification source</span>
+          <select><option ${r.classification.source==='record'?'selected':''}>Record Field</option>
+            <option>Service</option></select></div>
+        <div class="fld" style="max-width:230px"><span>Field</span>
+          <select><option>${esc(r.classification.field)}</option><option>st_Status__c</option>
+            <option>st_Work_Classification__c</option></select></div></div>
+       <p class="note" style="margin:6px 0 0">Field must be in the mobile sync fieldset. The compiler
+         validates existence via Describe at publish.</p>`;
+  const rows = r.type==='simple'
+    ? [{value:'—',label:'All records',symbol:r.symbol,path:'renderer.symbol',dflt:true}]
+    : [...r.stops.map((s,i)=>({...s,path:`renderer.stops[${i}].symbol`})),
+       {...r.default,value:'(no match)',path:'renderer.default.symbol',dflt:true}];
+  $('#stopsbody').innerHTML = rows.map(row=>{
+    const s=row.symbol, off=!s.token;
+    const weight = state.geometry==='polyline' ? (s.width??2) : (s.size??10);
+    return `<tr class="${row.dflt?'dflt':''}">
+      <td class="grip" title="Drag to reorder — stop order is match precedence">⠿</td>
+      <td class="mono">${esc(row.value)}</td>
+      <td><input class="txt" value="${esc(row.label)}" data-lbl="${esc(row.path)}"></td>
+      <td><button class="tokenbtn ${off?'offtoken':''}" data-pick="${esc(row.path)}">
+        <span class="chip" style="background:${s.color}"></span>${esc(s.token||s.color+' · off-token')}</button></td>
+      <td>${state.geometry==='point'
+        ? `<select data-icon="${esc(row.path)}">${['site','pole','cabinet','splice','vault','meter','(none)']
+            .map(g=>`<option ${g===(s.icon||'(none)')?'selected':''}>${g}</option>`).join('')}</select>`
+        : '<span class="note">—</span>'}</td>
+      <td><input class="txt" type="number" step="0.5" min="0.5" max="24" value="${weight}"
+        style="width:62px" data-w="${esc(row.path)}"></td>
+      <td>${row.dflt?'':`<button class="btn sm" data-del="${esc(row.path)}" title="Remove stop">×</button>`}</td></tr>`;
+  }).join('');
+  $('#stopsbody').querySelectorAll('[data-pick]').forEach(b=>
+    b.addEventListener('click',e=>openPicker(e.currentTarget,b.dataset.pick)));
+  $('#stopsbody').querySelectorAll('[data-lbl]').forEach(i=>
+    i.addEventListener('input',()=>{setAt(i.dataset.lbl,'label',i.value); state.dirty=true;
+      renderLegend(); renderDoc(); markDirty();}));
+  $('#stopsbody').querySelectorAll('[data-w]').forEach(i=>
+    i.addEventListener('change',()=>{const s=symAt(i.dataset.w);
+      if(state.geometry==='polyline') s.width=+i.value; else s.size=+i.value;
+      state.dirty=true; renderAll();}));
+  $('#stopsbody').querySelectorAll('[data-icon]').forEach(sel=>
+    sel.addEventListener('change',()=>{const s=symAt(sel.dataset.icon);
+      s.icon = sel.value==='(none)'?null:sel.value; state.dirty=true; renderAll();}));
+  $('#stopsbody').querySelectorAll('[data-del]').forEach(b=>
+    b.addEventListener('click',()=>{const m=b.dataset.del.match(/stops\[(\d+)\]/);
+      if(m){ruleFor(state.geometry,'design').renderer.stops.splice(+m[1],1);
+        state.dirty=true; renderAll(); toast('Stop removed — records fall to the rule default');}}));
+  renderPreview(); renderBuilderLint(); renderIconPreview();
+}
+function symAt(path){
+  const rule=ruleFor(state.geometry,'design'), m=path.match(/stops\[(\d+)\]/);
+  if(m) return rule.renderer.stops[+m[1]].symbol;
+  if(path.includes('default')) return rule.renderer.default.symbol;
+  return rule.renderer.symbol;
+}
+function setAt(path,key,val){
+  const rule=ruleFor(state.geometry,'design'), m=path.match(/stops\[(\d+)\]/);
+  if(m) rule.renderer.stops[+m[1]][key]=val;
+  else if(path.includes('default')) rule.renderer.default[key]=val;
+}
+function renderPreview(){
+  if(!document.querySelector('#preview')) return;
+  const rule=ruleFor(state.geometry,'design');
+  if(!rule){$('#preview').innerHTML=''; return;}
+  const r=rule.renderer;
+  const syms = r.type==='simple'?[{label:'All',symbol:r.symbol}]
+    :[...r.stops,{label:r.default.label,symbol:r.default.symbol}];
+  const ground = css('--bm-green-2');
+  let h='';
+  if(state.geometry==='polyline'){
+    h += `<div class="prevbox" style="background:${ground}"><svg viewBox="0 0 250 ${34*syms.length}"
+      width="100%" aria-label="Symbol preview on the basemap ground">`;
+    syms.forEach((s,i)=>{const y=18+i*34, sy=s.symbol;
+      h += `<line x1="10" y1="${y}" x2="112" y2="${y}" stroke="${sy.color}" stroke-width="${sy.width}"
+        stroke-linecap="round" ${sy.dash?`stroke-dasharray="${sy.dash.map(n=>n*sy.width).join(' ')}"`:''}/>
+        <text x="124" y="${y+4}" font-size="11" fill="${css('--ink-2')}">${esc(s.label)}</text>`;});
+    h += `</svg></div>`;
+  } else {
+    h += `<div class="prevbox" style="background:${ground};display:flex;gap:12px;flex-wrap:wrap">`;
+    for(const s of syms){const sy=s.symbol, ink=glyphInkFor(sy.color);
+      h += `<figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:5px;width:58px">
+        <span style="width:32px;height:32px;border-radius:${sy.shape==='square'?'5px':'50%'};
+          background:${sy.color};display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px ${css('--gray-1')}">
+          ${sy.icon?iconSVG(state.iconLib,sy.icon,ink,19):''}</span>
+        <figcaption style="font-size:10px;color:${css('--ink-3')};text-align:center">${esc(s.label)}</figcaption>
+        </figure>`;}
+    h += `</div>`;
+  }
+  h += `<div class="prevbox"><div class="eyebrow" style="margin-bottom:6px">Ground check</div>
+    <div class="note">Both grounds: light <b class="num">${GROUNDS[0].L}</b>,
+    dark <b class="num">${GROUNDS[1].L}</b>. A ≥ 40 gap means a publishable symbol sits below
+    ${GROUNDS[0].L-40} or above ${GROUNDS[1].L+40} — no single step clears both, which is what the
+    halo is for.</div></div>`;
+  $('#preview').innerHTML = h;
+}
+function renderIconPreview(){
+  if(!document.querySelector('#iconpreview')) return;
+  const rule=ruleFor('point','design');
+  const stops = rule?[...rule.renderer.stops,rule.renderer.default]:[];
+  $('#iconpreview').innerHTML = stops.map(s=>{
+    const ink=glyphInkFor(s.symbol.color);
+    return `<figure><span class="ibox" style="background:${s.symbol.color}">
+      ${iconSVG(state.iconLib, s.symbol.icon||'__missing__', ink, 21)}</span>
+      <figcaption>${esc(s.label)}${s.symbol.icon?'':'<br>fallback'}</figcaption></figure>`;
+  }).join('');
+}
+function renderBuilderLint(){
+  const pub=document.querySelector('#publish');
+  if(pub){
+    const f=lintRows().filter(r=>r.sev==='fail').length;
+    pub.disabled=f>0;
+    pub.title=f?'Resolve blocking validation errors first':'Compile and publish';
+  }
+  if(!document.querySelector('#builderlint')) return;
+  const rows=lintRows(), f=rows.filter(r=>r.sev==='fail').length, w=rows.filter(r=>r.sev==='warn').length;
+  $('#lintsummary').innerHTML = f
+    ? `<span style="color:var(--error);font-weight:600">${f} blocking</span> · ${w} advisory`
+    : `<span style="color:var(--success);font-weight:600">publishable</span> · ${w} advisory`;
+  $('#publish').disabled = f>0;
+  $('#publish').title = f ? 'Resolve blocking validation errors first' : 'Compile and publish';
+  $('#builderlint').innerHTML = rows.map(r=>
+    `<div class="lintrow"><span class="sev ${r.sev}">${r.sev==='pass'?'ok':r.sev==='warn'?'halo':'fail'}</span>
+      <div><div class="msg">${esc(r.msg)}</div><div class="why">${r.why}</div></div></div>`).join('');
+}
+
+let pickTarget=null;
+function openPicker(anchor,path){
+  pickTarget=path;
+  const pop=$('#pop'), cur=symAt(path).token;
+  let h=`<div class="hd"><b style="font-size:12.5px">Choose a palette token</b>
+    <span class="note">step = the 0–100 contrast value</span></div>
+    <div class="steps"><span></span>${STEPS.map(s=>`<span>${s}</span>`).join('')}</div>`;
+  for(const [hue,arr] of Object.entries(PALETTE)){
+    h+=`<div class="ramp"><span class="hn">${hue.replace('_',' ').toLowerCase()}</span>`;
+    arr.forEach((hex,i)=>{const t=`$PALETTE_${hue}_${STEPS[i]}`;
+      h+=`<button class="sw" style="background:${hex}" data-tok="${t}" aria-pressed="${cur===t}"
+        title="${t} · ${hex} · value ${V(hex)}"></button>`;});
+    h+=`</div>`;
+  }
+  h+=`<div class="hd" style="margin:12px 0 6px"><b style="font-size:12.5px">Semantic (status &amp; state)</b></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">`+
+    ['$color-gray-9','$color-text-success','$brand-accessible','$color-background-warning',
+     '$color-background-error-dark','$color-background-destructive-hover'].map(t=>
+      `<button class="tokenbtn" data-tok="${t}"><span class="chip" style="background:${resolveToken(t)}"></span>
+        ${t.replace('$color-','').replace('$','')}</button>`).join('')+
+    `</div><div class="hd" style="margin:12px 0 6px"><b style="font-size:12.5px">Advanced</b></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input class="txt" id="freehex" placeholder="#RRGGBB" style="width:108px" maxlength="7">
+      <button class="btn sm" id="usefree">Use raw hex</button></div>
+    <p class="note" style="margin:6px 0 0;max-width:280px">A raw hex leaves the design system. It
+      publishes, but every consumer of this template is flagged off-token.</p>`;
+  pop.innerHTML=h; pop.classList.add('open');
+  const r=anchor.getBoundingClientRect(), w=Math.min(520, window.innerWidth-24);
+  pop.style.width=w+'px';
+  pop.style.left=Math.max(12,Math.min(r.left, window.innerWidth-w-12))+'px';
+  pop.style.top=Math.min(r.bottom+6, window.innerHeight-80)+'px';
+  pop.querySelectorAll('[data-tok]').forEach(b=>b.addEventListener('click',()=>{
+    const s=symAt(pickTarget); s.token=b.dataset.tok; s.color=resolveToken(b.dataset.tok);
+    state.dirty=true; closePicker(); renderAll();}));
+  pop.querySelector('#usefree').addEventListener('click',()=>{
+    const v=pop.querySelector('#freehex').value.trim();
+    if(!/^#[0-9a-fA-F]{6}$/.test(v)){toast('Enter a 6-digit hex, e.g. #3183FE'); return;}
+    const s=symAt(pickTarget); s.color=v.toUpperCase(); s.token=tokenFor(v);
+    state.dirty=true; closePicker(); renderAll();
+    if(!s.token) toast(`${v.toUpperCase()} is off-token — nearest is ${nearestToken(v).name}`);});
+}
+const closePicker=()=>{$('#pop').classList.remove('open'); pickTarget=null;};
+document.addEventListener('click',e=>{
+  if(pickTarget && !e.target.closest('#pop') && !e.target.closest('[data-pick]')) closePicker();});
+document.addEventListener('click',e=>{
+  if(state.openMenu && !e.target.closest('.menu') && !e.target.closest('.layermenu')){
+    state.openMenu=null; renderPanel();}
+  if(state.openRow!==null && !e.target.closest('.rowmenu') && !e.target.closest('.rowmenubtn')){
+    state.openRow=null; renderTemplates();}});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closePicker(); if(state.openMenu){state.openMenu=null; renderPanel();}}});
+
+function renderEngine(){
+  const recs=allRecords();
+  $('#engrec').innerHTML = recs.map(r=>
+    `<option value="${r.id}" ${r.id===state.selected?'selected':''}>${r.id} · ${r.geometry} · ${r.classifiedOn} · ${r.status}</option>`).join('');
+  const rec = recs.find(r=>r.id===state.selected)||recs[0], res=resolveSymbol(rec);
+  $('#tr-precedence').innerHTML = res.chain.map((c,i)=>
+    `<div class="step ${c.resolved?'hit':''} ${c.skipped?'skip':''}"><span class="n">${c.resolved?'✓':i+1}</span>
+      <div><div class="k">${esc(c.key)}${c.resolved?' <span class="pill">resolved</span>':''}</div>
+      <div class="v mono">${esc(c.detail)}</div></div></div>`).join('');
+  const rule=res.base.rule;
+  $('#tr-match').innerHTML = `
+    <div class="step ${rule?'hit':'skip'}"><span class="n">${rule?'✓':'—'}</span>
+      <div><div class="k">Rule match</div><div class="v">${rule
+        ? `geometry <b>${esc(rule.geometry)}</b>, variant <b>${esc(rule.variant)}</b>, renderer <b>${esc(rule.renderer.type)}</b>`
+        : (res.viaService ? 'no Sitetracker rule — the ArcGIS service renderer is drawing this layer'
+           : 'no rule for this geometry')}</div></div></div>
+    <div class="step ${rule&&rule.renderer.type!=='simple'?'hit':'skip'}">
+      <span class="n">${rule&&rule.renderer.type!=='simple'?'✓':'—'}</span>
+      <div><div class="k">Classification</div><div class="v mono">${rule&&rule.renderer.classification
+        ? `${esc(rule.renderer.classification.source)} · ${esc(rule.renderer.classification.field)} = "${esc(rec.classifiedOn)}"`
+        : '—'}</div></div></div>
+    <div class="step ${res.base.stop?'hit':'skip'}"><span class="n">${res.base.stop?'✓':'!'}</span>
+      <div><div class="k">Stop match ${res.base.fallback?'<span class="sev warn">fallback</span>':''}</div>
+      <div class="v">${esc(res.base.source)}${res.base.symbol
+        ? ` → ${esc(res.base.symbol.token||res.base.symbol.color)}`:''}</div></div></div>`;
+  $('#tr-overlay').innerHTML = res.steps.map((s,i)=>
+    `<div class="step ${s.hit?'hit':'skip'}"><span class="n">${s.hit?'✓':i+1}</span>
+      <div><div class="k">${esc(s.key)}</div><div class="v">${esc(s.detail)}</div></div></div>`).join('');
+  const g=groundCheck(res.fill), dg=res.glyph?Math.abs(V(res.fill)-V(res.glyphInk)):null;
+  $('#tr-final').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="padding:10px;border-radius:var(--r);background:var(--bm-green-2)">
+        ${legendSwatch(rec.geometry,{color:res.fill,width:res.width,size:res.size,shape:res.shape,
+          icon:res.glyph,dash:res.dash,fillOpacity:res.fillOpacity})}</div>
+      <dl class="kv"><dt>fill</dt><dd>${esc(res.fill)}</dd>
+        <dt>token</dt><dd>${res.token?esc(res.token):'— off-token'}</dd>
+        <dt>value</dt><dd>${g.v}</dd>
+        <dt>grounds</dt><dd>${g.per.map(p=>`${p.name.split(' ')[0]} ${p.d}
+          <span class="sev ${p.ok?'pass':'warn'}">${p.ok?'ok':'halo'}</span>`).join(' · ')}</dd>
+        ${res.glyph?`<dt>glyph</dt><dd>${esc(res.glyph)} · ${esc(state.iconLib)} · ink ${esc(res.glyphInk)}
+          (${dg} apart <span class="sev ${dg>=40?'pass':'fail'}">${dg>=40?'ok':'fail'}</span>)</dd>`:''}
+      </dl></div>
+    <pre>${syntax(JSON.stringify({record:rec.id, geometry:rec.geometry, classifiedOn:rec.classifiedOn,
+      status:rec.status, resolved:{fill:res.fill, token:res.token, width:res.width, size:res.size,
+      shape:res.shape, icon:res.glyph, glyphInk:res.glyphInk, selectionCasing:res.selected,
+      varianceOverlay:res.variance}, via:res.base.source}, null, 2))}</pre>`;
+  $('#engrec').onchange = e => {state.selected = e.target.value; renderAll();};
+}
+
+function digest(str){let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))>>>0;
+  return h.toString(16).padStart(8,'0').repeat(2);}
+function compiled(){
+  const rules = TEMPLATE.rules.map(r=>({geometry:r.geometry, variant:r.variant,
+    renderer: r.renderer.type==='simple' ? {type:'simple', symbol:r.renderer.symbol}
+      : {type:'uniqueValue', classification:r.renderer.classification,
+         stops:r.renderer.stops.map(s=>({value:s.value,label:s.label,symbol:s.symbol})),
+         default:{label:r.renderer.default.label, symbol:r.renderer.default.symbol}}}));
+  return {schemaVersion:1, templateId:TEMPLATE.templateId, name:TEMPLATE.name, version:TEMPLATE.version,
+    checksum:'mock-'+digest(JSON.stringify(rules)), publishedAt:TEMPLATE.publishedAt,
+    origin:TEMPLATE.origin, capabilities:TEMPLATE.capabilities, iconLibrary:TEMPLATE.iconLibrary,
+    statusOverlay:STATUS_OVERLAY, rules};
+}
+const syntax = s => esc(s)
+  .replace(/"([^"]+)":/g,'"<span class="k">$1</span>":')
+  .replace(/: "(#[0-9A-Fa-f]{6})"/g,': "<span class="s">$1</span>"')
+  .replace(/: "(\$[A-Z_a-z-]+)"/g,': "<span class="n2">$1</span>"');
+function renderDoc(){
+  const d=compiled();
+  $('#docjson').innerHTML = syntax(JSON.stringify(d,null,2));
+  $('#delivery').innerHTML = `
+    <dt>web</dt><dd>@RemoteAction getCompiledStyleTemplates()</dd>
+    <dt>mobile</dt><dd>GET /services/apexrest/strk/StStyleTemplates</dd>
+    <dt>cache key</dt><dd>${esc(d.templateId)}:${d.version}</dd>
+    <dt>checksum</dt><dd>${esc(d.checksum)}</dd>
+    <dt>payload</dt><dd>${new Blob([JSON.stringify(d)]).size} bytes (budget 50 KB)</dd>
+    <dt>flag</dt><dd>Enable_Style_Templates = ${state.flagOn}</dd>
+    <dt>mobile cache</dt><dd>styleTemplatesSlice[accountId] · offline-persisted · atomic swap at sync</dd>`;
+}
+
+const DEFECTS = [
+  {sev:'fail',msg:'$PALETTE_RED_80 names two colours',
+   why:'The Red step-70 swatch is captioned $PALETTE_RED_80 (fill #FE8F7D) — the same name as Red 80 (#FEB8AB).'},
+  {sev:'fail',msg:'$brand-accessible names three colours',
+   why:'Printed on Science Blue #0070D2, ST Teal #00847C and ST Teal Dark #00736C.'},
+  {sev:'fail',msg:'Text and Icons tiers are unpublished',
+   why:'All 20 swatches show ?? for name and hex — the exact tier status-based icon colouring needs. Values here are pixel-recovered and need design confirmation.'},
+  {sev:'warn',msg:'Orange 80 caption disagrees with its fill',
+   why:'Captioned #FFDED5; actual fill #FFBA90. #FFDED5 is Hot Orange 90 — a copy-paste.'},
+  {sev:'warn',msg:'Violet 15 and Violet 20 are identical (#3D0157)',
+   why:'The Violet ramp has 11 distinct steps, and the pair is 0 points apart — it fails the library’s own contrast rule. The L* ramp confirms it: Violet 20 measures 14 where every other hue measures 19.'},
+  {sev:'warn',msg:'Step 10 collides across hues',
+   why:'Green 10 = Teal 10 (#071B12) and Hot Orange 10 = Yellow 10 (#281202). A stop generator must not reach step 10.'},
+  {sev:'warn',msg:'Black-transparent “7” is 0.7, not 0.07',
+   why:'The scale reads 60→0.60, 40→0.40, 16→0.16, then 7→0.70 — the lightest-named step is the second darkest.'},
+  {sev:'warn',msg:'Placeholder names in Foundation',
+   why:'Link Water #F4F6F9, Malibu #5EB4FF, Pippin #FFDDE1, Deep Blush #EB7092 have values but no token names.'}
+];
+const CODE_COLOURS = [
+  ['#3183fe','mobile · DEFAULT_LEGEND_COLORS.Allocated'],
+  ['#808080','mobile · DEFAULT_LEGEND_COLORS.Unallocated'],
+  ['#027E46','mobile · DEFAULT_LEGEND_COLORS.Completed'],
+  ['#FFB75D','mobile · DEFAULT_LEGEND_COLORS.Draft'],
+  ['#D9FFDE','mobile · DEFAULT_LEGEND_COLORS.Submitted'],
+  ['#52A063','mobile · DEFAULT_LEGEND_COLORS.Approved'],
+  ['#e53f2c','mobile · DEFAULT_LEGEND_COLORS.Rejected'],
+  ['#000000','mobile + web · symbol outlines, Base Map “Designs”'],
+  ['#969492','web · createStatusBasedPointStyles default'],
+  ['#A61A14','web + mobile · variance line'],
+  ['#9CA3AF','web · legendUtils DEFAULT_LEGEND_COLOR (Tailwind gray-400)'],
+  ['#3B82F6','web · Tailwind blue-500'],
+  ['#0000FF','web · vetroConstants DEFAULT_COLOR'],
+  ['#47804E','web · linear style outline'],
+  ['#233E87','web · linear style outline']
+];
+function renderTokens(){
+  $('#defects').innerHTML = DEFECTS.map(d=>
+    `<div class="lintrow"><span class="sev ${d.sev}">${d.sev==='fail'?'blocker':'major'}</span>
+      <div><div class="msg">${esc(d.msg)}</div><div class="why">${d.why}</div></div></div>`).join('');
+  $('#compliance').innerHTML = CODE_COLOURS.map(([hex,where])=>{
+    const tok=tokenFor(hex), near=nearestToken(hex);
+    return `<tr><td><span style="display:inline-flex;align-items:center;gap:7px">
+      <i style="width:14px;height:14px;border-radius:3px;background:${hex};
+        box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)"></i><span class="mono">${hex.toUpperCase()}</span></span></td>
+      <td class="note">${esc(where)}</td>
+      <td>${tok?'<span class="sev pass">on token</span>':'<span class="sev warn">off token</span>'}</td>
+      <td class="mono">${esc(tok||near.name)}</td><td class="num">${tok?'0':'Δ'+near.dist}</td></tr>`;
+  }).join('');
+
+  const rows=[]; let allMatch=true;
+  for(const [,arr] of Object.entries(PALETTE))
+    arr.forEach((hex,i)=>{if(Math.abs(V(hex)-STEPS[i])>2) allMatch=false;});
+  rows.push({sev:allMatch?'pass':'warn', msg:'Step number == measured L* across all 12 hues',
+    why:allMatch?'Verified: 95→96, 90→91, 80→81, 70→71, 65→66, 60→61, 50→49, 40→39, 30→29, 20→19, 15→14, 10→8, identically in every hue. The palette is L*-constructed, so |step(a) − step(b)| is a sound contrast test and the compiler needs no colour maths.'
+      :'Some steps deviate from measured L* by more than 2 points.'});
+  const paint=[];
+  for(const rule of TEMPLATE.rules){
+    const r=rule.renderer;
+    const syms = r.type==='simple'?[{label:'All',symbol:r.symbol}]
+      :[...r.stops,{label:r.default.label,symbol:r.default.symbol}];
+    for(const s of syms) paint.push({what:`${rule.geometry} · ${s.label}`,symbol:s.symbol});
+  }
+  for(const [st,tok] of Object.entries(STATUS_OVERLAY))
+    paint.push({what:`status · ${st}`,symbol:{token:tok,color:resolveToken(tok)}});
+  paint.push({what:'variance overlay',symbol:{token:VARIANCE_TOKEN,color:resolveToken(VARIANCE_TOKEN)}});
+  for(const p of paint){
+    const g=groundCheck(p.symbol.color), st=(p.symbol.token||'').match(/_(\d+)$/);
+    rows.push({sev:g.sev, msg:`${p.what} — ${p.symbol.token||p.symbol.color} · value ${g.v}${st?` (step ${st[1]})`:''}`,
+      why:g.per.map(q=>`${q.name} ${q.d} pts, ${q.ratio.toFixed(2)}:1 — ${q.ok?'passes':'needs halo'}`).join(' · ')+'.'});
+  }
+  $('#contrastlint').innerHTML = rows.map(r=>
+    `<div class="lintrow"><span class="sev ${r.sev}">${r.sev==='pass'?'ok':r.sev==='warn'?'halo':'fail'}</span>
+      <div><div class="msg mono">${esc(r.msg)}</div><div class="why">${r.why}</div></div></div>`).join('');
+
+  let h='';
+  for(const [hue,arr] of Object.entries(PALETTE)){
+    h += `<div style="display:grid;grid-template-columns:92px repeat(12,minmax(0,1fr));gap:3px;
+      align-items:center;margin-bottom:3px"><span class="note">${hue.replace('_',' ').toLowerCase()}</span>`;
+    arr.forEach((hex,i)=>{
+      const dup = Object.entries(PALETTE).some(([h2,a2])=>a2.some((x,j)=>x===hex && !(h2===hue && j===i)));
+      h += `<div title="$PALETTE_${hue}_${STEPS[i]} · ${hex} · value ${V(hex)}" style="height:24px;
+        border-radius:3px;background:${hex};box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)${dup?',0 0 0 2px var(--error)':''}"></div>`;});
+    h += `</div>`;
+  }
+  h += `<div style="display:grid;grid-template-columns:92px repeat(12,minmax(0,1fr));gap:3px;margin-top:6px">
+    <span></span>${STEPS.map(s=>`<span class="note num" style="text-align:center;font-size:9.5px">${s}</span>`).join('')}</div>
+    <p class="note" style="margin:10px 0 0">Red outline = this exact value appears more than once.
+    Step number is the 0–100 contrast value; hover any swatch for its measured value.</p>`;
+  $('#palettegrid').innerHTML = h;
+}
+
+/* ==========================================================================
+   8. WIRING
+   ========================================================================== */
+/* Null-safe binder: several controls moved into the panel editor or the admin tab, so
+   a hard $('#id').addEventListener would throw at init and kill the whole script. */
+const bind=(id,ev,fn)=>{const e=document.querySelector(id); if(e) e.addEventListener(ev,fn);};
+function markDirty(){
+  if(!document.querySelector('#draftstate')) return;
+  const el=$('#draftstate');
+  el.textContent = state.dirty ? 'Unpublished changes' : `Published v${TEMPLATE.version}`;
+  el.className = state.dirty ? 'pill warn' : 'pill on';
+}
+function toast(m){const t=$('#toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2600);}
+function syncTabs(){
+  document.querySelectorAll('.sf-appnav .tab[data-view]').forEach(b=>
+    b.setAttribute('aria-selected', String(b.dataset.view===state.view)));
+  document.querySelectorAll('.sf-appnav .tab[data-inert]').forEach(b=>b.setAttribute('aria-selected','false'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  $('#view-'+state.view).classList.add('active');
+  document.querySelectorAll('.subtabs button').forEach(b=>
+    b.setAttribute('aria-selected', String(b.dataset.sub===state.sub)));
+  document.querySelectorAll('.subview').forEach(v=>v.classList.remove('active'));
+  $('#sub-'+state.sub).classList.add('active');
+}
+function renderAll(){
+  renderPanel(); renderMap(); renderLegend(); renderTemplates(); renderBindings();
+  renderEngine(); renderDoc(); renderTokens(); renderBuilderLint(); markDirty();
+  const win = precedenceChain(layerFor('polyline')).find(c=>c.resolved);
+  $('#badge-tmpl').textContent = state.flagOn ? `${TEMPLATE.name} · v${TEMPLATE.version}` : 'Legacy styling (flag OFF)';
+  $('#badge-mode').textContent = state.colorMode==='base' ? 'Template symbology'
+    : state.colorMode==='status' ? 'Status overlay' : 'Variance';
+  $('#badge-src').textContent = win.key;
+}
+document.querySelectorAll('.sf-appnav .tab[data-view]').forEach(b=>
+  b.addEventListener('click',()=>{state.view=b.dataset.view; syncTabs(); renderAll();}));
+document.querySelectorAll('.sf-appnav .tab[data-inert]').forEach(b=>
+  b.addEventListener('click',()=>toast('Standard GIS Link tab — not part of this mock')));
+document.querySelectorAll('.subtabs button').forEach(b=>
+  b.addEventListener('click',()=>{state.sub=b.dataset.sub; syncTabs(); renderAll();}));
+document.querySelectorAll('.rtab').forEach(b=>
+  b.addEventListener('click',()=>{state.panelMode=b.dataset.mode; renderPanel();}));
+$('#ptgear').addEventListener('click',()=>{
+  state.view='admin'; state.sub='tokens'; syncTabs(); renderAll();
+  toast('Progress-tracking status colours — the semantic tier, not the vibrant palette');});
+$('#zin').addEventListener('click',()=>zoomBy(1/1.5));
+$('#zout').addEventListener('click',()=>zoomBy(1.5));
+$('#tbltoggle').addEventListener('click',e=>{
+  state.legendOn=!state.legendOn;
+  e.currentTarget.setAttribute('aria-pressed',String(state.legendOn));
+  renderLegend();});
+$('#annotoff').addEventListener('click',()=>{document.body.classList.remove('annot'); state.annot=false;});
+
+bind('#savedraft','click',()=>toast(`Draft saved — field users still see v${TEMPLATE.version}`));
+bind('#addstop','click',()=>{
+  const rule=ruleFor(state.geometry,'design');
+  if(!rule||rule.renderer.type==='simple'){toast('Simple renderers have one symbol'); return;}
+  rule.renderer.stops.push({value:'NEW-VALUE',label:'New stop',
+    symbol:sym('$PALETTE_GREEN_50', state.geometry==='polyline'?{width:3}:{size:11,shape:'circle',icon:'site'})});
+  state.dirty=true; renderAll();});
+bind('#genstops','click',()=>{
+  const rule=ruleFor(state.geometry,'design');
+  if(!rule||rule.renderer.type==='simple') return;
+  const vals=[...new Set(allRecords().filter(r=>r.geometry===state.geometry).map(r=>r.classifiedOn))];
+  const missing=vals.filter(v=>!rule.renderer.stops.some(s=>s.value===v));
+  if(!missing.length){toast('Every value in this layer already has a stop'); return;}
+  // hue-distinct, mid-band steps only — never step 10, never the Violet 15/20 pair
+  const HUES=['GREEN','CLOUD_BLUE','PINK','INDIGO','TEAL','ORANGE','PURPLE','YELLOW'];
+  const used=new Set(rule.renderer.stops.map(s=>(s.symbol.token||'').replace(/^\$PALETTE_(.+)_\d+$/,'$1')));
+  missing.forEach(v=>{const hue=HUES.find(h=>!used.has(h))||'GREEN'; used.add(hue);
+    rule.renderer.stops.push({value:v,label:v,
+      symbol:sym(`$PALETTE_${hue}_50`, state.geometry==='polyline'?{width:3}:{size:11,shape:'circle',icon:'site'})});});
+  state.dirty=true; renderAll();
+  toast(`${missing.length} stop(s) added from ${rule.renderer.classification.field} — hue-distinct, step 50`);});
+$('#iconlib').innerHTML = Object.entries(ICON_LIBS).map(([k,v])=>
+  `<option value="${k}" ${k===state.iconLib?'selected':''}>${v.label}</option>`).join('');
+$('#iconlib').addEventListener('change',e=>{
+  state.iconLib=e.target.value; TEMPLATE.iconLibrary=e.target.value; renderAll();
+  toast(`Icon library \u2192 ${ICON_LIBS[state.iconLib].label}`);});
+$('#colormode').addEventListener('change',e=>{state.colorMode=e.target.value; renderAll();});
+$('#flag').addEventListener('click',()=>{
+  state.flagOn=!state.flagOn;
+  const b=$('#flag');
+  b.setAttribute('aria-pressed',String(state.flagOn));
+  b.className = state.flagOn ? 'pill on' : 'pill warn';
+  b.innerHTML = `<span class="led"></span>Style templates ${state.flagOn?'ON':'OFF'}`;
+  renderAll();
+  toast(state.flagOn ? 'Templates resolving'
+    : 'Flag OFF \u2014 ArcGIS service renderers and legacy styling take over');});
+$('#theme').addEventListener('click',()=>{
+  const cur = document.documentElement.getAttribute('data-theme')
+    || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  renderAll();
+  toast(`${cur==='dark'?'Light':'Dark'} basemap \u2014 symbology re-validated against the new ground`);});
+$('#annoton').addEventListener('click',()=>{document.body.classList.add('annot'); state.annot=true;});
+$('#mocktoggle').addEventListener('click',()=>document.body.classList.remove('mockhidden'));
+$('#mockhide').addEventListener('click',()=>document.body.classList.add('mockhidden'));
+/* ---- map interaction: wheel zoom, drag pan, keyboard ---- */
+const pan = {on:false, moved:false, sx:0, sy:0, cx:0, cy:0, sc:1};
+(function wireMapNav(){
+  const el = document.querySelector('#map');
+  if(!el) return;
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    const w = toWorld(e);
+    zoomBy(e.deltaY > 0 ? 1.16 : 1/1.16, w.x, w.y);
+  }, {passive:false});
+  el.addEventListener('pointerdown', e => {
+    const w = toWorld(e);
+    pan.on = true; pan.moved = false;
+    pan.sx = e.clientX; pan.sy = e.clientY; pan.cx = vp.cx; pan.cy = vp.cy; pan.sc = w.sc;
+    el.classList.add('dragging');
+    el.setPointerCapture?.(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if(!pan.on) return;
+    const dx = e.clientX - pan.sx, dy = e.clientY - pan.sy;
+    if(Math.abs(dx) + Math.abs(dy) > 4) pan.moved = true;
+    vp.cx = pan.cx - dx / pan.sc;
+    vp.cy = pan.cy - dy / pan.sc;
+    applyViewBox();
+  });
+  const end = () => { pan.on = false; document.querySelector('#map').classList.remove('dragging');
+    setTimeout(()=>{pan.moved=false;}, 0); };
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => el.addEventListener(ev, end));
+  el.addEventListener('keydown', e => {
+    const step = vp.w * 0.12;
+    const m = {ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
+    if(m){ e.preventDefault(); vp.cx += m[0]; vp.cy += m[1]; applyViewBox(); }
+    if(e.key === '+' || e.key === '=') { e.preventDefault(); zoomBy(1/1.5); }
+    if(e.key === '-' || e.key === '_') { e.preventDefault(); zoomBy(1.5); }
+  });
+  el.addEventListener('dblclick', e => { const w = toWorld(e); zoomBy(1/1.6, w.x, w.y); });
+})();
+addEventListener('resize', positionLegend);
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',renderAll);
+state.annot=false;   // product chrome reads clean until the reviewer asks for pins
+syncTabs(); renderAll();
+</script>
+
+</body>
+</html>

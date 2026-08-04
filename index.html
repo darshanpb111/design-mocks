@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Design Mocks — review gallery</title>
+<style>
+:root{
+  --gray-1:#FFFFFF;--gray-2:#FAFAF9;--gray-3:#F3F2F2;--gray-5:#DDDBDA;--gray-9:#706E6B;
+  --gray-11:#3E3E3C;--gray-13:#080707;--teal:#00847C;--brand:#0070D2;--warning:#FFB75D;
+  --warning-ink:#844800;--success:#027E46;--inverse:#061C3F;--inverse-alt:#16325C;--sep:#2A426C;
+  --bg:var(--gray-3);--panel:var(--gray-1);--line:var(--gray-5);--ink:var(--gray-13);
+  --ink-2:var(--gray-11);--ink-3:var(--gray-9);
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI","Salesforce Sans",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:var(--inverse);--panel:#0B2447;--line:var(--sep);--ink:#fff;--ink-2:#D8E6FE;--ink-3:#AACBFF;
+  --brand:#1B96FF;--teal:#04E1CB;--warning-ink:#FFB75D;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--ui);
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:38px 20px 70px}
+header{display:flex;align-items:center;gap:13px;margin-bottom:6px}
+.tile{width:40px;height:40px;border-radius:10px;background:var(--teal);color:#fff;flex:none;
+  display:grid;place-items:center}
+h1{margin:0;font-size:25px;font-weight:650;letter-spacing:-.02em}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.lede{color:var(--ink-2);max-width:64ch;margin:14px 0 8px}
+.warn{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--warning);
+  border-left:4px solid var(--warning);border-radius:6px;padding:11px 13px;margin:20px 0 28px;
+  background:color-mix(in srgb,var(--warning) 13%,transparent);font-size:12.5px;color:var(--ink-2)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:19px 21px;
+  margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 5px 16px rgba(0,0,0,.05)}
+.card h2{margin:0 0 3px;font-size:18px;font-weight:620;letter-spacing:-.01em}
+.card h2 a{color:inherit;text-decoration:none}
+.card h2 a:hover{color:var(--brand);text-decoration:underline}
+.meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--ink-3);
+  margin-bottom:10px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11px}
+.pill.st{background:color-mix(in srgb,var(--warning) 20%,transparent);border-color:var(--warning);
+  color:var(--warning-ink);font-weight:650}
+.sum{color:var(--ink-2);margin:0 0 12px;max-width:70ch}
+ul.notes{margin:0 0 16px;padding-left:19px;font-size:12.5px;color:var(--ink-3)}
+ul.notes li{margin-bottom:4px}
+.open{display:inline-flex;align-items:center;gap:7px;background:var(--brand);color:#fff;
+  text-decoration:none;font-weight:600;font-size:13px;padding:8px 15px;border-radius:5px}
+.open:hover{filter:brightness(.92)}
+.sub{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:9px;overflow-wrap:anywhere}
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;
+  color:var(--ink-3)}
+footer code{font-family:var(--mono);font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 3.4L21 8l-9 4.6L3 8z"/><path d="M3.4 12.2L12 16.6l8.6-4.4"/></svg></span>
+    <div><div class="kicker">Sitetracker · design review</div><h1>Design Mocks</h1></div>
+  </header>
+  <p class="lede">Static, self-contained prototypes for design and dev review. Each one runs entirely
+    in the browser — no org, no login, no build step. Open one and click around.</p>
+  <div class="warn"><span>⚠</span><div><b>Internal review material.</b> These are unreleased product
+    designs. The site is unlisted and set to <code>noindex</code>, but it is served publicly by
+    GitHub Pages — anyone with a link can open it. Share the link inside the team only, and don't
+    put customer data in a mock.</div></div>
+  <div id="list"></div>
+  <footer>
+    Add a mock: drop the HTML at <code>mocks/&lt;slug&gt;/index.html</code>, add an entry to
+    <code>mocks.json</code>, commit and push — Pages redeploys in about a minute. Each mock keeps its
+    own stable URL at <code>/mocks/&lt;slug&gt;/</code>.
+  </footer>
+</div>
+<script>
+fetch('mocks.json').then(r=>r.json()).then(list=>{
+  document.getElementById('list').innerHTML = list.map(m=>`
+    <div class="card">
+      <h2><a href="mocks/${m.slug}/">${m.title}</a></h2>
+      <div class="meta"><span>${m.module}</span><span class="pill st">${m.status}</span>
+        <span class="pill">updated ${m.updated}</span></div>
+      <p class="sum">${m.summary}</p>
+      ${m.notes?.length?`<ul class="notes">${m.notes.map(n=>`<li>${n}</li>`).join('')}</ul>`:''}
+      <a class="open" href="mocks/${m.slug}/">Open mock
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg></a>
+      <div class="sub">/mocks/${m.slug}/</div>
+    </div>`).join('');
+}).catch(e=>{document.getElementById('list').innerHTML =
+  '<div class="card">Could not load <code>mocks.json</code>.</div>';});
+</script>
+</body>
+</html>

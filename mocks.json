@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "style-templates",
+    "title": "Style Templates on Lightning Maps (Beta)",
+    "module": "GIS Link · Progress Tracking",
+    "status": "In review",
+    "updated": "2026-08-04",
+    "summary": "Org-level map style templates: where the entry points live, how an ArcGIS-sourced layer differs from a templated one, the attribute → style → options editor modelled on Esri's Styles pane, status-based icon colouring and a switchable icon library.",
+    "notes": [
+      "Left panel scrolls; the map does not. Wheel / drag / double-click / arrow keys all zoom and pan.",
+      "Layer card “…” → Style Layer opens the editor in the panel, so the map stays live.",
+      "Mock controls dock at the bottom right toggles icon library, colour mode, the feature flag and the dark basemap.",
+      "Icon glyphs are stand-ins drawn for the mock, not licensed Calcite/SLDS/FontAwesome/Maki assets."
+    ]
+  }
+]
