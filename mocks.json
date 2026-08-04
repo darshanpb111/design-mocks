@@ -9,6 +9,7 @@
     "notes": [
       "Colours are chosen by name and swatch \u2014 \u201cViolet Mid\u201d, \u201cBrand Blue\u201d. Token codes only appear under Advanced \u2192 Developer reference.",
       "Advanced holds the precise settings: opacity slider, contrast points against both basemaps, and a custom hex.",
+      "Colour ramp shows which one is Applied, and flips to \u201cCustom\u201d the moment you change a single class by hand.",
       "Every change repaints the map live. Opening the editor pauses the status overlay so you can actually see template colours \u2014 there is a one-click Show status to flip back.",
       "Left panel scrolls; the map does not. Wheel / drag / double-click / arrow keys zoom and pan, and symbols hold constant screen size.",
       "Layer card \u201c\u2026\u201d \u2192 Style Layer. Templates tab has New, sortable columns and per-row actions.",

@@ -328,6 +328,14 @@ details.adv[open] summary::before{content:"▾"}
 .chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 9px;
   font-size:11px;cursor:pointer;color:var(--ink-3)}
 .chip.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}
+.ramprow.on{border-color:var(--teal);border-width:1.5px;
+  background:color-mix(in srgb,var(--teal) 9%,transparent)}
+.ramprow.on .rnm{color:var(--ink)}
+.rampapplied{margin-left:auto;display:inline-flex;align-items:center;gap:4px;flex:none;
+  font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;
+  background:var(--teal);border-radius:999px;padding:2px 7px 2px 5px}
+.rampcustom{border:1px dashed var(--line);border-radius:var(--r);padding:8px 10px;margin-bottom:7px;
+  font-size:11.5px;color:var(--ink-3);background:var(--panel-2)}
 .ramprow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:var(--panel);
   border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;margin-bottom:5px;cursor:pointer}
 .ramprow:hover{background:var(--panel-2)}
@@ -984,6 +992,7 @@ const UI = {
   close:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   doc:'<path d="M6.5 3.5h7L18 8v12.5h-11.5z"/><path d="M13.2 3.6V8H18"/><path d="M9 12h6M9 15.5h6"/>',
   sparkle:'<path d="M12 3.5l1.7 4.8 4.8 1.7-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>'
 };
 function ic(name, px, sw){
@@ -1672,6 +1681,19 @@ function qualRamps(n){
       why:groundHint(colors[0]).text};
   });
 }
+/** A ramp is "applied" when every class sits on the same palette step. Change one
+ *  class by hand and that is no longer true — the list then reads "Custom". */
+function activeRampStep(geom){
+  const rule = ruleFor(geom,'design');
+  if(!rule || rule.renderer.type === 'simple') return null;
+  const stops = rule.renderer.stops;
+  if(!stops.length) return null;
+  const steps = stops.map(st => {
+    const m = (st.symbol.token||'').match(/^\$PALETTE_(.+)_(\d+)$/);
+    return m ? +m[2] : null;
+  });
+  return steps.every(x => x !== null && x === steps[0]) ? steps[0] : null;
+}
 const RAMP_FILTERS = [['all','All ramps'],['light','Best for light basemaps'],['dark','Best for dark basemaps']];
 
 const ed = { open:false, layerId:null, step:'attr', field:null, card:null, focus:false,
@@ -1741,6 +1763,7 @@ function stepOptionsHTML(l){
   if(!rule) return '<div class="pad note">No rule for this geometry.</div>';
   const r = rule.renderer;
   const stops = r.type==='simple' ? [] : r.stops;
+  const active = activeRampStep(l.geometry);
   const ramps = qualRamps(stops.length||3)
     .filter(rp => ed.rampFilter==='all' || rp.fits.includes(ed.rampFilter));
   const total = stops.reduce((a,s)=>a+orgCount(s.value),0);
@@ -1754,12 +1777,20 @@ function stepOptionsHTML(l){
     ${ed.gallery?galleryHTML():''}
   </div>
   <div class="edsec"><div class="edhd">Colour ramp</div>
-    <div class="chips">${RAMP_FILTERS.map(([k,lb])=>
-      `<button class="chip ${ed.rampFilter===k?'on':''}" data-rampf="${k}">${lb}</button>`).join('')}</div>
-    ${ramps.length?ramps.map(rp=>`<button class="ramprow" data-ramp="${rp.step}">
+    <div class="chips">${RAMP_FILTERS.map(([k,lb])=>{
+      const n = qualRamps(stops.length||3).filter(rp=>k==='all'||rp.fits.includes(k)).length;
+      return `<button class="chip ${ed.rampFilter===k?'on':''}" data-rampf="${k}">${lb}
+        <span class="num" style="opacity:.65">${n}</span></button>`;}).join('')}</div>
+    ${active===null?`<div class="rampcustom">
+      <b>Custom</b> — classes use individual colours, so no ramp is applied.
+      Choosing one below will overwrite all ${stops.length} class colours.</div>`:''}
+    ${ramps.length?ramps.map(rp=>{const on = rp.step===active;
+      return `<button class="ramprow${on?' on':''}" data-ramp="${rp.step}"
+        aria-pressed="${on}" title="${on?'Currently applied':'Apply '+rp.name+' to all classes'}">
       <span class="rampsw">${rp.colors.map(c=>`<i style="background:${c}"></i>`).join('')}</span>
       <span class="rnm">${rp.name}<span class="note"> · ${esc(rp.why)}</span></span>
-      </button>`).join('')
+      ${on?`<span class="rampapplied">${ic('check',12,2.4)}Applied</span>`:''}
+      </button>`;}).join('')
       :`<div class="note">No ramp in the palette clears that ground on its own. Because step is the
         contrast value, anything readable on light streets is too dark for imagery and vice versa —
         pick either and the 1.5px halo carries the other.</div>`}
