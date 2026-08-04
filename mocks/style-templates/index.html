@@ -356,6 +356,14 @@ details.adv[open] summary::before{content:"▾"}
 .edfoot{display:flex;gap:8px;padding:12px 0 4px;border-top:1px solid var(--line-soft);
   position:sticky;bottom:0;background:var(--panel);flex-wrap:wrap}
 .edfoot .btn{flex:1}
+.srclocked,.srconly,.srcwarn{display:flex;align-items:flex-start;gap:7px;border-radius:var(--r);
+  padding:8px 10px;font-size:11.5px;line-height:1.45}
+.srclocked{border:1px solid var(--line);background:var(--panel-2);color:var(--ink-3)}
+.srconly{border:1px solid var(--teal);background:color-mix(in srgb,var(--teal) 9%,transparent);
+  color:var(--ink-2)}
+.srcwarn{border:1px solid var(--warning);border-left:3px solid var(--warning);
+  background:color-mix(in srgb,var(--warning) 13%,transparent);color:var(--warning-ink);margin-top:7px}
+.srclocked svg,.srconly svg,.srcwarn svg{flex:none;margin-top:1px}
 .applyto{font-size:10.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-3)}
 .applyto b{color:var(--teal)}
 .ssrow{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
@@ -1157,11 +1165,49 @@ const OTHER_TEMPLATES = [
 /* ==========================================================================
    4. DATA — layer panel rows use the real org's names from the Beta UI
    ========================================================================== */
+/* ==========================================================================
+   SOURCE CAPABILITIES — see 12-layer-source-matrix.md. Sitetracker ingests from
+   ArcGIS, Vetro and file upload (SHP / GPKG / KML / KMZ / GeoJSON), and they do
+   NOT behave alike: only ArcGIS and Vetro arrive carrying a vendor style, so
+   only they get a two-way source choice. File layers have nothing to preserve,
+   so the template is their default rather than an opt-in.
+   ========================================================================== */
+const SOURCE_CAPS = {
+  'ArcGIS':      {vendorStyle:'full',   seed:true,  stylable:true,  defaultSrc:'template',
+    vendorLabel:'ArcGIS service renderer',
+    note:'Arrives with its own renderer (drawingInfo) — simple, unique-value or class breaks.'},
+  'Living Atlas':{vendorStyle:'full',   seed:false, stylable:false, defaultSrc:'service',
+    vendorLabel:'Esri content renderer',
+    note:'Read-only Esri content. The service renderer is the content, so it cannot be restyled.'},
+  'Vetro':       {vendorStyle:'single', seed:true,  stylable:true,  defaultSrc:'service',
+    vendorLabel:'Vetro plan style',
+    note:'Vetro sends one default symbol for the whole layer — no classes. A template can classify it by field, which is an upgrade.'},
+  'Shapefile':   {vendorStyle:'none',   seed:false, stylable:true,  defaultSrc:'template',
+    vendorLabel:null,
+    note:'A .shp carries no styling, so there is nothing to preserve — the template is the only source of style.'},
+  'GeoPackage':  {vendorStyle:'none',   seed:false, stylable:true,  defaultSrc:'template',
+    vendorLabel:null,
+    note:'The OGC styling extension is not read, so this layer has no vendor style.'},
+  'KML':         {vendorStyle:'lost',   seed:false, stylable:true,  defaultSrc:'template',
+    vendorLabel:null,
+    note:'Styling in the KML file is not imported — conversion to GeoJSON strips it. Style it here instead.'},
+  'GeoJSON':     {vendorStyle:'none',   seed:false, stylable:true,  defaultSrc:'template',
+    vendorLabel:null,
+    note:'GeoJSON has no styling by specification, so the template is the only source of style.'},
+  'Sitetracker': {vendorStyle:'legacy', seed:false, stylable:true,  defaultSrc:'template',
+    vendorLabel:'Legacy layer styling',
+    note:'Migrated from Layer_Styling__c. With the flag off this renders exactly as it does today.'}
+};
+const capsFor = l => SOURCE_CAPS[l.source] || SOURCE_CAPS['Sitetracker'];
+/* The geometry-only fallback file layers get today — Google Blue/Green/Red,
+   none of them design-system values (finding S1). */
+const FILE_FALLBACK = {point:'#4285F4', polyline:'#34A853', polygon:'#EA4335'};
+
 const MAP_LAYER_VIEWS = ['Bozeman and Florida','All ArcGIS layers','NJ fiber build'];
 const PANEL_LAYERS = [
   {id:'L1',name:'BOZEMAN TRAINING',caps:true,source:'ArcGIS',geometry:'polyline',sync:'error',
    visible:'0/0',symbologySource:'service',template:null,items:0,
-   serviceRenderer:'uniqueValue on SUBTYPECD (7 classes)'},
+   serviceRenderer:'unique-value on SUBTYPECD (7 classes)'},
   {id:'L2',name:'Florida Project',source:'ArcGIS',geometry:'point',sync:'error',visible:'0/0',
    symbologySource:'service',template:null,items:0,serviceRenderer:'simple, orange circle'},
   {id:'L3',name:'NJ Fiber Segments',source:'Sitetracker',geometry:'polyline',sync:'ok',visible:'9/9',
@@ -1170,7 +1216,15 @@ const PANEL_LAYERS = [
    symbologySource:'template',template:'Acme Fiber Standard',items:9,serviceRenderer:null},
   {id:'L5',name:'Permit Envelopes',source:'Sitetracker',geometry:'polygon',sync:'ok',visible:'1/1',
    symbologySource:'template-objconfig',template:'Acme Fiber Standard',items:1,serviceRenderer:null},
-  {id:'L6',name:'USA Structures',source:'Living Atlas',geometry:'point',sync:'ok',visible:'1/1',
+  {id:'L6',name:'Vetro — Sussex Plan 4471',source:'Vetro',geometry:'polyline',sync:'ok',visible:'6/6',
+   symbologySource:'service',template:null,items:0,serviceRenderer:'single symbol (stroke #1F6FEB)'},
+  {id:'L7',name:'As-Built Walk (Google Earth)',source:'KML',geometry:'polyline',sync:'ok',
+   visible:'4/4',symbologySource:'template',template:'Acme Fiber Standard',items:4,serviceRenderer:null},
+  {id:'L8',name:'County Parcels.zip',source:'Shapefile',geometry:'polygon',sync:'ok',visible:'1/1',
+   symbologySource:'template',template:'Acme Fiber Standard',items:1,serviceRenderer:null},
+  {id:'L9',name:'survey-points.geojson',source:'GeoJSON',geometry:'point',sync:'ok',visible:'3/3',
+   symbologySource:'template',template:'Acme Fiber Standard',items:3,serviceRenderer:null},
+  {id:'L10',name:'USA Structures',source:'Living Atlas',geometry:'point',sync:'ok',visible:'1/1',
    symbologySource:'service',template:null,items:0,readOnly:true,
    serviceRenderer:'Esri-authored, read-only content'}
 ];
@@ -1236,9 +1290,14 @@ function precedenceChain(layer){
      hit:state.flagOn && ss === 'org-default', value:'Sitetracker Default'},
     {key:'Shipped “Sitetracker Default”', detail:"st_Source_Unique_Id__c = 'ST_DEFAULT'",
      hit:state.flagOn && ss === 'shipped', value:'Sitetracker Default'},
-    {key:'ArcGIS service renderer', detail:'FeatureLayer.drawingInfo from the Esri service',
+    {key:'Vendor renderer', detail: capsFor(layer).vendorLabel
+       ? `${capsFor(layer).vendorLabel} — read at layer construction`
+       : 'no vendor style on this source',
      hit:(!state.flagOn && layer.source !== 'Sitetracker') || ss === 'service',
-     value:layer.serviceRenderer || 'service renderer'},
+     value:layer.serviceRenderer || capsFor(layer).vendorLabel || 'none'},
+    {key:'Geometry-type fallback', detail:'fileLayerRenderer.createRendererForGeometryType()',
+     hit: capsFor(layer).vendorStyle === 'none' || capsFor(layer).vendorStyle === 'lost',
+     value:'Google Blue/Green/Red — off-palette'},
     {key:'Legacy passthrough', detail:'Layer_Styling__c / hardcoded palette',
      hit:true, value:'legacy renderer'}
   ];
@@ -1950,31 +2009,44 @@ function symbolStyleHTML(l, rule){
 function symbologyPanelHTML(){
   const l = PANEL_LAYERS.find(x=>x.id===ed.layerId);
   const chain = precedenceChain(l), win = chain.find(c=>c.resolved);
-  const viaService = win.key === 'ArcGIS service renderer';
+  const caps = capsFor(l);
+  const viaService = win.key === 'Vendor renderer' || win.key === 'Geometry-type fallback';
   return `
   <div class="edtop">
     <button class="btn sm" id="ed-back" style="display:flex;align-items:center;gap:4px">${ic('chevL',13,2)}Back</button>
     <span class="edtitle">${esc(l.name)}</span>
     <button class="iconbtn ghost" id="ed-focus" title="${ed.focus?'Collapse':'Expand'}">${ic('expand',16)}</button>
   </div>
-  <div class="edsec"><div class="edhd">Style source</div>
-    <div class="seg" style="width:100%">
-      <button data-src="service" aria-pressed="${l.symbologySource==='service'}"
-        style="flex:1" ${l.readOnly?'':''}>ArcGIS service renderer</button>
-      <button data-src="template" aria-pressed="${l.symbologySource.startsWith('template')}"
-        style="flex:1" ${l.readOnly?'disabled':''}>Sitetracker template</button>
-    </div>
-    <div class="note" style="margin-top:6px">${l.readOnly
-      ? 'Living Atlas is read-only Esri content — the service renderer is the content.'
-      : viaService
-        ? `This layer draws from its ArcGIS renderer (${esc(l.serviceRenderer||'drawingInfo')}).`
-        : `Template <b>${esc(l.template)}</b> · v${TEMPLATE.version} · shared by 3 layers`}</div>
-    ${viaService && !l.readOnly ? `<button class="btn wide" id="ed-seed" style="margin-top:8px">${ic('sparkle',15)}
-      Create a template from this layer’s ArcGIS symbology</button>
+  <div class="edsec"><div class="edhd">Style source
+      <span class="sp"></span><span class="applyto">${esc(l.source)}</span></div>
+    ${caps.vendorLabel && caps.stylable ? `
+      <div class="seg" style="width:100%">
+        <button data-src="service" aria-pressed="${l.symbologySource==='service'}" style="flex:1"
+          >${esc(caps.vendorLabel)}</button>
+        <button data-src="template" aria-pressed="${l.symbologySource.startsWith('template')}"
+          style="flex:1">Sitetracker template</button>
+      </div>`
+    : !caps.stylable ? `
+      <div class="srclocked">${ic('cloudOff',15)}<span>${esc(caps.vendorLabel)} · locked</span></div>`
+    : `<div class="srconly">${ic('check',14,2.4)}<span>Styled by <b>Sitetracker template</b> — this
+        source carries no style of its own</span></div>`}
+    <div class="note" style="margin-top:6px">${esc(caps.note)}</div>
+    ${caps.vendorStyle==='lost' ? `<div class="srcwarn">${ic('cloudOff',14)}
+      <span>Google Earth styling in this file was not imported. Without a template it would fall back
+      to a plain ${esc(l.geometry==='point'?'blue dot':l.geometry==='polygon'?'red fill':'green line')}
+      (${esc(FILE_FALLBACK[l.geometry]||'')}), which is not a Sitetracker colour.</span></div>`:''}
+    ${caps.vendorStyle==='none' && l.symbologySource==='service' ? `<div class="srcwarn">${ic('cloudOff',14)}
+      <span>No vendor style — this layer is currently drawing the geometry-type fallback
+      ${esc(FILE_FALLBACK[l.geometry]||'')}, which is off-palette.</span></div>`:''}
+    ${caps.vendorStyle==='single' && viaService ? `<div class="srcwarn">${ic('cloudOff',14)}
+      <span>Vetro sends one symbol for the whole layer, so every feature looks the same. A template
+      can classify by field.</span></div>`:''}
+    ${viaService && caps.seed ? `<button class="btn wide" id="ed-seed" style="margin-top:8px">${ic('sparkle',15)}
+      Create a template from this layer’s ${esc(l.source)} symbology</button>
       <div class="note">Imports the service’s classes and snaps each colour to its nearest
       design-system token, so you start on-token instead of transcribing by hand.</div>`:''}
   </div>
-  ${viaService||l.readOnly ? '' : `
+  ${viaService||!caps.stylable ? '' : `
     <div class="livehint">
       <span class="dot"></span>
       <span>Map is showing <b>template colours</b> so you can see your changes${
@@ -2179,7 +2251,8 @@ function layersPanelHTML(){
             ${l.readOnly?'<span class="pill">read-only</span>':''}</div>
           <div class="sub">${viaTemplate
             ? `<span class="pill teal">${esc(win.value)}</span>`
-            : `<span class="pill warn">ArcGIS renderer</span>`}
+            : `<span class="pill warn">${esc(win.key==='Geometry-type fallback'
+                ? 'off-palette fallback' : (capsFor(l).vendorLabel||'no style'))}</span>`}
             ${l.sync==='error'?'<span class="pill err"><span class="led"></span>sync failed</span>':''}</div>
           ${sw.length?`<div class="swatchrow">${sw.map(s=>`<i style="background:${s.color}"></i>`).join('')}</div>`:''}
         </div>

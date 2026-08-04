@@ -7,6 +7,7 @@
     "updated": "2026-08-04",
     "summary": "Org-level map style templates: where the entry points live, how an ArcGIS-sourced layer differs from a templated one, the attribute \u2192 style \u2192 options editor modelled on Esri's Styles pane, status-based icon colouring and a switchable icon library.",
     "notes": [
+      "All 7 GIS sources are modelled \u2014 ArcGIS, Living Atlas, Vetro, Shapefile, KML/Google Earth, GeoJSON and Sitetracker objects \u2014 and the style-source control changes per source: two options where a vendor style exists, template-only where it doesn't, locked for read-only Esri content.",
       "Colours are chosen by name and swatch \u2014 \u201cViolet Mid\u201d, \u201cBrand Blue\u201d. Token codes only appear under Advanced \u2192 Developer reference.",
       "Advanced holds the precise settings: opacity slider, contrast points against both basemaps, and a custom hex.",
       "Colour ramp shows which one is Applied, and flips to \u201cCustom\u201d the moment you change a single class by hand.",
