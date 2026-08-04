@@ -356,6 +356,21 @@ details.adv[open] summary::before{content:"▾"}
 .edfoot{display:flex;gap:8px;padding:12px 0 4px;border-top:1px solid var(--line-soft);
   position:sticky;bottom:0;background:var(--panel);flex-wrap:wrap}
 .edfoot .btn{flex:1}
+.applyto{font-size:10.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-3)}
+.applyto b{color:var(--teal)}
+.ssrow{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.ssrow > span:first-child{width:82px;flex:none;color:var(--ink-3)}
+.ssrow input[type=range]{flex:1;accent-color:var(--teal)}
+.ssrow .seg button{display:grid;place-items:center;padding:5px 6px}
+.ssgal{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.gitem2{display:flex;flex-direction:column;align-items:center;gap:4px;width:54px;padding:6px 2px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);cursor:pointer}
+.gitem2:hover{background:var(--panel-2);border-color:var(--teal)}
+.gitem2.on{border-color:var(--teal);border-width:1.5px;
+  background:color-mix(in srgb,var(--teal) 10%,transparent)}
+.gitem2 .gsw{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.gitem2 .gnm{font-size:9.5px;color:var(--ink-3)}
 .gallery{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;margin-top:7px}
 .grow2{display:flex;gap:5px;flex-wrap:wrap}
 .gitem{width:32px;height:32px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
@@ -1771,11 +1786,7 @@ function stepOptionsHTML(l){
     .map(x=>x.classifiedOn))].filter(v=>!stops.some(s=>s.value===v));
   const fallback = unmatched.reduce((a,v)=>a+orgCount(v),0);
   return `
-  <div class="edsec"><div class="edhd">Symbol style</div>
-    <button class="btn wide" id="ed-gallery">${ic('grid',15)} Symbol library — ${
-      esc(ICON_LIBS[state.iconLib].label)}</button>
-    ${ed.gallery?galleryHTML():''}
-  </div>
+  ${symbolStyleHTML(l, rule)}
   <div class="edsec"><div class="edhd">Colour ramp</div>
     <div class="chips">${RAMP_FILTERS.map(([k,lb])=>{
       const n = qualRamps(stops.length||3).filter(rp=>k==='all'||rp.fits.includes(k)).length;
@@ -1838,6 +1849,102 @@ function galleryHTML(){
         ${iconSVG(k,g,css('--ink-2'),18)}</button>`).join('')}</div></div>`).join('')}
     <div class="note" style="margin-top:6px">Clicking a symbol applies it to the selected class
       immediately, as the Pro gallery does. Stand-in glyphs — not licensed assets.</div></div>`;
+}
+
+
+/* ==========================================================================
+   SYMBOL STYLE — geometry-aware and scoped to the selected class.
+   A glyph gallery is meaningless on a polyline layer; a line pattern is
+   meaningless on a point layer. Whatever is shown here writes to the symbol of
+   the class named in the header, and repaints the map immediately.
+   ========================================================================== */
+const LINE_PATTERNS = [
+  {id:'solid',    name:'Solid',    dash:null},
+  {id:'dashed',   name:'Dashed',   dash:[4,2]},
+  {id:'dotted',   name:'Dotted',   dash:[1,2]},
+  {id:'dashdot',  name:'Dash-dot', dash:[5,2,1,2]}
+];
+const patternOf = sym => {
+  const d = sym.dash;
+  if(!d) return 'solid';
+  const hit = LINE_PATTERNS.find(p => p.dash && p.dash.join()===d.join());
+  return hit ? hit.id : 'custom';
+};
+/** The class the Symbol style controls are writing to. */
+function targetSymbol(l){
+  const rule = ruleFor(l.geometry,'design');
+  if(!rule) return null;
+  if(rule.renderer.type === 'simple') return rule.renderer.symbol;
+  return ed.selectedStop >= 0
+    ? rule.renderer.stops[ed.selectedStop]?.symbol ?? rule.renderer.default.symbol
+    : rule.renderer.default.symbol;
+}
+function targetLabel(l){
+  const rule = ruleFor(l.geometry,'design');
+  if(!rule || rule.renderer.type === 'simple') return 'all records';
+  return ed.selectedStop >= 0
+    ? (rule.renderer.stops[ed.selectedStop]?.label ?? rule.renderer.default.label)
+    : rule.renderer.default.label;
+}
+function symbolStyleHTML(l, rule){
+  const sym = targetSymbol(l);
+  if(!sym) return '';
+  const geom = l.geometry;
+  const w = geom==='polyline' ? (sym.width ?? 2) : (sym.size ?? 10);
+  const wLabel = geom==='polyline' ? 'Line width' : 'Marker size';
+  return `
+  <div class="edsec"><div class="edhd">Symbol style<span class="sp"></span>
+    <span class="applyto">Applying to <b>${esc(targetLabel(l))}</b></span></div>
+
+    ${geom==='polyline' ? `
+      <div class="ssrow"><span>Pattern</span>
+        <div class="seg" style="flex:1">${LINE_PATTERNS.map(pt=>`
+          <button data-pattern="${pt.id}" aria-pressed="${patternOf(sym)===pt.id}" style="flex:1">
+            <svg width="34" height="10" viewBox="0 0 34 10" aria-hidden="true">
+              <line x1="1" y1="5" x2="33" y2="5" stroke="currentColor" stroke-width="2.4"
+                stroke-linecap="round"
+                ${pt.dash?`stroke-dasharray="${pt.dash.map(n=>n*2.4).join(' ')}"`:''}/></svg>
+          </button>`).join('')}</div></div>` : ''}
+
+    ${geom==='point' ? `
+      <div class="ssrow"><span>Shape</span>
+        <div class="seg" style="flex:1">${[['circle','Circle'],['square','Square']].map(([k,lb])=>`
+          <button data-shape="${k}" aria-pressed="${(sym.shape||'circle')===k}"
+            style="flex:1">${lb}</button>`).join('')}</div></div>` : ''}
+
+    <div class="ssrow"><span>${wLabel}</span>
+      <span style="display:flex;align-items:center;gap:9px;flex:1">
+        <input type="range" id="ss-width" min="${geom==='polyline'?1:5}"
+          max="${geom==='polyline'?14:22}" step="0.5" value="${w}">
+        <b class="num" style="width:42px">${w}px</b></span></div>
+
+    ${geom==='point' ? `
+      <div class="ssrow"><span>Icon library</span>
+        <select id="ss-lib" style="flex:1">${Object.entries(ICON_LIBS).map(([k,v])=>
+          `<option value="${k}" ${state.iconLib===k?'selected':''}>${esc(v.label)}</option>`).join('')}
+        </select></div>
+      <div class="ssgal">
+        ${['site','pole','cabinet','splice','vault','meter'].map(g=>`
+          <button class="gitem2 ${sym.icon===g?'on':''}" data-glyph="${g}" title="${g}"
+            aria-pressed="${sym.icon===g}">
+            <span class="gsw" style="background:${sym.color}">${
+              iconSVG(state.iconLib,g,glyphInkFor(sym.color),17)}</span>
+            <span class="gnm">${g}</span></button>`).join('')}
+        <button class="gitem2 ${sym.icon?'':'on'}" data-glyph="__none__" title="No glyph"
+          aria-pressed="${!sym.icon}">
+          <span class="gsw" style="background:${sym.color}"></span>
+          <span class="gnm">none</span></button>
+      </div>
+      <div class="note" style="margin-top:6px">Icon library is set on the template, so it changes
+        every marker at once. The glyph applies to <b>${esc(targetLabel(l))}</b> only.</div>` : ''}
+
+    ${geom==='polygon' ? `
+      <div class="ssrow"><span>Fill</span>
+        <span style="display:flex;align-items:center;gap:9px;flex:1">
+          <input type="range" id="ss-fill" min="0" max="60" step="2"
+            value="${Math.round((sym.fillOpacity ?? .14)*100)}">
+          <b class="num" style="width:42px">${Math.round((sym.fillOpacity ?? .14)*100)}%</b></span></div>` : ''}
+  </div>`;
 }
 
 function symbologyPanelHTML(){
@@ -1944,13 +2051,40 @@ function wireEditor(){
     ed.selectedStop=+r.dataset.stop; renderPanel();}));
   q('[data-pick]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation(); openPicker(e.currentTarget,b.dataset.pick);}));
-  on('#ed-gallery',()=>{ed.gallery=!ed.gallery; renderPanel();});
-  q('.gitem').forEach(b=>b.addEventListener('click',()=>{
-    state.iconLib=b.dataset.lib; TEMPLATE.iconLibrary=b.dataset.lib;
-    const rule=ruleFor(l.geometry,'design');
-    const target = ed.selectedStop>=0?rule.renderer.stops[ed.selectedStop]:rule.renderer.default;
-    if(target && l.geometry==='point') target.symbol.icon=b.dataset.glyph;
-    state.dirty=true; renderAll(); toast(`${b.dataset.glyph} · ${ICON_LIBS[b.dataset.lib].label}`);}));
+  // --- Symbol style: geometry-aware, writes to the selected class, repaints the map ---
+  const tgt = () => targetSymbol(l);
+  q('[data-pattern]').forEach(b=>b.addEventListener('click',()=>{
+    const pt=LINE_PATTERNS.find(x=>x.id===b.dataset.pattern);
+    tgt().dash = pt.dash ? [...pt.dash] : null;
+    state.dirty=true; renderAll(); toast(`${targetLabel(l)} → ${pt.name}`);}));
+  q('[data-shape]').forEach(b=>b.addEventListener('click',()=>{
+    tgt().shape = b.dataset.shape;
+    state.dirty=true; renderAll(); toast(`${targetLabel(l)} → ${b.dataset.shape}`);}));
+  q('[data-glyph]').forEach(b=>b.addEventListener('click',()=>{
+    tgt().icon = b.dataset.glyph==='__none__' ? null : b.dataset.glyph;
+    state.dirty=true; renderAll();
+    toast(`${targetLabel(l)} → ${tgt().icon || 'no glyph'}`);}));
+  const lib=document.querySelector('#ss-lib');
+  if(lib) lib.addEventListener('change',()=>{
+    state.iconLib=lib.value; TEMPLATE.iconLibrary=lib.value;
+    const g=document.querySelector('#iconlib'); if(g) g.value=lib.value;
+    state.dirty=true; renderAll(); toast(`Icon library → ${ICON_LIBS[lib.value].label}`);});
+  const wr=document.querySelector('#ss-width');
+  if(wr){
+    const live=()=>{const t=tgt();
+      if(l.geometry==='polyline') t.width=+wr.value; else t.size=+wr.value;
+      state.dirty=true; renderMap(); renderLegend();
+      wr.nextElementSibling.textContent = wr.value+'px';};
+    wr.addEventListener('input',live);
+    wr.addEventListener('change',()=>{live(); renderAll();});
+  }
+  const fr=document.querySelector('#ss-fill');
+  if(fr){
+    const live=()=>{tgt().fillOpacity = +fr.value/100; state.dirty=true; renderMap(); renderLegend();
+      fr.nextElementSibling.textContent = fr.value+'%';};
+    fr.addEventListener('input',live);
+    fr.addEventListener('change',()=>{live(); renderAll();});
+  }
   on('#ed-addunlisted',()=>{document.querySelector('#genstops')?.click();
     if(!document.querySelector('#genstops')) addUnlisted(l);});
   on('#ed-reverse',()=>{const rule=ruleFor(l.geometry,'design');
