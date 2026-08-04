@@ -2,14 +2,16 @@
   {
     "slug": "style-templates",
     "title": "Style Templates on Lightning Maps (Beta)",
-    "module": "GIS Link · Progress Tracking",
+    "module": "GIS Link \u00b7 Progress Tracking",
     "status": "In review",
     "updated": "2026-08-04",
-    "summary": "Org-level map style templates: where the entry points live, how an ArcGIS-sourced layer differs from a templated one, the attribute → style → options editor modelled on Esri's Styles pane, status-based icon colouring and a switchable icon library.",
+    "summary": "Org-level map style templates: where the entry points live, how an ArcGIS-sourced layer differs from a templated one, the attribute \u2192 style \u2192 options editor modelled on Esri's Styles pane, status-based icon colouring and a switchable icon library.",
     "notes": [
-      "Left panel scrolls; the map does not. Wheel / drag / double-click / arrow keys all zoom and pan.",
-      "Layer card “…” → Style Layer opens the editor in the panel, so the map stays live.",
-      "Mock controls dock at the bottom right toggles icon library, colour mode, the feature flag and the dark basemap.",
+      "Colours are chosen by name and swatch \u2014 \u201cViolet Mid\u201d, \u201cBrand Blue\u201d. Token codes only appear under Advanced \u2192 Developer reference.",
+      "Advanced holds the precise settings: opacity slider, contrast points against both basemaps, and a custom hex.",
+      "Every change repaints the map live. Opening the editor pauses the status overlay so you can actually see template colours \u2014 there is a one-click Show status to flip back.",
+      "Left panel scrolls; the map does not. Wheel / drag / double-click / arrow keys zoom and pan, and symbols hold constant screen size.",
+      "Layer card \u201c\u2026\u201d \u2192 Style Layer. Templates tab has New, sortable columns and per-row actions.",
       "Icon glyphs are stand-ins drawn for the mock, not licensed Calcite/SLDS/FontAwesome/Maki assets."
     ]
   }

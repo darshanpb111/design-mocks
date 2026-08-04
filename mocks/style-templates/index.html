@@ -255,8 +255,52 @@ body.mockhidden .mockdock{display:none}
   box-shadow:var(--shadow-2);display:none;align-items:center;gap:6px;color:var(--ink-2)}
 body.mockhidden .mocktoggle{display:flex}
 .mockdock .mockbar,.mockdock .annotbar{border-bottom:1px solid var(--line-soft)}
+
+/* --- colour chips + the rebuilt palette picker --- */
+.cchip{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.cchip.as-btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);
+  padding:4px 8px;cursor:pointer}
+.cchip.as-btn:hover{background:var(--panel-2);border-color:var(--teal)}
+.csw2{width:16px;height:16px;border-radius:4px;flex:none;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)}
+.cnm2{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cnm2 .op{color:var(--ink-3);font-size:10.5px}
+.pk{width:min(430px,calc(100vw - 28px))}
+.pk .pkhd{font-size:13px;font-weight:650;margin-bottom:3px}
+.pk .pksub{font-size:11.5px;color:var(--ink-3);margin-bottom:11px}
+.pkgrid{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+.pkrow{display:grid;grid-template-columns:74px repeat(12,1fr);gap:3px;align-items:center}
+.pkrow .hn2{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden}
+.pkrow button{width:100%;aspect-ratio:1;border:0;border-radius:3px;cursor:pointer;padding:0;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.pkrow button:hover{transform:scale(1.22);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.25)}
+.pkrow button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--panel),0 0 0 2px var(--ink)}
+.pksem{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.pksel{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:var(--r);
+  padding:10px 12px;margin-bottom:11px;background:var(--panel-2)}
+.pkbig{width:44px;height:44px;border-radius:7px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)}
+.pksel .nm3{font-weight:650;font-size:14px}
+.pksel .hint{font-size:11.5px;margin-top:2px;display:flex;align-items:center;gap:6px}
+.pksel .hint.pass{color:var(--success)} .pksel .hint.warn{color:var(--warning-ink)}
+.pksel .hint.fail{color:var(--error)}
+details.adv{border-top:1px solid var(--line-soft);padding-top:9px}
+details.adv summary{cursor:pointer;font-size:11.5px;font-weight:650;color:var(--ink-3);
+  letter-spacing:.05em;text-transform:uppercase;list-style:none;display:flex;align-items:center;gap:6px}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary::before{content:"▸";font-size:9px}
+details.adv[open] summary::before{content:"▾"}
+.advrow{display:grid;grid-template-columns:104px 1fr;gap:9px;align-items:center;margin-top:9px;
+  font-size:12px}
+.advrow > span:first-child{color:var(--ink-3)}
+.advrow input[type=range]{width:100%;accent-color:var(--teal)}
+.devref{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);overflow-wrap:anywhere}
 /* --- Esri-modelled symbology editor (panel drill-in) --- */
 .lm.focus{grid-template-columns:60px minmax(0,1.9fr) minmax(0,1fr)}
+.livehint{display:flex;align-items:center;gap:8px;border:1px solid var(--teal);
+  border-left:3px solid var(--teal);border-radius:var(--r);padding:7px 10px;margin-bottom:12px;
+  background:color-mix(in srgb,var(--teal) 9%,transparent);font-size:11.5px;color:var(--ink-2)}
+.livehint .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex:none}
+.livehint button{margin-left:auto;flex:none}
 .edtop{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .edtitle{font-weight:700;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
@@ -724,7 +768,7 @@ pre .k{color:var(--interactive)} pre .s{color:var(--success)} pre .n2{color:var(
           <span class="note" id="binditemhdr"></span></header>
         <div class="scrollx" style="max-height:none">
           <table class="tbl"><thead><tr><th>Item</th><th>Classified value</th><th>Matched stop</th>
-            <th>Symbol</th><th>Token</th><th>Complete</th><th>Visible</th>
+            <th>Symbol</th><th>Colour</th><th>Complete</th><th>Visible</th>
           </tr></thead><tbody id="binditems"></tbody></table>
         </div>
       </div>
@@ -949,6 +993,56 @@ function ic(name, px, sw){
     aria-hidden="true">${d}</svg>`;
 }
 
+
+/* ==========================================================================
+   HUMAN COLOUR NAMES
+   Admins pick a colour they can see, not a token they have to decode. Selection
+   is still token-backed underneath — that is what keeps an org on-palette — but
+   the code only ever appears under "Developer reference" and in the explainer
+   tabs. Precise numbers (opacity, contrast points, hex) live in Advanced.
+   ========================================================================== */
+const HUE_NAMES = {HOT_ORANGE:'Hot Orange',ORANGE:'Orange',YELLOW:'Yellow',GREEN:'Green',
+  TEAL:'Teal',CLOUD_BLUE:'Cloud Blue',BLUE:'Blue',INDIGO:'Indigo',PURPLE:'Purple',
+  VIOLET:'Violet',PINK:'Pink',RED:'Red'};
+const STEP_WORDS = {95:'Lightest',90:'Lighter',80:'Light',70:'Soft',65:'Medium Light',60:'Medium',
+  50:'Mid',40:'Deep',30:'Deeper',20:'Dark',15:'Darker',10:'Darkest'};
+const SEMANTIC_NAMES = {
+  '$color-gray-9':'Neutral Grey','$color-gray-8':'Light Grey','$color-gray-11':'Charcoal',
+  '$color-gray-13':'Near Black','$color-gray-1':'White',
+  '$brand-accessible':'Brand Blue','$brand-primary':'Sitetracker Blue',
+  '$color-text-success':'Success Green','$color-background-success':'Mint Green',
+  '$color-background-warning':'Warning Amber','$color-text-warning-alt':'Amber Brown',
+  '$color-background-error-dark':'Error Red','$color-background-destructive-hover':'Variance Red',
+  '$color-background-row-new':'Pale Green','$color-text-link':'Link Blue'
+};
+/** Human label for a token, e.g. "Violet Mid" / "Brand Blue". Falls back to the hex. */
+function colorName(token, hex){
+  if(!token) return hex ? `Custom ${String(hex).toUpperCase()}` : 'Custom colour';
+  if(SEMANTIC_NAMES[token]) return SEMANTIC_NAMES[token];
+  const m = token.match(/^\$PALETTE_(.+)_(\d+)$/);
+  if(m && HUE_NAMES[m[1]]) return `${HUE_NAMES[m[1]]} ${STEP_WORDS[+m[2]]||m[2]}`;
+  return token.replace(/^\$(color-|brand-)?/,'').replace(/-/g,' ');
+}
+/** Plain-language answer to "will this read on the map?" — no points, no jargon. */
+function groundHint(hex){
+  const g = groundCheck(hex);
+  const light = g.per[0].ok, dark = g.per[1].ok;
+  if(light && dark) return {text:'Reads on light and dark maps', tone:'pass'};
+  if(light) return {text:'Reads on light maps · halo carries it on satellite', tone:'warn'};
+  if(dark)  return {text:'Reads on satellite · halo carries it on light maps', tone:'warn'};
+  return {text:'Too close to the map background to read', tone:'fail'};
+}
+/** Swatch + human name, the standard way a colour is shown in the product UI. */
+function colorChip(symbol, opts){
+  const o = opts||{}, hex = symbol.color, tok = symbol.token;
+  const op = symbol.opacity ?? 1;
+  return `<span class="cchip${o.button?' as-btn':''}" title="${esc(colorName(tok,hex))} · ${
+    esc(String(hex).toUpperCase())}${tok?' · '+esc(tok):''}">
+    <span class="csw2" style="background:${hex};opacity:${op}"></span>
+    <span class="cnm2">${esc(colorName(tok,hex))}${op<1?` <span class="op">${Math.round(op*100)}%</span>`:''}</span>
+    ${tok?'':'<span class="pill warn" style="font-size:9px">off-palette</span>'}</span>`;
+}
+
 /* ==========================================================================
    2. ICON LIBRARIES — four idioms. Representative glyphs drawn for this mock,
    NOT the licensed glyph data. Calcite is the map app's real set.
@@ -998,7 +1092,7 @@ function iconSVG(libKey, glyph, ink, px){
 /* ==========================================================================
    3. TEMPLATE (compiled-document shape + the proposed `token` field)
    ========================================================================== */
-const sym = (token, extra) => ({token, color:resolveToken(token), ...extra});
+const sym = (token, extra) => ({token, color:resolveToken(token), opacity:1, ...extra});
 const TEMPLATE = {
   schemaVersion:1, templateId:'a0X8d0000001AbCEA2', name:'Acme Fiber Standard',
   status:'Active', origin:'org', isOrgDefault:false, version:11,
@@ -1178,7 +1272,8 @@ function resolveSymbol(rec){
   return {layer, chain, base, ...ov, glyph: base.symbol?.icon || null,
     glyphInk: glyphInkFor(ov.fill), width: base.symbol?.width ?? 2, size: base.symbol?.size ?? 10,
     shape: base.symbol?.shape ?? 'circle', dash: base.symbol?.dash ?? null,
-    fillOpacity: base.symbol?.fillOpacity ?? null, viaService, viaLegacy};
+    fillOpacity: base.symbol?.fillOpacity ?? null, opacity: base.symbol?.opacity ?? 1,
+    viaService, viaLegacy};
 }
 function allRecords(){
   const out = [];
@@ -1210,13 +1305,15 @@ function lintRows(){
       const g = groundCheck(s.symbol.color);
       if(g.sev === 'warn') haloed.push({what:`${rule.geometry} · ${s.label}`, v:g.v,
         clears:g.per.find(p=>p.ok).name.split(' ')[0]});
-      else out.push({sev:g.sev, msg:`${rule.geometry} · ${s.label} against both basemaps`,
+      else out.push({sev:g.sev, msg:`${rule.geometry} · ${s.label} — ${colorName(s.symbol.token, s.symbol.color)}`,
         why:`value ${g.v}. ${g.per.map(p=>`${p.name} ${p.d} pts (${p.ratio.toFixed(2)}:1) ${p.ok?'ok':'short'}`).join(' · ')}. `
           + (g.sev==='pass' ? 'Clears the ≥ 40 non-text rule on both grounds.'
              : 'Fails both grounds — this symbol cannot read on any basemap.')});
       if(!s.symbol.token)
-        out.push({sev:'warn', msg:`${rule.geometry} · ${s.label} is off-token`,
-          why:`${s.symbol.color} is not a design-system value. Nearest is ${nearestToken(s.symbol.color).name} (${nearestToken(s.symbol.color).hex}).`});
+        out.push({sev:'warn', msg:`${rule.geometry} · ${s.label} uses a custom colour`,
+          why:`${String(s.symbol.color).toUpperCase()} is not in the Sitetracker palette. The closest `
+            + `palette colour is ${colorName(nearestToken(s.symbol.color).name)}. Custom colours publish, `
+            + `but they will not follow a re-brand.`});
       if(s.symbol.icon){
         const ink = glyphInkFor(s.symbol.color), d2 = Math.abs(V(s.symbol.color)-V(ink));
         out.push({sev: d2 >= 40 ? 'pass':'fail', msg:`${rule.geometry} · ${s.label} glyph on fill`,
@@ -1393,7 +1490,8 @@ function renderMap(){
   for(const rec of recs.filter(r=>r.geometry==='polygon')){
     const r = resolveSymbol(rec);
     s += `<polygon points="${rec.pts.map(p=>p.join(',')).join(' ')}" fill="${r.fill}"
-      fill-opacity="${r.fillOpacity ?? .14}" stroke="${r.fill}" stroke-width="${1.6*k}"
+      fill-opacity="${(r.fillOpacity ?? .14) * r.opacity}" stroke="${r.fill}"
+      stroke-opacity="${r.opacity}" stroke-width="${1.6*k}"
       stroke-dasharray="${7*k} ${4*k}"/>`;
   }
   for(const rec of recs.filter(r=>r.geometry==='polyline')){
@@ -1408,7 +1506,8 @@ function renderMap(){
     s += `<path d="${d}" fill="none" stroke="${V(r.fill)<50?css('--gray-1'):css('--gray-13')}"
       stroke-width="${(r.width+3)*k}" stroke-linecap="round" stroke-linejoin="round" opacity=".38"/>`;
     s += `<path class="feat" data-id="${rec.id}" d="${d}" fill="none" stroke="${r.fill}"
-      stroke-width="${r.width*k}" stroke-linecap="round" stroke-linejoin="round"
+      stroke-width="${r.width*k}" stroke-opacity="${r.opacity}"
+      stroke-linecap="round" stroke-linejoin="round"
       ${r.dash?`stroke-dasharray="${r.dash.map(n=>n*r.width*k).join(' ')}"`:''} style="cursor:pointer">
       <title>${esc(rec.id)} · ${esc(rec.code)} · ${esc(rec.status)}</title></path>`;
   }
@@ -1424,9 +1523,10 @@ function renderMap(){
     const ring = r.variance ? resolveToken(VARIANCE_TOKEN) : css('--gray-1');
     s += r.shape==='square'
       ? `<rect x="${rec.x-sz}" y="${rec.y-sz}" width="${sz*2}" height="${sz*2}" rx="${3*k}"
-          fill="${r.fill}" stroke="${ring}" stroke-width="${(r.variance?2.5:1.5)*k}"/>`
-      : `<circle cx="${rec.x}" cy="${rec.y}" r="${sz}" fill="${r.fill}" stroke="${ring}"
-          stroke-width="${(r.variance?2.5:1.5)*k}"/>`;
+          fill="${r.fill}" fill-opacity="${r.opacity}" stroke="${ring}"
+          stroke-width="${(r.variance?2.5:1.5)*k}"/>`
+      : `<circle cx="${rec.x}" cy="${rec.y}" r="${sz}" fill="${r.fill}" fill-opacity="${r.opacity}"
+          stroke="${ring}" stroke-width="${(r.variance?2.5:1.5)*k}"/>`;
     if(r.glyph){const gp = sz*1.45;
       s += `<g transform="translate(${rec.x-gp/2} ${rec.y-gp/2})">${iconSVG(state.iconLib,r.glyph,r.glyphInk,gp)}</g>`;}
     s += `</g>`;
@@ -1513,7 +1613,7 @@ function legendSwatch(geometry, symbol){
     fill-opacity="${symbol.fillOpacity||.14}" stroke="${symbol.color}" stroke-width="1.2"/></svg>`;
   const inner = symbol.icon ? iconSVG(state.iconLib, symbol.icon, glyphInkFor(symbol.color), 11) : '';
   return `<span style="flex:none;width:18px;height:18px;border-radius:${symbol.shape==='square'?'3px':'50%'};
-    background:${symbol.color};display:grid;place-items:center;
+    background:${symbol.color};opacity:${symbol.opacity ?? 1};display:grid;place-items:center;
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)">${inner}</span>`;
 }
 
@@ -1568,13 +1668,14 @@ function qualRamps(n){
     const g = groundCheck(colors[0]);
     const fits = g.per.filter(x=>x.ok).map(x=>x.name.split(' ')[0]);
     return {step, colors, tokens:QUAL_HUES.slice(0,Math.max(n,3)).map(h=>`$PALETTE_${h}_${step}`),
-      name:`Vibrant ${step}`, fits,
-      why:g.per.map(x=>`${x.name.split(' ')[0]} ${x.d}pt ${x.ok?'ok':'halo'}`).join(' · ')};
+      name:({50:'Vivid',40:'Deep',30:'Darkest',80:'Soft',70:'Light'})[step]||`Step ${step}`, fits,
+      why:groundHint(colors[0]).text};
   });
 }
 const RAMP_FILTERS = [['all','All ramps'],['light','Best for light basemaps'],['dark','Best for dark basemaps']];
 
 const ed = { open:false, layerId:null, step:'attr', field:null, card:null, focus:false,
+  prevColorMode:null,
   showCount:true, includeOther:true, rampFilter:'all', gallery:false, selectedStop:0 };
 
 function editorFieldsFor(geom){ return FIELDS[geom] || []; }
@@ -1586,6 +1687,9 @@ function cardAvailable(card, field){
 function openEditor(layerId){
   const l = PANEL_LAYERS.find(x=>x.id===layerId);
   ed.open = true; ed.layerId = layerId; ed.step='attr'; ed.card=null; ed.selectedStop=0;
+  // Pause the status overlay so edits are visible on the map. Restored on close.
+  if(state.colorMode !== 'base'){ ed.prevColorMode = state.colorMode; state.colorMode = 'base'; }
+  const cm = document.querySelector('#colormode'); if(cm) cm.value = 'base';
   const rule = ruleFor(l.geometry,'design');
   ed.field = rule && rule.renderer.classification
     ? editorFieldsFor(l.geometry).find(f=>f.name===rule.renderer.classification.field) || null : null;
@@ -1593,7 +1697,12 @@ function openEditor(layerId){
   state.panelMode = 'symbology'; state.geometry = l.geometry;
   renderPanel();
 }
-function closeEditor(){ ed.open=false; state.panelMode='layers'; renderPanel(); }
+function closeEditor(){
+  ed.open=false; state.panelMode='layers';
+  if(ed.prevColorMode){ state.colorMode = ed.prevColorMode; ed.prevColorMode = null;
+    const cm = document.querySelector('#colormode'); if(cm) cm.value = state.colorMode; }
+  renderAll();
+}
 
 /* ---- step 1: Choose attributes ---- */
 function stepAttrHTML(l){
@@ -1685,10 +1794,8 @@ function classRowHTML(l,st,i){
     <span class="cnm"><b>${esc(st.label)}</b>
       <span class="mono note">${esc(String(st.value))}</span></span>
     ${ed.showCount&&i>=0?`<span class="num note">${orgCount(st.value).toLocaleString()}</span>`:''}
-    <button class="tokenbtn ${st.symbol.token?'':'offtoken'}" data-pick="${
-      i<0?'renderer.default.symbol':`renderer.stops[${i}].symbol`}">
-      <span class="chip" style="background:${st.symbol.color}"></span>${
-      esc(st.symbol.token||st.symbol.color)}</button>
+    <span data-pick="${i<0?'renderer.default.symbol':`renderer.stops[${i}].symbol`}"
+      >${colorChip(st.symbol,{button:true})}</span>
   </div>`;
 }
 function galleryHTML(){
@@ -1730,6 +1837,13 @@ function symbologyPanelHTML(){
       design-system token, so you start on-token instead of transcribing by hand.</div>`:''}
   </div>
   ${viaService||l.readOnly ? '' : `
+    <div class="livehint">
+      <span class="dot"></span>
+      <span>Map is showing <b>template colours</b> so you can see your changes${
+        ed.prevColorMode?` · ${ed.prevColorMode==='status'?'status overlay':'variance'} paused`:''}</span>
+      ${ed.prevColorMode?`<button class="btn sm" id="ed-restore">Show ${
+        ed.prevColorMode==='status'?'status':'variance'}</button>`:''}
+    </div>
     <div class="edsteps">
       ${[['attr','1 Attribute'],['style','2 Style'],['options','3 Options']].map(([k,lb])=>
         `<button class="edstep ${ed.step===k?'on':''}" data-step="${k}">${lb}</button>`).join('')}
@@ -1747,6 +1861,12 @@ function wireEditor(){
   const q = sel => document.querySelectorAll(sel);
   const on = (sel,fn)=>{const e=document.querySelector(sel); if(e) e.addEventListener('click',fn);};
   on('#ed-back',closeEditor); on('#ed-cancel',closeEditor);
+  on('#ed-restore',()=>{
+    const want = ed.prevColorMode; ed.prevColorMode = null; state.colorMode = want;
+    const cm = document.querySelector('#colormode'); if(cm) cm.value = want;
+    renderAll();
+    toast(`Showing ${want==='status'?'status overlay':'variance'} — template colours are underneath`);
+  });
   on('#ed-done',()=>{closeEditor(); toast('Layer style saved to the draft — publish to release it');});
   on('#ed-focus',()=>{ed.focus=!ed.focus;
     document.querySelector('.lm').classList.toggle('focus',ed.focus); renderPanel();});
@@ -2109,8 +2229,10 @@ function doPublish(){
   TEMPLATE.version+=1; TEMPLATE.publishedAt='2026-08-04T11:20:00Z';
   const t=OTHER_TEMPLATES.find(x=>x.name===TEMPLATE.name);
   if(t){ t.version=TEMPLATE.version; t.published='2026-08-04'; t.status='Active'; }
+  PUBLISHED.length=0;
+  JSON.parse(JSON.stringify(TEMPLATE.rules)).forEach(r=>PUBLISHED.push(r));
   state.dirty=false; renderAll();
-  toast(`Published v${TEMPLATE.version} · checksum ${compiled().checksum.slice(0,12)}…`);
+  toast(`Published v${TEMPLATE.version} — the map now matches what field users see`);
 }
 const SRC_LABEL = {'template':'Sitetracker template','template-objconfig':'Template (object config)',
   'service':'ArcGIS service renderer','org-default':'Org default template','shipped':'Sitetracker Default'};
@@ -2163,7 +2285,7 @@ function renderBindings(){
     return `<tr><td>${esc(x.name||x.id)}</td><td class="mono">${esc(x.classifiedOn)}</td>
       <td>${stop?esc(stop.label):'<span class="sev warn">rule default</span>'}</td>
       <td>${legendSwatch(l.geometry,symbol)}</td>
-      <td class="mono">${symbol.token?esc(symbol.token):'—'}</td>
+      <td>${colorChip(symbol)}</td>
       <td class="num">${x.complete!==undefined?x.complete+'%':'—'}</td>
       <td class="num">${x.visible||'—'}</td></tr>`;
   }).join('');
@@ -2209,8 +2331,7 @@ function renderBuilder(){
       <td class="grip" title="Drag to reorder — stop order is match precedence">⠿</td>
       <td class="mono">${esc(row.value)}</td>
       <td><input class="txt" value="${esc(row.label)}" data-lbl="${esc(row.path)}"></td>
-      <td><button class="tokenbtn ${off?'offtoken':''}" data-pick="${esc(row.path)}">
-        <span class="chip" style="background:${s.color}"></span>${esc(s.token||s.color+' · off-token')}</button></td>
+      <td><span data-pick="${esc(row.path)}">${colorChip(s,{button:true})}</span></td>
       <td>${state.geometry==='point'
         ? `<select data-icon="${esc(row.path)}">${['site','pole','cabinet','splice','vault','meter','(none)']
             .map(g=>`<option ${g===(s.icon||'(none)')?'selected':''}>${g}</option>`).join('')}</select>`
@@ -2314,47 +2435,97 @@ function renderBuilderLint(){
 }
 
 let pickTarget=null;
+/* Colour picker: see the colour, read a plain-language verdict, and only meet the
+   numbers if you go looking. Every change repaints the map immediately. */
 function openPicker(anchor,path){
   pickTarget=path;
-  const pop=$('#pop'), cur=symAt(path).token;
-  let h=`<div class="hd"><b style="font-size:12.5px">Choose a palette token</b>
-    <span class="note">step = the 0–100 contrast value</span></div>
-    <div class="steps"><span></span>${STEPS.map(s=>`<span>${s}</span>`).join('')}</div>`;
-  for(const [hue,arr] of Object.entries(PALETTE)){
-    h+=`<div class="ramp"><span class="hn">${hue.replace('_',' ').toLowerCase()}</span>`;
-    arr.forEach((hex,i)=>{const t=`$PALETTE_${hue}_${STEPS[i]}`;
-      h+=`<button class="sw" style="background:${hex}" data-tok="${t}" aria-pressed="${cur===t}"
-        title="${t} · ${hex} · value ${V(hex)}"></button>`;});
-    h+=`</div>`;
-  }
-  h+=`<div class="hd" style="margin:12px 0 6px"><b style="font-size:12.5px">Semantic (status &amp; state)</b></div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap">`+
-    ['$color-gray-9','$color-text-success','$brand-accessible','$color-background-warning',
-     '$color-background-error-dark','$color-background-destructive-hover'].map(t=>
-      `<button class="tokenbtn" data-tok="${t}"><span class="chip" style="background:${resolveToken(t)}"></span>
-        ${t.replace('$color-','').replace('$','')}</button>`).join('')+
-    `</div><div class="hd" style="margin:12px 0 6px"><b style="font-size:12.5px">Advanced</b></div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <input class="txt" id="freehex" placeholder="#RRGGBB" style="width:108px" maxlength="7">
-      <button class="btn sm" id="usefree">Use raw hex</button></div>
-    <p class="note" style="margin:6px 0 0;max-width:280px">A raw hex leaves the design system. It
-      publishes, but every consumer of this template is flagged off-token.</p>`;
-  pop.innerHTML=h; pop.classList.add('open');
-  const r=anchor.getBoundingClientRect(), w=Math.min(520, window.innerWidth-24);
+  const sym0=symAt(path), pop=$('#pop');
+  pop.className='pop open pk';
+  drawPicker();
+  const r=anchor.getBoundingClientRect();
+  const w=Math.min(430, window.innerWidth-28);
   pop.style.width=w+'px';
-  pop.style.left=Math.max(12,Math.min(r.left, window.innerWidth-w-12))+'px';
-  pop.style.top=Math.min(r.bottom+6, window.innerHeight-80)+'px';
-  pop.querySelectorAll('[data-tok]').forEach(b=>b.addEventListener('click',()=>{
-    const s=symAt(pickTarget); s.token=b.dataset.tok; s.color=resolveToken(b.dataset.tok);
-    state.dirty=true; closePicker(); renderAll();}));
-  pop.querySelector('#usefree').addEventListener('click',()=>{
-    const v=pop.querySelector('#freehex').value.trim();
-    if(!/^#[0-9a-fA-F]{6}$/.test(v)){toast('Enter a 6-digit hex, e.g. #3183FE'); return;}
-    const s=symAt(pickTarget); s.color=v.toUpperCase(); s.token=tokenFor(v);
-    state.dirty=true; closePicker(); renderAll();
-    if(!s.token) toast(`${v.toUpperCase()} is off-token — nearest is ${nearestToken(v).name}`);});
+  pop.style.left=Math.max(12,Math.min(r.left-120, window.innerWidth-w-12))+'px';
+  pop.style.top=Math.min(r.bottom+6, Math.max(12, window.innerHeight-460))+'px';
 }
-const closePicker=()=>{$('#pop').classList.remove('open'); pickTarget=null;};
+function drawPicker(){
+  const pop=$('#pop'); if(!pop.classList.contains('open')||!pickTarget) return;
+  const sym=symAt(pickTarget);
+  const cur=sym.token, op=sym.opacity ?? 1, hint=groundHint(sym.color);
+  const SEM=['$color-gray-9','$color-text-success','$brand-accessible',
+    '$color-background-warning','$color-background-error-dark','$color-background-destructive-hover'];
+  pop.innerHTML = `
+    <div class="pkhd">Colour</div>
+    <div class="pksub">Pick a colour from the Sitetracker palette. Lighter at the left, darker at the right.</div>
+    <div class="pksel">
+      <span class="pkbig" style="background:${sym.color};opacity:${op}"></span>
+      <div style="min-width:0">
+        <div class="nm3">${esc(colorName(cur,sym.color))}${op<1?` · ${Math.round(op*100)}%`:''}</div>
+        <div class="hint ${hint.tone}">${hint.tone==='pass'?'✓':hint.tone==='warn'?'◐':'✕'} ${hint.text}</div>
+      </div>
+    </div>
+    <div class="pkgrid">
+      ${Object.entries(PALETTE).map(([hue,arr])=>`<div class="pkrow">
+        <span class="hn2">${esc(HUE_NAMES[hue])}</span>
+        ${arr.map((hex,i)=>{const t=`$PALETTE_${hue}_${STEPS[i]}`;
+          return `<button style="background:${hex}" data-tok="${t}" aria-pressed="${cur===t}"
+            title="${esc(HUE_NAMES[hue])} ${STEP_WORDS[STEPS[i]]}"
+            aria-label="${esc(HUE_NAMES[hue])} ${STEP_WORDS[STEPS[i]]}"></button>`;}).join('')}
+      </div>`).join('')}
+    </div>
+    <div class="pksub" style="margin:0 0 6px">Status &amp; state colours</div>
+    <div class="pksem">${SEM.map(t=>`<button class="cchip as-btn" data-tok="${t}">
+      <span class="csw2" style="background:${resolveToken(t)}"></span>
+      <span class="cnm2">${esc(colorName(t))}</span></button>`).join('')}</div>
+    <details class="adv" ${pop.dataset.adv==='1'?'open':''}>
+      <summary>Advanced</summary>
+      <div class="advrow"><span>Opacity</span>
+        <span style="display:flex;align-items:center;gap:9px">
+          <input type="range" id="pk-op" min="10" max="100" step="5" value="${Math.round(op*100)}">
+          <b class="num" style="width:38px">${Math.round(op*100)}%</b></span></div>
+      <div class="advrow"><span>Contrast</span>
+        <span>${groundCheck(sym.color).per.map(g=>
+          `${g.name.split(' ')[0]} <b class="num">${g.d}</b> pts <span class="sev ${g.ok?'pass':'warn'}"
+          >${g.ok?'ok':'halo'}</span>`).join(' · ')}
+          <div class="note">Needs 40+ points from the map background. 50+ for text on the colour.</div></span></div>
+      <div class="advrow"><span>Custom colour</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <input class="txt" id="pk-hex" placeholder="#RRGGBB" maxlength="7" style="width:100px"
+            value="${sym.token?'':esc(String(sym.color).toUpperCase())}">
+          <button class="btn sm" id="pk-usehex">Apply</button></span></div>
+      <div class="advrow"><span>Developer reference</span>
+        <span class="devref">${sym.token?esc(sym.token):'no token — off-palette'}<br>${
+          esc(String(sym.color).toUpperCase())}</span></div>
+    </details>`;
+
+  const apply=(mut,msg)=>{ mut(); state.dirty=true; renderAll(); drawPicker(); if(msg) toast(msg); };
+  pop.querySelectorAll('[data-tok]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    apply(()=>{const sy=symAt(pickTarget); sy.token=b.dataset.tok; sy.color=resolveToken(b.dataset.tok);},
+      `${colorName(b.dataset.tok)} applied`);
+  }));
+  const keepOpen=()=>{pop.dataset.adv='1';};
+  pop.querySelector('details.adv')?.addEventListener('toggle',e=>{
+    pop.dataset.adv = e.target.open ? '1' : '0';});
+  const rng=pop.querySelector('#pk-op');
+  if(rng){
+    rng.addEventListener('input',()=>{ keepOpen();
+      symAt(pickTarget).opacity = +rng.value/100; state.dirty=true; renderMap(); renderLegend();
+      pop.querySelector('#pk-op').nextElementSibling.textContent = rng.value+'%';
+      pop.querySelector('.pkbig').style.opacity = +rng.value/100; });
+    rng.addEventListener('change',()=>{ keepOpen(); renderAll(); drawPicker(); });
+  }
+  pop.querySelector('#pk-usehex')?.addEventListener('click',e=>{
+    e.stopPropagation(); keepOpen();
+    const v=pop.querySelector('#pk-hex').value.trim();
+    if(!/^#[0-9a-fA-F]{6}$/.test(v)){toast('Enter a colour like #3183FE'); return;}
+    apply(()=>{const sy=symAt(pickTarget); sy.color=v.toUpperCase(); sy.token=tokenFor(v);},
+      tokenFor(v) ? `${colorName(tokenFor(v))} applied`
+        : `Off-palette — closest is ${colorName(nearestToken(v).name)}`);
+  });
+  pop.querySelector('#pk-hex')?.addEventListener('click',e=>e.stopPropagation());
+}
+const closePicker=()=>{const p=$('#pop'); p.classList.remove('open'); p.className='pop'; pickTarget=null;};
 document.addEventListener('click',e=>{
   if(pickTarget && !e.target.closest('#pop') && !e.target.closest('[data-pick]')) closePicker();});
 document.addEventListener('click',e=>{
@@ -2399,8 +2570,10 @@ function renderEngine(){
       <div style="padding:10px;border-radius:var(--r);background:var(--bm-green-2)">
         ${legendSwatch(rec.geometry,{color:res.fill,width:res.width,size:res.size,shape:res.shape,
           icon:res.glyph,dash:res.dash,fillOpacity:res.fillOpacity})}</div>
-      <dl class="kv"><dt>fill</dt><dd>${esc(res.fill)}</dd>
-        <dt>token</dt><dd>${res.token?esc(res.token):'— off-token'}</dd>
+      <dl class="kv"><dt>colour</dt><dd style="font-family:var(--ui)">${
+          esc(colorName(res.token,res.fill))}</dd>
+        <dt>hex</dt><dd>${esc(String(res.fill).toUpperCase())}</dd>
+        <dt>token</dt><dd>${res.token?esc(res.token):'— off-palette'}</dd>
         <dt>value</dt><dd>${g.v}</dd>
         <dt>grounds</dt><dd>${g.per.map(p=>`${p.name.split(' ')[0]} ${p.d}
           <span class="sev ${p.ok?'pass':'warn'}">${p.ok?'ok':'halo'}</span>`).join(' · ')}</dd>
