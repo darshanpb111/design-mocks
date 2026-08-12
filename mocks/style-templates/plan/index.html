@@ -798,6 +798,69 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><b>Re-sync an ArcGIS layer</b></td><td>The only moment source-styling changes can surface (no auto-detection exists) → sync flow offers "sync styles too": update the forked template from source, or keep the current one</td></tr>
 </tbody></table></div></div>
 
+<h2><span class="n">R5</span>Sample data — what real records look like (illustrative only)</h2>
+<p class="lede">Three templates, two assets, and one layer, populated the way the flows in R4 would
+leave them. Values are invented; shapes and relationships are exact.</p>
+
+<div class="card"><div class="pad fdict">
+<h4><code>Map_Style_Template__c</code> — three records, three life stories</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>① Shipped default</th><th>② Forked from ArcGIS</th><th>③ Org-created, still draft</th></tr></thead><tbody>
+<tr><td><code>Name</code></td><td>Sitetracker Default</td><td>Fiber Backbone — ArcGIS</td><td>Splice Points by Status</td></tr>
+<tr><td><code>st_Status__c</code></td><td>Active</td><td>Active</td><td><b>Draft</b> — invisible to layer pickers</td></tr>
+<tr><td><code>st_Provided_By__c</code></td><td><b>Sitetracker</b> — never edited in place; clone to edit</td><td>Organization</td><td>Organization</td></tr>
+<tr><td><code>st_Imported_From__c</code></td><td>—</td><td><b>ArcGIS</b> — locked mirror; re-sync offers "sync styles too"</td><td>—</td></tr>
+<tr><td><code>st_Geometry_Type__c</code></td><td>— (all three, the one exception)</td><td>Line</td><td>Point</td></tr>
+<tr><td><code>st_Is_Organization_Default__c</code></td><td><b>true</b> (trigger keeps it the only true)</td><td>false</td><td>false</td></tr>
+<tr><td><code>st_Style_Definition__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
+<tr><td><code>st_Published_Style__c</code></td><td>compiled doc, v3</td><td>compiled doc, v1</td><td><b>null</b> — never published</td></tr>
+<tr><td><code>st_Published_Version__c</code> / <code>st_Published_Checksum__c</code></td><td>3 · <span class="mono">a91f…c2</span></td><td>1 · <span class="mono">7d04…9e</span></td><td>0 · —</td></tr>
+<tr><td><code>st_Imported_Source_Id__c</code></td><td>—</td><td><span class="mono">arcgis:svc/FiberBackbone/2</span> — re-import matches here</td><td>—</td></tr>
+<tr><td><code>st_Cloned_From_Template__c</code></td><td>—</td><td>—</td><td>→ ① (started as a clone of the default)</td></tr>
+</tbody></table></div>
+
+<h4>Inside <code>st_Style_Definition__c</code> of ③ (trimmed) — sparse overrides, inheritance un-resolved</h4>
+<pre class="codeblock">{
+  <span class="k">"geometry"</span>: <span class="s">"point"</span>,  <span class="k">"layerOpacity"</span>: <span class="n">0.9</span>,
+  <span class="k">"simple"</span>: { <span class="k">"shape"</span>: <span class="s">"circle"</span>, <span class="k">"size"</span>: <span class="n">10</span>, <span class="k">"fill"</span>: <span class="s">"#00847C"</span>, <span class="k">"outline"</span>: {<span class="k">"color"</span>: <span class="s">"#FFFFFF"</span>, <span class="k">"width"</span>: <span class="n">1.5</span>} },
+  <span class="k">"categorical"</span>: {
+    <span class="k">"representBy"</span>: <span class="s">"Status__c"</span>,
+    <span class="k">"stops"</span>: [
+      { <span class="k">"value"</span>: <span class="s">"Complete"</span>,    <span class="k">"override"</span>: {<span class="k">"fill"</span>: <span class="s">"#027E46"</span>} },                       <span class="c">// only fill differs — size/shape/outline inherit from simple</span>
+      { <span class="k">"value"</span>: <span class="s">"Blocked"</span>,     <span class="k">"override"</span>: {<span class="k">"fill"</span>: <span class="s">"#C23934"</span>, <span class="k">"iconAssetId"</span>: <span class="s">"MSA-0002"</span>} }, <span class="c">// this one also swaps to an uploaded icon</span>
+      { <span class="k">"value"</span>: <span class="s">"In Progress"</span>, <span class="k">"override"</span>: {} }                                             <span class="c">// listed, styled 100% by inheritance</span>
+    ]
+  },
+  <span class="k">"label"</span>: { <span class="k">"field"</span>: <span class="s">"Name"</span>, <span class="k">"minZoom"</span>: <span class="n">13</span>, <span class="k">"halo"</span>: <span class="s">"#FFFFFF"</span> }
+}</pre>
+
+<h4><code>Map_Style_Asset__c</code> — the org icon library (shared, not per-template)</h4>
+<div class="scroll"><table>
+<thead><tr><th></th><th><code>Name</code></th><th><code>st_Asset_Type__c</code></th><th><code>st_File_Checksum__c</code></th><th>Referenced by</th></tr></thead><tbody>
+<tr><td class="mono">MSA-0001</td><td>vault</td><td>SVG (+PNG renditions)</td><td class="mono">e3b0…55</td><td>② — imported with the ArcGIS fork</td></tr>
+<tr><td class="mono">MSA-0002</td><td>blocked-flag</td><td>PNG</td><td class="mono">98fa…1c</td><td>③ — uploaded by the org</td></tr>
+</tbody></table></div>
+
+<h4><code>Map_Style_Asset_Usage__c</code> — rebuilt by the compiler at every save</h4>
+<div class="scroll"><table>
+<thead><tr><th><code>st_Style_Template__c</code></th><th><code>st_Style_Asset__c</code> (Restrict)</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>② Fiber Backbone — ArcGIS</td><td>MSA-0001 vault</td><td rowspan="2">Deleting either asset is refused by the platform while its row exists; "in use by 1 template" is one indexed query</td></tr>
+<tr><td>③ Splice Points by Status</td><td>MSA-0002 blocked-flag</td></tr>
+</tbody></table></div>
+
+<h4>Layer side — one <code>Map_Layer__c</code> record from a mixed-geometry shapefile</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>Value</th><th>Why it looks like this</th></tr></thead><tbody>
+<tr><td><code>st_Point_Style_Template__c</code></td><td>→ ① Sitetracker Default</td><td>file had no styling → default seeded at upload (③ can't be applied yet — it's Draft)</td></tr>
+<tr><td><code>st_Line_Style_Template__c</code></td><td>→ ② Fiber Backbone — ArcGIS</td><td>user switched the line children to the forked template</td></tr>
+<tr><td><code>st_Area_Style_Template__c</code></td><td>→ ① Sitetracker Default</td><td>untouched</td></tr>
+<tr><td><code>st_Point_Styling_Mode__c</code></td><td>Simple</td><td rowspan="2">per-layer, so the same template can display differently elsewhere; survives reload</td></tr>
+<tr><td><code>st_Line_Styling_Mode__c</code></td><td>Categorical</td></tr>
+</tbody></table></div>
+<p class="note" style="margin:10px 0 0">Note there is no "no template" state anywhere in the sample —
+that's the no-detach decision made concrete: the default template is the floor, never emptiness.</p>
+</div></div>
+
 <div class="callout" style="margin-top:16px"><b>Where the deeper detail lives:</b> doc 15 (solution
 design — schema tables, compiler contract, permissions), doc 16 (implementation plan — decisions
 §2a-bis/§2f, phases, cross-engine matrix), both under
