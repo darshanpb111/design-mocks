@@ -145,32 +145,30 @@ footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-si
 <div id="page-plan">
 <!-- ============================== 1. OBJECT LINKING ============================== -->
 <h2><span class="n">1</span>Object linking — the schema and how a layer finds its style</h2>
-<p class="lede">Two existing objects gain <b>three geometry-scoped lookups each</b>. Why three:
-<b>rendered layers are always single-geometry</b> (Sitetracker object layers by the required
-<code>Geometry_Type__c</code> picklist; file uploads split into single-geometry GroupLayer children,
-<code>FileLayerHandler.js:300</code>) — but those file children all share <b>one</b>
-<code>Map_Layer__c</code> record, so that one record may need a point + line + area template at once.
-Mixed geometry exists only at the record level; no mixed-geometry UI or rendering exists anywhere.
-The diagram shows the current schema (post the 11–12 Aug revisions — the history is in the callout below and the References decision log).</p>
+<p class="lede"><b>One lookup + one mode field</b> on each of the two existing objects
+(corrected 12 Aug, Darshan): a <code>Map_Layer__c</code> is one asset type on Sitetracker — one MOC
+lookup, one <code>Layer_Type__c</code> — hence one geometry, so per-geometry lookup triplets were
+over-modelling. The one anomaly is a mixed-geometry <b>file upload</b> (points+lines in one KML,
+<code>FileLayerHandler.js:300</code> renders children off one record): the applied template styles
+the children matching its geometry, remaining geometries use the org default — noted below.</p>
 
 <div class="card"><div class="erdwrap">
-<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold three geometry-scoped template lookups plus styling-mode fields; Map Style Template holds scalar style fields, one per-value JSON and the compiled doc; a compiler-maintained usage junction connects templates to assets with a delete-restricting lookup.">
+<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold one template lookup and one styling-mode field; Map Style Template holds scalar style fields, one per-value JSON and the compiled doc; a compiler-maintained usage junction connects templates to assets with a delete-restricting lookup.">
   <!-- existing objects -->
   <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
   <text class="t" x="36" y="64">Map_Layer__c</text>
   <text class="badge" x="196" y="64"><tspan fill="#0070D2">EXISTING</tspan></text>
-  <text class="f" x="36" y="86">st_Point_Style_Template__c</text>
-  <text class="f" x="36" y="103">st_Polyline_Style_Template__c</text>
-  <text class="f" x="36" y="120">st_Polygon_Style_Template__c</text>
-  <text class="lbl" x="36" y="141">3 × Lookup (Restrict) + 3 × Styling_Mode__c</text>
+  <text class="f" x="36" y="86">st_Style_Template__c (Lookup · Restrict)</text>
+  <text class="f" x="36" y="103">st_Styling_Mode__c (Simple/Categorical)</text>
+  <text class="lbl" x="36" y="126">one asset type per layer → one geometry</text>
+  <text class="lbl" x="36" y="141">→ ONE lookup + ONE mode field</text>
 
   <rect class="obj objexist" x="20" y="196" width="230" height="135" rx="8"/>
   <text class="t" x="36" y="220">Map_Object_Configuration__c</text>
-  <text class="f" x="36" y="242">st_Point_Style_Template__c</text>
-  <text class="f" x="36" y="259">st_Polyline_Style_Template__c</text>
-  <text class="f" x="36" y="276">st_Polygon_Style_Template__c</text>
-  <text class="lbl" x="36" y="297">same 3 lookups (fallback tier)</text>
-  <text class="lbl" x="36" y="314">ships per asset type WITH its default template</text>
+  <text class="f" x="36" y="242">st_Style_Template__c (Lookup · Restrict)</text>
+  <text class="f" x="36" y="259">st_Styling_Mode__c</text>
+  <text class="lbl" x="36" y="283">single-geometry by data model (fallback tier);</text>
+  <text class="lbl" x="36" y="298">ships per asset type WITH its default template</text>
 
   <!-- template -->
   <rect class="obj objnew" x="340" y="40" width="290" height="290" rx="8"/>
@@ -207,9 +205,9 @@ The diagram shows the current schema (post the 11–12 Aug revisions — the his
 
   <!-- relationships -->
   <path class="rel" d="M250 99 H340"/>
-  <text class="lbl" x="258" y="93">Lookup ×3 (Restrict)</text>
+  <text class="lbl" x="258" y="93">Lookup (Restrict)</text>
   <path class="rel" d="M250 255 H295 V190 H340"/>
-  <text class="lbl" x="258" y="248">Lookup ×3</text>
+  <text class="lbl" x="258" y="248">Lookup</text>
   <path class="rel relmd" d="M630 120 H712"/>
   <text class="lbl" x="640" y="113">1 ─ * (compiler-maintained)</text>
   <path class="rel" d="M836 182 V260"/>
@@ -219,107 +217,6 @@ The diagram shows the current schema (post the 11–12 Aug revisions — the his
   <path class="rel" d="M630 238 H660 V310 H690"/>
   <text class="lbl" x="636" y="290">values reference assets</text>
   <text class="lbl" x="636" y="304">by id — never embedded</text>
-</svg></span>
-  <div>
-    <div class="kicker">Sitetracker · GIS Link · SIT-58366</div>
-    <h1>GIS Map Style Templates — Technical Implementation Plan</h1>
-  </div>
-</header>
-<div class="meta">
-  <span class="pill hot">v1 = web only · mobile parked</span>
-  <span class="pill">strk · 1GP · namespace additive-only</span>
-  <span class="pill">Lightning Maps (beta) · ArcGIS JS 4.34</span>
-  <span class="pill">updated 2026-08-12</span>
-  <span class="pill hot">12 Aug design sync: every design question decided</span>
-</div>
-
-<div class="tabs">
-  <button class="tabbtn on" id="btn-plan" onclick="showPage('plan')">Implementation plan</button>
-  <button class="tabbtn" id="btn-refs" onclick="showPage('refs')">References — why, when &amp; how</button>
-</div>
-
-<div id="page-plan">
-<!-- ============================== 1. OBJECT LINKING ============================== -->
-<h2><span class="n">1</span>Object linking — the schema and how a layer finds its style</h2>
-<p class="lede">Two existing objects gain <b>three geometry-scoped lookups each</b>. Why three:
-<b>rendered layers are always single-geometry</b> (Sitetracker object layers by the required
-<code>Geometry_Type__c</code> picklist; file uploads split into single-geometry GroupLayer children,
-<code>FileLayerHandler.js:300</code>) — but those file children all share <b>one</b>
-<code>Map_Layer__c</code> record, so that one record may need a point + line + area template at once.
-Mixed geometry exists only at the record level; no mixed-geometry UI or rendering exists anywhere.
-The diagram shows the current schema (post the 11–12 Aug revisions — the history is in the callout below and the References decision log).</p>
-
-<div class="card"><div class="erdwrap">
-<svg class="erd" viewBox="0 0 980 470" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold three geometry-scoped lookups to Map Style Template; template has master-detail children Rule and Stop; Stop looks up Asset with delete restriction.">
-  <!-- existing objects -->
-  <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
-  <text class="t" x="36" y="64">Map_Layer__c</text>
-  <text class="badge" x="196" y="64"><tspan fill="#0070D2">EXISTING</tspan></text>
-  <text class="f" x="36" y="86">st_Point_Style_Template__c</text>
-  <text class="f" x="36" y="103">st_Polyline_Style_Template__c</text>
-  <text class="f" x="36" y="120">st_Polygon_Style_Template__c</text>
-  <text class="lbl" x="36" y="141">3 × Lookup (Restrict) + 3 × Styling_Mode__c</text>
-
-  <rect class="obj objexist" x="20" y="196" width="230" height="118" rx="8"/>
-  <text class="t" x="36" y="220">Map_Object_Configuration__c</text>
-  <text class="f" x="36" y="242">st_Point_Style_Template__c</text>
-  <text class="f" x="36" y="259">st_Polyline_Style_Template__c</text>
-  <text class="f" x="36" y="276">st_Polygon_Style_Template__c</text>
-  <text class="lbl" x="36" y="297">same 3 lookups (fallback tier)</text>
-
-  <!-- template -->
-  <rect class="obj objnew" x="340" y="60" width="270" height="230" rx="8"/>
-  <text class="t" x="356" y="86">Map_Style_Template__c</text>
-  <text class="badge" x="545" y="86"><tspan fill="#00847C">NEW</tspan></text>
-  <text class="f" x="356" y="110">Name · st_Status__c (Draft/Active/Archived)</text>
-  <text class="f" x="356" y="127">st_Provided_By__c (Sitetracker/Org)  ← ST-Default lock</text>
-  <text class="f" x="356" y="144">st_Imported_From__c (ArcGIS/Vetro)     ← import lock</text>
-  <text class="f" x="356" y="161">st_Geometry_Type__c (nullable)</text>
-  <text class="f" x="356" y="178">st_Is_Organization_Default__c (single, trigger)</text>
-  <text class="f" x="356" y="195">st_Published_Style__c  LTA 131,072</text>
-  <text class="f" x="356" y="229">st_Imported_Source_Id__c (ExtId, seed key)</text>
-  <text class="lbl" x="356" y="272">sharing: OWD Read · Write/Admin via __Share</text>
-
-  <!-- rule -->
-  <rect class="obj objnew" x="700" y="40" width="258" height="150" rx="8"/>
-  <text class="t" x="716" y="64">Map_Style_Rule__c</text>
-  <text class="f" x="716" y="87">st_Geometry_Type__c · st_Variant__c</text>
-  <text class="f" x="716" y="104">st_Renderer_Type__c · classification</text>
-  <text class="f" x="716" y="121">st_Simple_Symbol_Json__c (the base)</text>
-  <text class="f" x="716" y="138">st_Label_Json__c · st_Offset_Json__c</text>
-  <text class="f" x="716" y="155">st_Layer_Opacity__c (0.10–1.00)</text>
-  <text class="f" x="716" y="172">st_Icon_Asset__c (Lookup·Restrict) · zoom · sort</text>
-
-  <!-- stop -->
-  <rect class="obj objnew" x="700" y="230" width="258" height="108" rx="8"/>
-  <text class="t" x="716" y="254">Map_Style_Stop__c</text>
-  <text class="f" x="716" y="277">st_Value__c · st_Label__c · sort</text>
-  <text class="f" x="716" y="294">st_Override_Json__c  ← SPARSE only</text>
-  <text class="f" x="716" y="311">st_Icon_Asset__c (Lookup·Restrict)</text>
-  <text class="lbl" x="716" y="330">unset props inherit from Rule.Simple</text>
-
-  <!-- asset -->
-  <rect class="obj objnew" x="470" y="360" width="270" height="96" rx="8"/>
-  <text class="t" x="486" y="384">Map_Style_Asset__c  (org-level)</text>
-  <text class="f" x="486" y="406">st_Asset_Type__c SVG/PNG/Font · st_File_Checksum__c dedup</text>
-  <text class="f" x="486" y="423">st_Content_Version_Id__c (original file)</text>
-  <text class="f" x="486" y="440">st_Png_Renditions__c (data-URI PNGs)</text>
-
-  <!-- relationships -->
-  <path class="rel" d="M250 99 H340"/>
-  <text class="lbl" x="258" y="93">Lookup ×3 (Restrict)</text>
-  <path class="rel" d="M250 255 H295 V180 H340" />
-  <text class="lbl" x="258" y="248">Lookup ×3</text>
-  <path class="rel relmd" d="M610 115 H700"/>
-  <text class="lbl" x="622" y="108">Master-Detail 1─*</text>
-  <path class="rel relmd" d="M829 190 V230"/>
-  <text class="lbl" x="838" y="214">MD 1─*</text>
-  <path class="rel" d="M700 300 H620 V408 H740" />
-  <text class="lbl" x="600" y="322">Lookup · Restrict</text>
-  <text class="lbl" x="600" y="336">(= delete-protection)</text>
-  <path class="rel" d="M475 290 V360"/>
-  <text class="lbl" x="352" y="330">ContentVersion holds the</text>
-  <text class="lbl" x="352" y="344">original file (file storage)</text>
 </svg>
 </div></div>
 
@@ -468,9 +365,9 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <tr>
       <td style="width:220px"><b>Is this asset in use?</b><br><span class="note">(blocks delete, feeds the tooltip)</span></td>
       <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">SELECT st_Style_Rule__r.st_Style_Template__r.Name
-FROM Map_Style_Stop__c
-WHERE st_Icon_Asset__c = :assetId          <span class="c">// + same query on Map_Style_Rule__c</span>
-  AND st_Style_Rule__r.st_Style_Template__r.st_Status__c = 'Active'</pre>
+FROM Map_Style_Asset_Usage__c
+WHERE st_Style_Asset__c = :assetId         <span class="c">// one indexed query — the junction covers icons at every level</span>
+  AND st_Style_Template__r.st_Status__c = 'Active'</pre>
       <span class="note">Possible <i>because</i> icons are FK lookups, not names inside JSON — no text scanning.
       Grouped by template → the "already in use by: …" tooltip. <code>Restrict</code> on the lookup enforces
       the block even if the UI check is bypassed. To go all the way to <i>active layers</i>: one more hop —
@@ -479,9 +376,9 @@ WHERE st_Icon_Asset__c = :assetId          <span class="c">// + same query on Ma
     <tr>
       <td><b>Which template is active for this layer?</b></td>
       <td><pre class="codeblock" style="padding:10px 12px;font-size:11px"><span class="c">// per geometry — first non-null wins:</span>
-layer.st_&lt;Geom&gt;_Style_Template__c          <span class="c">// 1. layer link</span>
+layer.st_Style_Template__c                 <span class="c">// 1. layer link</span>
 ?? layer.Map_Object_Configuration__r
-        .st_&lt;Geom&gt;_Style_Template__c        <span class="c">// 2. object-config link</span>
+        .st_Style_Template__c               <span class="c">// 2. object-config link</span>
 ?? orgDefaultId                             <span class="c">// 3. cached in GIS config CMT</span>
 ?? [SELECT Id FROM Map_Style_Template__c
     WHERE st_Imported_Source_Id__c='ST_DEFAULT'] <span class="c">// 4. shipped default</span></pre>
@@ -716,7 +613,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
   <div class="ph"><div class="num">PHASE 0</div><div class="nm">Prerequisites</div>
     <div class="note">renderer write-order (SIT-66034) · verify-reads of the named classes · answer T1 (template association)</div></div>
   <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
-    <div class="note">3 objects (revised — template-as-JSON + asset + usage junction) · 3×2 lookups + renderer-view · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
+    <div class="note">3 objects (template + asset + usage junction) · 1 lookup + 1 mode field on layer &amp; MOC · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
   <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
     <div class="note">validation · sparse-merge · opacity pre-multiply · FOR UPDATE publish</div></div>
   <div class="ph"><div class="num">PHASE 3</div><div class="nm">API</div>
@@ -784,6 +681,7 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>One template lookup + one mode field per layer object</b> — the per-geometry triplets removed <span class="tag ok">final</span></td><td>A <code>Map_Layer__c</code> is one asset type on Sitetracker (single MOC lookup, one <code>Layer_Type__c</code>) → one geometry. The triplet existed only for mixed-geometry file uploads; those now style matching-geometry children and default the rest — an edge case no longer shapes the schema</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Scalars become typed fields; JSON keeps only the value list</b> (<code>st_Value_Styles__c</code>, ex Style_Definition) <span class="tag ok">final</span></td><td>Team suggestion (store the Simple/Categorical-overlapping attributes as individual fields OR one common-JSON field): <b>individual fields chosen</b> — a common-JSON field would still parse on every read and could still hold a typo'd key or malformed hex, while real fields make those states unrepresentable (picklist, Number, hex validation rule) and get platform validation, history and reports. The 10% opacity floor becomes a validation rule. Per-value styles are N slots and must stay JSON — but at the 100-value cap that's ~20–35 KB vs the 131 KB limit (4–5× headroom), because icons never ride the JSON (asset-id references only; renditions live on asset records)</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Dropped <code>st_Published_Checksum__c</code> too</b> <span class="tag ok">final</span></td><td>"Why is it even needed when each template is a record" — it isn't: the standard <code>SystemModstamp</code> (free on every record) natively answers both "is my cache stale" and "did someone publish while I was editing". A SHA-256 added a compiler step and a field for questions the platform already answers</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Default templates ship per asset type with their Map Object Configuration</b> <span class="tag ok">final</span></td><td>MOCs are already shipped per supported asset type — the default template rides the same post-install path and is linked on the shipped MOC, instead of a separate standalone seed</td></tr>
@@ -800,7 +698,7 @@ reviewers should see what changed and why, not just the final answer.</p>
 <tr><td>12 Aug · call</td><td><b>Stale-template notification pattern</b>: "updated while you were away — load latest / keep viewing yours" covers both shared-template edits and version conflicts <span class="tag ok">final</span></td><td>One pattern, two situations; avoids both silent restyles and blocking dialogs</td></tr>
 <tr><td>12 Aug · call</td><td><b>Blocked delete: disable the whole row</b> — delete AND archive, in bulk bar and right-click menu; "in use" badge <span class="tag ok">final</span></td><td>You shouldn't be able to archive what layers depend on either; greyed controls + badge explain themselves</td></tr>
 <tr><td>11 Aug · Darshan</td><td><b>KML/KMZ styling is parsed &amp; imported</b> (SIT-66031 Option A committed; notice becomes parse-failure fallback) <span class="tag ok">final</span></td><td>KML files carry styling; silently discarding it surprises users — parse when available, be honest when parsing fails</td></tr>
-<tr><td>11 Aug · Darshan</td><td><b>Styling mode (Simple/Categorical) persists per layer-link</b> (<code>st_&lt;Geom&gt;_Styling_Mode__c</code>) <span class="tag ok">final</span></td><td>Must survive reload; stored per layer (not on the template) so shared templates can display differently per layer and mode switching never dirties the template</td></tr>
+<tr><td>11 Aug · Darshan</td><td><b>Styling mode (Simple/Categorical) persists per layer-link</b> (<code>st_Styling_Mode__c</code>) <span class="tag ok">final</span></td><td>Must survive reload; stored per layer (not on the template) so shared templates can display differently per layer and mode switching never dirties the template</td></tr>
 <tr><td>11 Aug · Darshan</td><td><b>Schema simplified 4 → 3 objects</b> (template-as-JSON + asset + usage junction) <span class="tag ok">final</span></td><td>See R2 below — the full story</td></tr>
 <tr><td>11 Aug · Darshan</td><td><b>Field names made readable</b> (Provided_By/Imported_From, Style_Definition/Published_Style, Styling_Mode…) <span class="tag ok">final</span></td><td>1GP API names are permanent — the only cheap moment to fix names is before Phase 1</td></tr>
 <tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — detail in docs 15/16</td></tr>
@@ -874,8 +772,8 @@ means the publish/save server logic — users never write those fields directly.
 <h4>Layer-side (on <code>Map_Layer__c</code> and <code>Map_Object_Configuration__c</code>, ×3 geometries)</h4>
 <div class="scroll"><table>
 <thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
-<tr><td><code>st_&lt;Geom&gt;_Style_Template__c</code></td><td>Which template styles this layer's points / lines / areas (three because one file-sourced record can carry all three geometries as children)</td><td>Apply/switch template · user; also set by import-fork and ST-Default seeding</td></tr>
-<tr><td><code>st_&lt;Geom&gt;_Styling_Mode__c</code></td><td>Which view the layer displays — Simple or Categorical — so it survives reload; per layer so shared templates can differ per layer</td><td>Mode toggle · user</td></tr>
+<tr><td><code>st_Style_Template__c</code></td><td>Which template styles this layer. One field, not three: a layer is one asset type → one geometry (corrected 12 Aug). Mixed-geometry file uploads: the template styles matching-geometry children, other geometries use the org default</td><td>Apply/switch template · user; also set by import-fork and per-asset-type MOC shipping</td></tr>
+<tr><td><code>st_Styling_Mode__c</code></td><td>Which view the layer displays — Simple or Categorical — so it survives reload; per layer so shared templates can differ per layer</td><td>Mode toggle · user</td></tr>
 </tbody></table></div>
 </div></div>
 
@@ -883,7 +781,7 @@ means the publish/save server logic — users never write those fields directly.
 <div class="card"><div class="scroll"><table>
 <thead><tr><th>Flow</th><th>What happens, in order</th></tr></thead><tbody>
 <tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Value_Styles__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, rebuilds the asset-usage rows, Status→Active</td></tr>
-<tr><td><b>Apply / switch on a layer</b></td><td>Sets the geometry's <code>st_&lt;Geom&gt;_Style_Template__c</code> lookup. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
+<tr><td><b>Apply / switch on a layer</b></td><td>Sets the layer's <code>st_Style_Template__c</code> lookup. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
 <tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Imported_From__c=ArcGIS</code>, <code>st_Imported_Source_Id__c</code> set) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
 <tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer gets the org default template (ST Default: 3 colours — sites / segments / areas) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
 <tr><td><b>Edit a template others use</b></td><td>Publish updates the shared doc. Other sessions viewing affected layers get "this template was updated while you were away — load the latest / keep viewing yours" — never a silent restyle. The same message covers "someone published while you were editing"</td></tr>
@@ -936,14 +834,11 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td>③ Splice Points by Status</td><td>MSA-0002 blocked-flag</td></tr>
 </tbody></table></div>
 
-<h4>Layer side — one <code>Map_Layer__c</code> record from a mixed-geometry shapefile</h4>
+<h4>Layer side — a segments layer (one asset type, as always)</h4>
 <div class="scroll"><table>
 <thead><tr><th>Field</th><th>Value</th><th>Why it looks like this</th></tr></thead><tbody>
-<tr><td><code>st_Point_Style_Template__c</code></td><td>→ ① Sitetracker Default</td><td>file had no styling → default seeded at upload (③ can't be applied yet — it's Draft)</td></tr>
-<tr><td><code>st_Line_Style_Template__c</code></td><td>→ ② Fiber Backbone — ArcGIS</td><td>user switched the line children to the forked template</td></tr>
-<tr><td><code>st_Area_Style_Template__c</code></td><td>→ ① Sitetracker Default</td><td>untouched</td></tr>
-<tr><td><code>st_Point_Styling_Mode__c</code></td><td>Simple</td><td rowspan="2">per-layer, so the same template can display differently elsewhere; survives reload</td></tr>
-<tr><td><code>st_Line_Styling_Mode__c</code></td><td>Categorical</td></tr>
+<tr><td><code>st_Style_Template__c</code></td><td>→ ② Fiber Backbone — ArcGIS</td><td>the user switched from the shipped default to the forked template (③ can't be applied — Draft)</td></tr>
+<tr><td><code>st_Styling_Mode__c</code></td><td>Categorical</td><td>per-layer, so the same template can display Simple elsewhere; survives reload</td></tr>
 </tbody></table></div>
 <p class="note" style="margin:10px 0 0">Note there is no "no template" state anywhere in the sample —
 that's the no-detach decision made concrete: the default template is the floor, never emptiness.</p>
