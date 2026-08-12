@@ -153,57 +153,73 @@ over-modelling. The one anomaly is a mixed-geometry <b>file upload</b> (points+l
 the children matching its geometry, remaining geometries use the org default — noted below.</p>
 
 <div class="card"><div class="erdwrap">
-<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold one template lookup; Map Style Template holds scalar style fields and one per-value JSON; the template holds a delete-restricting icon lookup to the asset; per-value icon references are guarded by a delete-time scan.">
-  <!-- existing objects -->
-  <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
-  <text class="t" x="36" y="64">Map_Layer__c</text>
-  <text class="badge" x="196" y="64"><tspan fill="#0070D2">EXISTING</tspan></text>
-  <text class="f" x="36" y="86">st_Style_Template__c (Lookup · Restrict)</text>
-  <text class="lbl" x="36" y="112">one asset type per layer → one geometry</text>
-  <text class="lbl" x="36" y="127">→ exactly ONE new field</text>
-
-  <rect class="obj objexist" x="20" y="196" width="230" height="135" rx="8"/>
-  <text class="t" x="36" y="220">Map_Object_Configuration__c</text>
-  <text class="f" x="36" y="242">st_Style_Template__c (Lookup · Restrict)</text>
-  <text class="lbl" x="36" y="283">single-geometry by data model (fallback tier);</text>
-  <text class="lbl" x="36" y="298">ships per asset type WITH its default template</text>
-
-  <!-- template -->
-  <rect class="obj objnew" x="340" y="40" width="290" height="290" rx="8"/>
-  <text class="t" x="356" y="64">Map_Style_Template__c</text>
-  <text class="badge" x="566" y="64"><tspan fill="#00847C">NEW</tspan></text>
-  <text class="f" x="356" y="88">Name · st_Status__c (Draft/Active/Archived)</text>
-  <text class="f" x="356" y="105">st_Provided_By__c — Sitetracker/ArcGIS/Vetro/KML/Organization</text>
-  <text class="f" x="356" y="122">   (one provenance picklist: editable ⇔ Organization)</text>
-  <text class="f" x="356" y="139">st_Geometry_Type__c · st_Is_Organization_Default__c</text>
-  <text class="f" x="356" y="163">scalar style fields incl. st_Styling_Mode__c (Simple/Categorical):</text>
-  <text class="f" x="372" y="180">st_Symbol_Shape/Size · st_Fill/Outline_Color</text>
-  <text class="f" x="372" y="197">st_Outline_Width · st_Layer_Opacity (rule ≥0.10)</text>
-  <text class="f" x="372" y="214">st_Offset_X/Y · st_Label_Field/Min_Zoom/Halo</text>
-  <text class="f" x="356" y="238">st_Icon_Asset__c (Lookup · Restrict) — Simple-mode icon</text>
-  <text class="f" x="356" y="255">st_Value_Styles__c — per-value JSON, the ONLY blob</text>
-  <text class="lbl" x="356" y="308">sharing: OWD Read · Write/Admin via __Share</text>
-
-  <!-- asset -->
-  <rect class="obj objnew" x="690" y="260" width="270" height="112" rx="8"/>
-  <text class="t" x="706" y="284">Map_Style_Asset__c  (org-level)</text>
-  <text class="f" x="706" y="306">st_Asset_Type__c SVG/PNG/Font</text>
-  <text class="f" x="706" y="323">st_File_Checksum__c (upload dedup)</text>
-  <text class="f" x="706" y="340">st_Content_Version_Id__c (original file)</text>
-  <text class="f" x="706" y="357">st_Png_Renditions__c (data-URI PNGs)</text>
-
-  <!-- relationships -->
-  <path class="rel" d="M250 99 H340"/>
-  <text class="lbl" x="258" y="93">Lookup (Restrict)</text>
-  <path class="rel" d="M250 255 H295 V190 H340"/>
-  <text class="lbl" x="258" y="248">Lookup</text>
-  <path class="rel" d="M630 240 H660 V300 H690"/>
-  <text class="lbl" x="640" y="228">st_Icon_Asset__c · Lookup Restrict</text>
-  <text class="lbl" x="640" y="242">(platform delete-protection)</text>
-  <path class="rel" d="M630 262 H648 V340 H690" stroke-dasharray="4 3"/>
-  <text class="lbl" x="636" y="330">per-value iconAssetId (in JSON) —</text>
-  <text class="lbl" x="636" y="344">before-delete trigger scans &amp; blocks</text>
+<svg class="erd" viewBox="0 0 980 200" style="min-width:700px" role="img" aria-label="Relationship diagram: Map Layer and Map Object Configuration each look up one Map Style Template (Restrict); the template's Simple icon looks up Map Style Asset (Restrict); per-value icon references in JSON are guarded by a delete-time scan; asset bytes live in ContentVersion.">
+  <rect class="obj objexist" x="20" y="30" width="200" height="52" rx="8"/>
+  <text class="t" x="36" y="52">Map_Layer__c</text>
+  <text class="lbl" x="36" y="70">EXISTING · gains 1 field</text>
+  <rect class="obj objexist" x="20" y="118" width="200" height="52" rx="8"/>
+  <text class="t" x="36" y="140">Map_Object_Configuration__c</text>
+  <text class="lbl" x="36" y="158">EXISTING · gains 1 field · fallback tier</text>
+  <rect class="obj objnew" x="360" y="62" width="230" height="70" rx="8"/>
+  <text class="t" x="376" y="88">Map_Style_Template__c</text>
+  <text class="lbl" x="376" y="108">NEW · the look, one geometry</text>
+  <rect class="obj objnew" x="740" y="62" width="220" height="70" rx="8"/>
+  <text class="t" x="756" y="88">Map_Style_Asset__c</text>
+  <text class="lbl" x="756" y="108">NEW · org icon library ≤100</text>
+  <path class="rel" d="M220 56 H290 V85 H360"/>
+  <path class="rel" d="M220 144 H290 V109 H360"/>
+  <text class="lbl" x="236" y="46">st_Style_Template__c</text>
+  <text class="lbl" x="236" y="176">st_Style_Template__c</text>
+  <text class="lbl" x="262" y="101">Lookup · Restrict</text>
+  <path class="rel" d="M590 82 H740"/>
+  <text class="lbl" x="604" y="74">st_Icon_Asset__c · Lookup Restrict</text>
+  <path class="rel" d="M590 112 H740" stroke-dasharray="4 3"/>
+  <text class="lbl" x="600" y="130">per-value iconAssetId (JSON) → delete-time scan</text>
+  <text class="lbl" x="756" y="152">bytes → ContentVersion (file storage)</text>
 </svg>
+</div></div>
+
+<div class="card" style="margin-top:14px"><div class="pad fdict">
+<h4 style="margin-top:2px"><code>Map_Style_Template__c</code> <span class="tag new">NEW</span> — sharing: OWD Read · Write/Admin via <code>__Share</code></h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
+<tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required; unique per org enforced in save service</td></tr>
+<tr><td><code>st_Status__c</code></td><td>Picklist: Draft / Active / Archived</td><td>Draft</td><td>restricted; Draft is invisible to layer pickers</td></tr>
+<tr><td><code>st_Provided_By__c</code></td><td>Picklist: Sitetracker / ArcGIS / Vetro / KML / Organization</td><td>Organization</td><td>set once at creation; VR blocks change; <b>editable template ⇔ 'Organization'</b></td></tr>
+<tr><td><code>st_Geometry_Type__c</code></td><td>Picklist: Point / Polyline / Polygon</td><td>—</td><td>required; immutable after create (VR)</td></tr>
+<tr><td><code>st_Is_Organization_Default__c</code></td><td>Checkbox</td><td>false</td><td>trigger keeps exactly one true per geometry</td></tr>
+<tr><td><code>st_Styling_Mode__c</code></td><td>Picklist: Simple / Categorical</td><td>Simple</td><td>restricted</td></tr>
+<tr><td><code>st_Symbol_Shape__c</code></td><td>Picklist (8 shapes)</td><td>circle</td><td>restricted — invalid shape unrepresentable</td></tr>
+<tr><td><code>st_Symbol_Size__c</code></td><td>Number(3,0)</td><td>10</td><td>VR 1–100</td></tr>
+<tr><td><code>st_Fill_Color__c</code></td><td>Text(7)</td><td>#00847C</td><td>VR hex <code>#RRGGBB</code></td></tr>
+<tr><td><code>st_Outline_Color__c</code></td><td>Text(7)</td><td>#FFFFFF</td><td>VR hex</td></tr>
+<tr><td><code>st_Outline_Width__c</code></td><td>Number(2,1)</td><td>1.0</td><td>VR 0–10</td></tr>
+<tr><td><code>st_Layer_Opacity__c</code></td><td>Number(3,2)</td><td>1.00</td><td><b>VR 0.10–1.00 — the 10% floor, declarative</b></td></tr>
+<tr><td><code>st_Offset_X__c</code> / <code>st_Offset_Y__c</code></td><td>Number(3,0)</td><td>0</td><td>VR −50–50 (label nudge, px)</td></tr>
+<tr><td><code>st_Label_Field__c</code></td><td>Text(80)</td><td>— (labels off)</td><td>field API name; validated against Describe at save</td></tr>
+<tr><td><code>st_Label_Min_Zoom__c</code></td><td>Number(2,0)</td><td>system default</td><td>VR 0–23</td></tr>
+<tr><td><code>st_Label_Halo_Color__c</code></td><td>Text(7)</td><td>#FFFFFF</td><td>VR hex</td></tr>
+<tr><td><code>st_Icon_Asset__c</code></td><td>Lookup(<code>Map_Style_Asset__c</code>)</td><td>—</td><td><b>Restrict</b> — Simple-mode icon; platform blocks deleting an icon in use</td></tr>
+<tr><td><code>st_Value_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>the ONLY JSON (per-value sparse overrides); closed-set validated in the save service; ~20–35 KB at the 100-value cap</td></tr>
+</tbody></table></div>
+<p class="note" style="margin:8px 0 0">Staleness &amp; publish-conflict detection use the record's standard <code>SystemModstamp</code> — no custom field. Defaults marked here are the proposed shipped values; the ST Default templates ship per asset type with their MOC.</p>
+
+<h4><code>Map_Style_Asset__c</code> <span class="tag new">NEW</span> — org-level icon library (≤ 50 SVG + 50 PNG)</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
+<tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required</td></tr>
+<tr><td><code>st_Asset_Type__c</code></td><td>Picklist: SVG / PNG / Font</td><td>—</td><td>required; 50-per-type cap enforced in upload service</td></tr>
+<tr><td><code>st_Content_Version_Id__c</code></td><td>Text(18)</td><td>—</td><td>set at upload — original bytes live in Files (5 MB cap)</td></tr>
+<tr><td><code>st_Png_Renditions__c</code></td><td>LongTextArea(32,768)</td><td>—</td><td>data-URI PNGs, built client-side at upload; what both map engines consume</td></tr>
+<tr><td><code>st_File_Checksum__c</code></td><td>Text(80), External Id</td><td>—</td><td>SHA-256 of the file — upload dedup (same file → same record)</td></tr>
+</tbody></table></div>
+<p class="note" style="margin:8px 0 0">Delete guard: <code>st_Icon_Asset__c</code> Restrict (platform) + a <code>before delete</code> trigger scanning non-archived templates' <code>st_Value_Styles__c</code> — blocks with "in use by: X, Y".</p>
+
+<h4><code>Map_Layer__c</code> &amp; <code>Map_Object_Configuration__c</code> <span class="tag exist">EXISTING</span> — one new field each</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
+<tr><td><code>st_Style_Template__c</code></td><td>Lookup(<code>Map_Style_Template__c</code>)</td><td>— (null → precedence fallback)</td><td><b>Restrict</b> — a linked template can't be deleted; geometry must match the layer's (save-service check). On MOC it doubles as the shipped per-asset-type default link</td></tr>
+</tbody></table></div>
 </div></div>
 
 <div class="grid2" style="margin-top:14px">
