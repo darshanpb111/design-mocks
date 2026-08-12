@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<title>GIS Map Style Templates — Technical Implementation Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --teal:#00847C; --teal-dark:#00736C; --blue:#0070D2; --blue-2:#1B96FF;
+  --success:#027E46; --warning:#FFB75D; --warning-ink:#844800; --error:#C23934;
+  --bg:#FAFAF9; --panel:#FFFFFF; --panel-2:#F3F2F2; --line:#DDDBDA; --line-soft:#ECEBEA;
+  --ink:#080707; --ink-2:#3E3E3C; --ink-3:#706E6B;
+  --erd-obj:#FFFFFF; --erd-new:#E6F4F3; --erd-exist:#EEF4FF; --erd-line:#706E6B;
+  --code-bg:#16325C; --code-ink:#D8E6FE; --code-key:#7FD1FF; --code-str:#A7E8B4; --code-num:#FFD98A;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI","Salesforce Sans",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#061C3F; --panel:#0B2447; --panel-2:#16325C; --line:#2A426C; --line-soft:#1D3A66;
+    --ink:#FFFFFF; --ink-2:#D8E6FE; --ink-3:#AACBFF; --teal:#04E1CB; --blue:#1B96FF;
+    --warning-ink:#FFB75D; --success:#4BCA81;
+    --erd-obj:#0B2447; --erd-new:#0E3B38; --erd-exist:#122E5C; --erd-line:#AACBFF;
+    --code-bg:#04102A; --code-ink:#D8E6FE;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#061C3F; --panel:#0B2447; --panel-2:#16325C; --line:#2A426C; --line-soft:#1D3A66;
+  --ink:#FFFFFF; --ink-2:#D8E6FE; --ink-3:#AACBFF; --teal:#04E1CB; --blue:#1B96FF;
+  --warning-ink:#FFB75D; --success:#4BCA81;
+  --erd-obj:#0B2447; --erd-new:#0E3B38; --erd-exist:#122E5C; --erd-line:#AACBFF;
+  --code-bg:#04102A; --code-ink:#D8E6FE;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--ui);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:34px 22px 80px}
+header.hero{display:flex;align-items:flex-start;gap:14px;margin-bottom:8px}
+.tile{width:44px;height:44px;border-radius:10px;background:var(--teal);color:#fff;display:grid;place-items:center;flex:none}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+h1{margin:1px 0 0;font-size:26px;font-weight:650;letter-spacing:-.02em;text-wrap:balance}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 26px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:11.5px;color:var(--ink-2);background:var(--panel)}
+.pill.hot{background:color-mix(in srgb,var(--teal) 12%,transparent);border-color:var(--teal);color:var(--teal);font-weight:650}
+h2{font-size:12px;font-weight:750;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  margin:38px 0 6px;display:flex;align-items:center;gap:9px}
+h2 .n{width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;
+  font-size:11px;letter-spacing:0}
+h2 + p.lede{margin:0 0 14px;color:var(--ink-2);max-width:72ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);
+  overflow:hidden}
+.pad{padding:16px 18px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+td{padding:8px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.pad table{max-width:100%}
+@media(max-width:700px){
+  .wrap{padding:22px 14px 60px}
+  h1{font-size:21px}
+  .pad{padding:13px 14px}
+  td,th{padding:7px 8px}
+  td code{white-space:normal;word-break:break-word}
+  .pad>table,.card>table{display:block;overflow-x:auto}
+  pre.codeblock{font-size:10.5px;padding:12px}
+}
+code,.mono{font-family:var(--mono);font-size:11.5px}
+td code{background:var(--panel-2);border-radius:3px;padding:1px 5px;white-space:nowrap}
+.tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  border-radius:3px;padding:2px 6px}
+.tag.new{background:color-mix(in srgb,var(--teal) 15%,transparent);color:var(--teal)}
+.tag.exist{background:color-mix(in srgb,var(--blue) 13%,transparent);color:var(--blue)}
+.tag.warn{background:color-mix(in srgb,var(--warning) 28%,transparent);color:var(--warning-ink)}
+.tag.ok{background:color-mix(in srgb,var(--success) 15%,transparent);color:var(--success)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.note{font-size:12px;color:var(--ink-3)}
+.callout{border-left:4px solid var(--teal);background:color-mix(in srgb,var(--teal) 7%,var(--panel));
+  border-radius:0 8px 8px 0;padding:12px 15px;font-size:13px;margin:14px 0}
+.callout.warn{border-left-color:var(--warning);background:color-mix(in srgb,var(--warning) 10%,var(--panel));}
+.callout b{color:var(--ink)}
+pre.codeblock{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:11.6px;line-height:1.62}
+pre.codeblock .k{color:var(--code-key)} pre.codeblock .s{color:var(--code-str)}
+pre.codeblock .n{color:var(--code-num)} pre.codeblock .c{color:#8FA5C9;font-style:italic}
+.erdwrap{overflow-x:auto;padding:6px 0}
+.erd{min-width:820px;width:100%;height:auto;display:block;font-family:var(--ui)}
+.erd .obj{fill:var(--erd-obj);stroke:var(--line);rx:8}
+.erd .objnew{fill:var(--erd-new);stroke:var(--teal);stroke-width:1.4}
+.erd .objexist{fill:var(--erd-exist);stroke:var(--blue)}
+.erd text{fill:var(--ink);font-size:12px}
+.erd .t{font-weight:700;font-size:12.5px}
+.erd .f{fill:var(--ink-3);font-size:10.5px;font-family:var(--mono)}
+.erd .lbl{fill:var(--ink-3);font-size:10px;font-style:italic}
+.erd .rel{stroke:var(--erd-line);stroke-width:1.3;fill:none}
+.erd .relmd{stroke:var(--teal);stroke-width:2}
+.erd .badge{font-size:9px;font-weight:800;letter-spacing:.04em;fill:#fff}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+.flow .step{border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--panel)}
+.flow .step.hi{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 9%,transparent);font-weight:650}
+.flow .arr{color:var(--ink-3)}
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.ph{border:1px solid var(--line);border-radius:9px;padding:11px 13px;background:var(--panel)}
+.ph .num{font-size:10px;font-weight:800;color:var(--teal);letter-spacing:.06em}
+.ph .nm{font-weight:650;font-size:13px;margin:2px 0 4px}
+.ph .note{font-size:11px}
+.opens li{margin-bottom:7px}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3)}
+.tabs{display:flex;gap:8px;margin:2px 0 10px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.tabbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);border-radius:8px;
+  padding:7px 16px;font:600 13px var(--ui);cursor:pointer}
+.tabbtn.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.dlog td:first-child{white-space:nowrap;color:var(--ink-3);font-size:11px}
+.tag.dead{background:color-mix(in srgb,var(--error) 12%,transparent);color:var(--error);text-decoration:none}
+.fdict h4{margin:18px 0 6px;font-size:13px}
+.fdict h4 code{font-size:12px}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="hero">
+  <span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4L21 8l-9 4.6L3 8z"/><path d="M3.4 12.2L12 16.6l8.6-4.4M3.4 16.1L12 20.5l8.6-4.4"/></svg></span>
+  <div>
+    <div class="kicker">Sitetracker · GIS Link · SIT-58366</div>
+    <h1>GIS Map Style Templates — Technical Implementation Plan</h1>
+  </div>
+</header>
+<div class="meta">
+  <span class="pill hot">v1 = web only · mobile parked</span>
+  <span class="pill">strk · 1GP · namespace additive-only</span>
+  <span class="pill">Lightning Maps (beta) · ArcGIS JS 4.34</span>
+  <span class="pill">updated 2026-08-12</span>
+  <span class="pill hot">12 Aug design sync: every design question decided</span>
+</div>
+
+<div class="tabs">
+  <button class="tabbtn on" id="btn-plan" onclick="showPage('plan')">Implementation plan</button>
+  <button class="tabbtn" id="btn-refs" onclick="showPage('refs')">References — why, when &amp; how</button>
+</div>
+
+<div id="page-plan">
+<!-- ============================== 1. OBJECT LINKING ============================== -->
+<h2><span class="n">1</span>Object linking — the schema and how a layer finds its style</h2>
+<p class="lede">Two existing objects gain <b>three geometry-scoped lookups each</b>. Why three:
+<b>rendered layers are always single-geometry</b> (Sitetracker object layers by the required
+<code>Geometry_Type__c</code> picklist; file uploads split into single-geometry GroupLayer children,
+<code>FileLayerHandler.js:300</code>) — but those file children all share <b>one</b>
+<code>Map_Layer__c</code> record, so that one record may need a point + line + area template at once.
+Mixed geometry exists only at the record level; no mixed-geometry UI or rendering exists anywhere.
+(New-object count: 3 after the Aug 11 schema revision below.)</p>
+
+<div class="card"><div class="erdwrap">
+<svg class="erd" viewBox="0 0 980 470" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold three geometry-scoped lookups to Map Style Template; template has master-detail children Rule and Stop; Stop looks up Asset with delete restriction.">
+  <!-- existing objects -->
+  <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
+  <text class="t" x="36" y="64">Map_Layer__c</text>
+  <text class="badge" x="196" y="64"><tspan fill="#0070D2">EXISTING</tspan></text>
+  <text class="f" x="36" y="86">st_Point_Style_Template__c</text>
+  <text class="f" x="36" y="103">st_Polyline_Style_Template__c</text>
+  <text class="f" x="36" y="120">st_Polygon_Style_Template__c</text>
+  <text class="lbl" x="36" y="141">3 × Lookup (Restrict) + 3 × Styling_Mode__c</text>
+
+  <rect class="obj objexist" x="20" y="196" width="230" height="118" rx="8"/>
+  <text class="t" x="36" y="220">Map_Object_Configuration__c</text>
+  <text class="f" x="36" y="242">st_Point_Style_Template__c</text>
+  <text class="f" x="36" y="259">st_Polyline_Style_Template__c</text>
+  <text class="f" x="36" y="276">st_Polygon_Style_Template__c</text>
+  <text class="lbl" x="36" y="297">same 3 lookups (fallback tier)</text>
+
+  <!-- template -->
+  <rect class="obj objnew" x="340" y="60" width="270" height="230" rx="8"/>
+  <text class="t" x="356" y="86">Map_Style_Template__c</text>
+  <text class="badge" x="545" y="86"><tspan fill="#00847C">NEW</tspan></text>
+  <text class="f" x="356" y="110">Name · st_Status__c (Draft/Active/Archived)</text>
+  <text class="f" x="356" y="127">st_Provided_By__c (Sitetracker/Org)  ← ST-Default lock</text>
+  <text class="f" x="356" y="144">st_Imported_From__c (ArcGIS/Vetro)     ← import lock</text>
+  <text class="f" x="356" y="161">st_Geometry_Type__c (nullable)</text>
+  <text class="f" x="356" y="178">st_Is_Organization_Default__c (single, trigger)</text>
+  <text class="f" x="356" y="195">st_Published_Style__c  LTA 131,072</text>
+  <text class="f" x="356" y="212">st_Published_Version__c · st_Published_Checksum__c</text>
+  <text class="f" x="356" y="229">st_Imported_Source_Id__c (ExtId, seed key)</text>
+  <text class="f" x="356" y="246">st_Cloned_From_Template__c (self)</text>
+  <text class="lbl" x="356" y="272">sharing: OWD Read · Write/Admin via __Share</text>
+
+  <!-- rule -->
+  <rect class="obj objnew" x="700" y="40" width="258" height="150" rx="8"/>
+  <text class="t" x="716" y="64">Map_Style_Rule__c</text>
+  <text class="f" x="716" y="87">st_Geometry_Type__c · st_Variant__c</text>
+  <text class="f" x="716" y="104">st_Renderer_Type__c · classification</text>
+  <text class="f" x="716" y="121">st_Simple_Symbol_Json__c (the base)</text>
+  <text class="f" x="716" y="138">st_Label_Json__c · st_Offset_Json__c</text>
+  <text class="f" x="716" y="155">st_Layer_Opacity__c (0.10–1.00)</text>
+  <text class="f" x="716" y="172">st_Icon_Asset__c (Lookup·Restrict) · zoom · sort</text>
+
+  <!-- stop -->
+  <rect class="obj objnew" x="700" y="230" width="258" height="108" rx="8"/>
+  <text class="t" x="716" y="254">Map_Style_Stop__c</text>
+  <text class="f" x="716" y="277">st_Value__c · st_Label__c · sort</text>
+  <text class="f" x="716" y="294">st_Override_Json__c  ← SPARSE only</text>
+  <text class="f" x="716" y="311">st_Icon_Asset__c (Lookup·Restrict)</text>
+  <text class="lbl" x="716" y="330">unset props inherit from Rule.Simple</text>
+
+  <!-- asset -->
+  <rect class="obj objnew" x="470" y="360" width="270" height="96" rx="8"/>
+  <text class="t" x="486" y="384">Map_Style_Asset__c  (org-level)</text>
+  <text class="f" x="486" y="406">st_Type__c SVG/PNG/Font · checksum dedup</text>
+  <text class="f" x="486" y="423">st_Content_Version_Id__c (original file)</text>
+  <text class="f" x="486" y="440">st_Rendition_Json__c (data-URI PNGs)</text>
+
+  <!-- relationships -->
+  <path class="rel" d="M250 99 H340"/>
+  <text class="lbl" x="258" y="93">Lookup ×3 (Restrict)</text>
+  <path class="rel" d="M250 255 H295 V180 H340" />
+  <text class="lbl" x="258" y="248">Lookup ×3</text>
+  <path class="rel relmd" d="M610 115 H700"/>
+  <text class="lbl" x="622" y="108">Master-Detail 1─*</text>
+  <path class="rel relmd" d="M829 190 V230"/>
+  <text class="lbl" x="838" y="214">MD 1─*</text>
+  <path class="rel" d="M700 300 H620 V408 H740" />
+  <text class="lbl" x="600" y="322">Lookup · Restrict</text>
+  <text class="lbl" x="600" y="336">(= delete-protection)</text>
+  <path class="rel" d="M475 290 V360"/>
+  <text class="lbl" x="352" y="330">ContentVersion holds the</text>
+  <text class="lbl" x="352" y="344">original file (file storage)</text>
+</svg>
+</div></div>
+
+<div class="grid2" style="margin-top:14px">
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">How a layer resolves its style (per geometry)</b>
+    <div class="flow" style="margin-top:10px">
+      <span class="step hi">layer lookup</span><span class="arr">→</span>
+      <span class="step">object-config lookup</span><span class="arr">→</span>
+      <span class="step">org default</span><span class="arr">→</span>
+      <span class="step">ST Default (shipped)</span><span class="arr">→</span>
+      <span class="step">vendor renderer</span><span class="arr">→</span>
+      <span class="step">geometry fallback</span><span class="arr">→</span>
+      <span class="step">legacy Layer_Styling__c</span>
+    </div>
+    <p class="note" style="margin:10px 0 0">Exactly one winner per geometry. State overlays apply
+    <i>after</i> (PT status → selection → variance) — write order fixed by SIT-66034 so the two
+    features never fight over <code>layer.renderer</code>.</p>
+  </div></div>
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">Why lookups (evaluated, not assumed)</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td><span class="tag ok">chosen</span></td><td>Layer → Template lookups — one indexed hop, USER_MODE-safe, additive/upgrade-safe, Restrict = referential integrity free</td></tr>
+      <tr><td><span class="tag warn">rejected</span></td><td>Map-level + overrides — no Map record exists; override-merge re-creates drift</td></tr>
+      <tr><td><span class="tag warn">rejected</span></td><td>Junction — buys per-assignment overrides (replaced by copy-on-write); extra hot-path hop</td></tr>
+      <tr><td><span class="tag warn">deferred</span></td><td>Version rows — version+checksum on the doc already covers cache/audit/conflict</td></tr>
+    </tbody></table>
+    <p class="note" style="margin:8px 0 0"><b>Apply = live reference</b> to immutable published
+    versions. Shared edit prompts <i>"apply to all N / copy for this layer"</i> — copy-on-write,
+    never silent, never a merge.</p>
+  </div></div>
+</div>
+
+<div class="card" style="margin-top:14px"><div class="pad">
+  <b style="font-size:13px">Why new objects (existing storage evaluated, not skipped)</b>
+  <p class="note" style="margin:6px 0 10px">Nine existing homes for style data were evaluated
+  against the strk repo before proposing anything new. None survives as the store; three survive
+  in other roles. The product itself reached the same conclusion three times — every existing
+  reusable-configuration feature (Sync Templates, Project Templates, Job Templates) is a custom
+  object with children.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Candidate</th><th>Where (evidence)</th><th></th><th>Why rejected as the store · what survives</th></tr></thead>
+    <tbody>
+      <tr><td><code>Map_Layer__c.Layer_Styling__c</code><br><span class="note">the existing 128 KB style blob</span></td>
+        <td class="mono">Layer_Styling__c.field-meta.xml:10<br>SitetrackerLayerDmlService.cls:365,386</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td><b>Per-layer by construction</b> — no reuse across layers is the exact problem; no versioning, no sharing, unvalidated JSON. <span class="tag ok">survives</span> as the flag-OFF fallback + migration source</td></tr>
+      <tr><td><code>GIS_Sync_Template__c</code><br><span class="note">extend it with style fields</span></td>
+        <td class="mono">objects/GIS_Sync_Template__c/<br>IsDefault__c.field-meta.xml:5-7<br>SyncTemplateSelector.cls:44</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Different domain (sync field mappings) with its own children, permset and live customer data — overloading couples two features' upgrade paths. <span class="tag ok">survives</span> as the <b>pattern</b>: single-default trigger, selector shape, permset shape</td></tr>
+      <tr><td><code>Map_Object_Configuration__c</code><br><span class="note">as-built colour fields precedent</span></td>
+        <td class="mono">st_Symbol_Color_As_Built__c et al.</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Per-object config; discrete colour fields cannot hold rules/stops. <span class="tag ok">survives</span> — gains the template <b>lookups</b> (fallback tier)</td></tr>
+      <tr><td><code>Site_Map_Configuration__c</code></td>
+        <td class="mono">Colors__c · Configuration_Type__c='Mobile'</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Single-purpose mobile colour config — no graph, no lifecycle</td></tr>
+      <tr><td>Custom Metadata Type<br><span class="note">the PT-status-colours pattern</span></td>
+        <td class="mono">Production_Tracking_Status_Color__mdt<br>StGISProductionTrackingController.cls:1613</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td><b>The authoring UX we are escaping</b>: every admin save = async <code>Metadata.Operations.enqueueDeployment</code>; no record sharing; layers cannot Restrict-lookup a CMT. <span class="tag ok">survives</span> as one protected record — the kill-switch only</td></tr>
+      <tr><td>Other template objects<br><span class="note">Project/Job/Activity/Budget templates</span></td>
+        <td class="mono">Project_Template__c (+Version) et al.</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Domain-specific parents — semantic abuse. <code>Project_Template_Version__c</code> noted as the versioned-clone precedent if version rows ever return</td></tr>
+      <tr><td>ContentVersion / Documents<br><span class="note">as the structured store</span></td>
+        <td class="mono">MapLayerService.cls:52-266</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>No queryability, FLS, lookups or sharing granularity for rules/stops. <span class="tag ok">survives</span> for what files are good at: <b>asset originals</b></td></tr>
+      <tr><td>Static Resources</td>
+        <td class="mono">staticresources/STMaps* (our bundles)</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Not org-writable at runtime — shipped code, not customer data</td></tr>
+      <tr><td>Custom Settings / Big Objects</td>
+        <td class="mono">—</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Settings: no long-text + UI + sharing. Big objects: append-only, no triggers/sharing</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin:10px 0 0">Each v1 requirement maps to a capability only custom
+  objects provide: record-access permissions (<code>__Share</code>), delete-protection
+  (<code>Restrict</code>), the one-query in-use check (FK, not JSON scanning), upgrade-safe seeding
+  (External Id upsert). The new objects are the <b>elimination result</b>, not a greenfield preference.</p>
+</div></div>
+
+<div class="callout warn" style="margin-top:14px"><b>Schema revised after challenge (Aug 11): 3 objects, not 4.</b>
+"Why child Rule/Stop records when the template is JSON anyway?" — interrogated: the records bought
+nothing required (compiler parses JSON; whole-template locking; template-level sharing; the graph
+serializes to JSON for checksum regardless) and cost ~600-row reconciliation per Save vs one update.
+<b>Revised:</b> Template (metadata + <code>st_Style_Definition__c</code> snapshot — the mockup's exact
+shape — + compiled doc) · Asset (unchanged) · <b>Asset-Usage junction</b> (compiler-maintained,
+asset lookup Restrict) which keeps the platform-enforced delete-protection and the one-query
+"in use by N templates" — now uniformly for icons at any level. Layer-side lookups, Styling_Mode
+fields, precedence, copy-on-write and compiler-resolved inheritance all unchanged. The ERD above
+shows the pre-revision graph; the "is this asset in use" check (runtime-checks table, section&nbsp;2) now queries the usage junction.</div>
+
+<!-- ============================== 2. DATA STORAGE ============================== -->
+<h2><span class="n">2</span>Data storage — what lives where, and what it costs</h2>
+<p class="lede">Two Salesforce pools: <b>data storage</b> (records) and <b>file storage</b>
+(ContentVersion files). The design splits deliberately across them.</p>
+
+<div class="card"><div class="scroll"><table>
+<thead><tr><th>What</th><th>Stored in</th><th>Pool</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td>Template graph (template + rules + stops + assets)</td><td>custom-object records</td><td>Data</td>
+  <td><b>~2 KB per record, flat</b> — long-text content does <u>not</u> add. Worst-case template ≈ 607 records ≈ 1.2 MB; 100 templates ≈ 0.1 GB</td></tr>
+<tr><td>Compiled style document (the thing clients consume)</td><td><code>st_Published_Style__c</code> LongTextArea</td><td>Data</td>
+  <td>≤ 50 KB target, still counts ~2 KB — effectively free</td></tr>
+<tr><td>Icon manifest (name → data-URI renditions)</td><td>embedded in the compiled doc <i>(or its own field — see measurement)</i></td><td>Data</td>
+  <td>≤ 200 KB per template cap</td></tr>
+<tr><td>Uploaded SVG/PNG originals</td><td><b>ContentVersion</b> (uploaded over REST — never Apex heap)</td><td>File</td>
+  <td>caps: 5 MB/file, 50 per type → absolute worst 500 MB; realistic ~20 MB</td></tr>
+<tr><td>Org capacity (Enterprise/Unlimited)</td><td colspan="2">Data: 10 GB + ~20 MB/user · File: 10 GB + ~2 GB/user</td>
+  <td><span class="tag ok">ample</span> a 50-user org has ~110 GB file storage</td></tr>
+</tbody></table></div></div>
+
+<div class="callout warn"><b>The binding constraint is not org storage — it's the 131,072-character
+cap on a single long-text field.</b> First Phase-1 task: compile a worst-case template
+(100 values + 20 icons) and measure. Outcome decides: one field, or manifest split to its own
+field/ContentVersion. Everything else in the storage design is settled.</div>
+
+<div class="grid2">
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">Caching &amp; delivery</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td>Server</td><td>Platform Cache (existing <code>'sitetracker'</code> partition), key <code>templateId:version</code></td></tr>
+      <tr><td>Web</td><td>@RemoteAction <code>getCompiledStyleTemplates()</code> → version-keyed store; checksum short-circuits reparse; fetched <b>per template per session, not per layer</b></td></tr>
+      <tr><td>Mobile (future)</td><td>REST <code>/StStyleTemplates</code> + ETag/304 — stub ships in v1, unused until mobile re-opens</td></tr>
+      <tr><td>Assets</td><td>ride the doc as data-URIs — zero extra round-trips, offline-safe, no per-file ACLs</td></tr>
+    </tbody></table>
+  </div></div>
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">Integrity &amp; concurrency</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td>Delete-protection</td><td>real FKs with <code>Restrict</code>: a referenced template or in-use asset <b>cannot</b> be hard-deleted — platform-enforced, no JSON scanning</td></tr>
+      <tr><td>Publish</td><td><code>SELECT … FOR UPDATE</code> + compile in one transaction — simultaneous publishes serialize</td></tr>
+      <tr><td>Conflict detection</td><td><code>st_Published_Version__c</code> optimistic check: editor sends expected version, mismatch → "someone published v12 while you were editing" (Salesforce API is last-write-wins by default — detection is ours, one comparison)</td></tr>
+      <tr><td>Seed</td><td>ST Default upserted post-install by External Id <code>ST_DEFAULT</code> — idempotent, upgrade-safe</td></tr>
+    </tbody></table>
+  </div></div>
+</div>
+
+<div class="card" style="margin-top:14px"><div class="pad">
+  <b style="font-size:13px">Three runtime checks — how the FK model answers them in one query each</b>
+  <table style="margin-top:10px"><tbody>
+    <tr>
+      <td style="width:220px"><b>Is this asset in use?</b><br><span class="note">(blocks delete, feeds the tooltip)</span></td>
+      <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">SELECT st_Style_Rule__r.st_Style_Template__r.Name
+FROM Map_Style_Stop__c
+WHERE st_Icon_Asset__c = :assetId          <span class="c">// + same query on Map_Style_Rule__c</span>
+  AND st_Style_Rule__r.st_Style_Template__r.st_Status__c = 'Active'</pre>
+      <span class="note">Possible <i>because</i> icons are FK lookups, not names inside JSON — no text scanning.
+      Grouped by template → the "already in use by: …" tooltip. <code>Restrict</code> on the lookup enforces
+      the block even if the UI check is bypassed. To go all the way to <i>active layers</i>: one more hop —
+      layers whose geometry lookups point at those template ids.</span></td>
+    </tr>
+    <tr>
+      <td><b>Which template is active for this layer?</b></td>
+      <td><pre class="codeblock" style="padding:10px 12px;font-size:11px"><span class="c">// per geometry — first non-null wins:</span>
+layer.st_&lt;Geom&gt;_Style_Template__c          <span class="c">// 1. layer link</span>
+?? layer.Map_Object_Configuration__r
+        .st_&lt;Geom&gt;_Style_Template__c        <span class="c">// 2. object-config link</span>
+?? orgDefaultId                             <span class="c">// 3. cached in GIS config CMT</span>
+?? [SELECT Id FROM Map_Style_Template__c
+    WHERE st_Imported_Source_Id__c='ST_DEFAULT'] <span class="c">// 4. shipped default</span></pre>
+      <span class="note">Two meanings kept distinct: the <b>resolved</b> template above (what the map paints,
+      what the switcher pins to top) vs the org-wide <code>st_Status__c='Active'</code> lifecycle state.
+      Status is checked at <b>link time only</b> — an Archived template keeps resolving for layers that
+      already reference it, so archiving never restyles a field user's map.</span></td>
+    </tr>
+    <tr>
+      <td><b>Is this template editable by me?</b></td>
+      <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">editable =
+     t.st_Provided_By__c != 'Sitetracker'        <span class="c">// shipped ST Default — never edited in place; clone to edit (decided)</span>
+  && t.st_Imported_From__c == null                 <span class="c">// ArcGIS/Vetro import lock (clone lifts it)</span>
+  && t.st_Status__c != 'Archived'           <span class="c">// unarchive first</span>
+  && FeatureManagement.checkPermission('st_GISLink_ManageStyleTemplate')
+  && [SELECT HasEditAccess FROM UserRecordAccess
+      WHERE UserId=:uid AND RecordId=:t.Id].HasEditAccess  <span class="c">// __Share rows</span></pre>
+      <span class="note">Five independent predicates — the two locks are deliberately separate fields, the
+      last one is the record-access model: <code>UserRecordAccess.HasEditAccess</code> natively reflects
+      OWD + our <code>__Share</code> rows, so the UI never re-implements sharing math. Not editable ≠ hidden:
+      read-only opens the panel with controls disabled and "Save as new" as the escape hatch.</span></td>
+    </tr>
+  </tbody></table>
+</div></div>
+
+<!-- ============================== 3. FORMAT ============================== -->
+<h2><span class="n">3</span>Format — authoring model vs the compiled contract</h2>
+<p class="lede">Admins author the <b>object graph</b>; clients only ever see the <b>compiled
+document</b> — validated, inheritance-resolved, checksummed, Esri-renderer semantics (so ArcGIS
+imports map near-losslessly and mobile's existing types already match).</p>
+
+<div class="card"><div class="pad" style="padding-bottom:8px">
+  <b style="font-size:13px">Inheritance — resolved once, at publish</b>
+  <div class="flow" style="margin:10px 0 4px">
+    <span class="step">Rule.Simple symbol</span><span class="arr">deep-merge, per-property →</span>
+    <span class="step">Stop sparse override</span><span class="arr">→</span>
+    <span class="step">× layer opacity</span><span class="arr">→</span>
+    <span class="step hi">resolved symbol in the doc</span>
+  </div>
+  <p class="note" style="margin:6px 0 10px">Categorical <b>derives from Simple until a value is
+  overridden</b> (final). A 40-value classification with 3 custom values stores 3 sparse stops.
+  Clients (web <i>and</i> mobile) carry <b>zero inheritance logic</b>. As-Built falls back to
+  Design when absent. Per-layer deviation = clone (copy-on-write), never stored overrides.</p>
+</div></div>
+
+<div style="margin-top:14px" class="card">
+<pre class="codeblock">{
+  <span class="k">"schemaVersion"</span>: <span class="n">1</span>,                    <span class="c">// unknown major → client ignores, falls back</span>
+  <span class="k">"templateId"</span>: <span class="s">"a0X…"</span>, <span class="k">"name"</span>: <span class="s">"Acme Fiber Standard"</span>,
+  <span class="k">"version"</span>: <span class="n">12</span>, <span class="k">"checksum"</span>: <span class="s">"sha256:…"</span>, <span class="k">"origin"</span>: <span class="s">"org"</span>,
+  <span class="k">"capabilities"</span>: [<span class="s">"simple"</span>,<span class="s">"uniqueValue"</span>,<span class="s">"labels"</span>,<span class="s">"icons"</span>],
+  <span class="k">"iconManifest"</span>: { <span class="k">"vault"</span>: { <span class="k">"png"</span>: <span class="s">"data:image/png;base64,…"</span> } },   <span class="c">// ≤200 KB</span>
+
+  <span class="k">"rules"</span>: [{
+    <span class="k">"geometry"</span>: <span class="s">"polyline"</span>,             <span class="c">// point | polyline | polygon</span>
+    <span class="k">"variant"</span>: <span class="s">"design"</span>,                 <span class="c">// design | asBuilt</span>
+    <span class="k">"layerOpacity"</span>: <span class="n">0.85</span>,                <span class="c">// already multiplied into alphas below</span>
+    <span class="k">"renderer"</span>: {
+      <span class="k">"type"</span>: <span class="s">"uniqueValue"</span>,
+      <span class="k">"classification"</span>: { <span class="k">"source"</span>: <span class="s">"record"</span>, <span class="k">"field"</span>: <span class="s">"st_Unit_Code__c"</span> },
+      <span class="k">"stops"</span>: [{
+        <span class="k">"value"</span>: <span class="s">"UC-FBR"</span>, <span class="k">"label"</span>: <span class="s">"Fiber Backbone"</span>,
+        <span class="k">"symbol"</span>: { <span class="k">"color"</span>: <span class="s">"#7526E3"</span>, <span class="k">"alpha"</span>: <span class="n">0.85</span>, <span class="k">"width"</span>: <span class="n">5</span>,
+                    <span class="k">"dash"</span>: <span class="n">null</span>, <span class="k">"cap"</span>: <span class="s">"round"</span> }   <span class="c">// FULLY RESOLVED</span>
+      }],
+      <span class="k">"default"</span>: { <span class="k">"label"</span>: <span class="s">"Unclassified"</span>,
+                   <span class="k">"symbol"</span>: { <span class="k">"color"</span>: <span class="s">"#706E6B"</span>, <span class="k">"alpha"</span>: <span class="n">0.85</span>, <span class="k">"width"</span>: <span class="n">2</span> } }
+    },
+    <span class="k">"label"</span>:  { <span class="k">"show"</span>: <span class="n">true</span>, <span class="k">"field"</span>: <span class="s">"Name"</span>, <span class="k">"size"</span>: <span class="n">10</span>, <span class="k">"color"</span>: <span class="s">"#080707"</span>,
+                <span class="k">"halo"</span>: <span class="n">true</span>, <span class="k">"weight"</span>: <span class="s">"400"</span>, <span class="k">"minZoom"</span>: <span class="n">14</span> },  <span class="c">// 2000-site gate</span>
+    <span class="k">"offset"</span>: { <span class="k">"x"</span>: <span class="n">0</span>, <span class="k">"y"</span>: <span class="n">0</span> }          <span class="c">// x/y nudge only; radial = v2</span>
+  }]
+}</pre>
+</div>
+
+<div class="grid2" style="margin-top:14px">
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">Closed property sets (compiler-validated)</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td class="mono">point</td><td>color · alpha · size · shape(circle/square) · icon · outline{color,width} — outline <b>solid only</b></td></tr>
+      <tr><td class="mono">polyline</td><td>color · alpha · width · dash{len,gap} · cap(round/square)</td></tr>
+      <tr><td class="mono">polygon</td><td>fillColor · fillAlpha (solid v1) · outline{color,width,dash}</td></tr>
+    </tbody></table>
+    <p class="note" style="margin:8px 0 0">Clients never sanitize — invalid docs fail at publish;
+    unknown schema major → fall back down the chain. Hex-only until the palette-token defects are
+    fixed; a <code>token</code> field is reserved as an additive revision.</p>
+  </div></div>
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">Where each property lives</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td>Template</td><td>identity, status, locks, default flag, version/checksum</td></tr>
+      <tr><td>Rule (geometry)</td><td>renderer type, classification, zoom, <b>layer opacity, label, offset</b>, Simple + default symbols</td></tr>
+      <tr><td>Stop (category)</td><td>value, label, <b>sparse override</b>, icon FK, sort (= match precedence)</td></tr>
+      <tr><td>Layer</td><td><b>nothing but the lookups</b> — deviation = clone</td></tr>
+    </tbody></table>
+  </div></div>
+</div>
+
+<div class="card" style="margin-top:14px"><div class="pad">
+  <b style="font-size:13px">Cross-SDK rendering limitations — design-facing, every surface</b>
+  <p class="note" style="margin:6px 0 10px">The template renders on two engines: <b>web = ArcGIS JS
+  4.34</b> (Lightning Maps beta, Site Central and every embed — one consumer) and <b>mobile =
+  Mapbox v11</b> via rnmapbox 10.3.1 (parked v1, but the contract must survive it). Legacy V1 web
+  maps and the old mobile Map screen never render templates — no limitation surface there. Per the
+  PRD's own rule these inform, never gate — but design should know where the SAME template will
+  look different per platform.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Feature</th><th>Web — ArcGIS JS</th><th>Mobile — Mapbox</th><th>What design should know</th></tr></thead>
+    <tbody>
+      <tr><td><b>Per-value dashed lines</b> {len, gap}</td>
+        <td>Exact px dash needs <b>CIMSymbol</b> (SimpleLineSymbol has preset dash styles only). Feasible, heavier symbol type</td>
+        <td><code>line-dasharray</code> is <b>not data-driven</b> — one extra LineLayer per dash class (the variance idiom). Bounded, fine for ~5 classes</td>
+        <td>Works both sides. Avoid designs implying <i>every value</i> gets a unique dash geometry — dash <i>classes</i> scale, freeform per-value dash px doesn't (mobile layer count)</td></tr>
+      <tr><td><b>Line cap</b> (rounded/squared)</td>
+        <td>Native per symbol (<code>cap</code>) — per value OK</td>
+        <td><code>line-cap</code> is a <b>layout property, not data-driven</b> — rides the same duplicate-layer split as dash</td>
+        <td>Cap can differ per dash class, not freely per value on mobile</td></tr>
+      <tr><td><b>Outer-edge outlines — points</b></td>
+        <td><b>Impossible on simple markers</b> — outlines draw centered. Outer needs sprites/CIM</td>
+        <td><b>Native!</b> <code>circle-stroke</code> draws <i>outside</i> the circle radius</td>
+        <td>⚠ <b>The one place the engines invert</b>: same template → centered ring on web, outer ring on mobile. Either accept the delta, or sprite circles too. Uploaded icons are consistent both sides (the outline is baked into the rasterized icon image itself)</td></tr>
+      <tr><td><b>Outer-edge outlines — areas</b></td>
+        <td>Centered on the boundary</td>
+        <td>Fill outline is 1px; real widths use a separate LineLayer — centered</td>
+        <td>Consistently centered on both — the area-styling story's "outline grows outward" acceptance criterion gets a one-word amendment, and it then holds everywhere</td></tr>
+      <tr><td><b>8 standard shapes</b></td>
+        <td>circle/square/diamond/triangle/cross/x native; star/pin/hexagon = <code>path</code> markers</td>
+        <td><b>No vector shapes at all</b> beyond circle — everything else is a bundled sprite</td>
+        <td>One bundled sprite set serves both engines and guarantees pixel-identical shapes — cheaper than per-engine drawing</td></tr>
+      <tr><td><b>Uploaded icons</b> (SVG/PNG)</td>
+        <td>picture/CIM markers from the data-URI manifest</td>
+        <td>Runtime images OK on 10.3.1 (nil-bridge fixed); <b>SVG never renders</b> — PNG renditions are mandatory (the asset pipeline already produces them); iOS re-verify pending</td>
+        <td>Rasterized renditions are the single source both engines consume — no per-engine icon work</td></tr>
+      <tr><td><b>Labels</b></td>
+        <td>LabelClass: placement, halo, minScale — all native</td>
+        <td>SymbolLayer text: halo (<code>text-halo</code>), <code>minzoom</code> native; text is data-driven</td>
+        <td>Fully consistent — including the zoom gate (D11). No delta</td></tr>
+      <tr><td><b>Fonts</b></td>
+        <td>Browser canvas — an org font <i>could</i> work</td>
+        <td><b>Arbitrary fonts impossible</b> — Mapbox needs pre-built glyph ranges baked into the style</td>
+        <td>Hard platform support for deferring font upload (T6): a v1 uploaded font could never reach mobile</td></tr>
+      <tr><td><b>X/Y offset</b></td>
+        <td><code>xoffset/yoffset</code> per symbol — 1:1</td>
+        <td><code>circle-translate</code>/<code>icon-offset</code> — layer-level, which matches (offset is per-template)</td>
+        <td>No delta</td></tr>
+      <tr><td><b>Opacity</b> (layer × element, pre-multiplied)</td>
+        <td>alpha in symbol colors</td>
+        <td>data-driven paint opacity</td>
+        <td>No delta — compiler pre-multiplication keeps both dumb</td></tr>
+      <tr><td><b>Bead line pattern · radial spread</b></td>
+        <td>no native support</td>
+        <td>no native support (bead ≈ line-placed SymbolLayer)</td>
+        <td>Correctly v2 on both engines — scope holds</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin:10px 0 0"><b>Verify-at-build:</b> CIM symbols through the ArcGIS
+  print/export service; CIM swatches in any legend path that reads the ArcGIS renderer directly
+  (our legend derives from the compiled doc, so it is already immune); iOS icon rendering on 10.3.1.</p>
+</div></div>
+
+<!-- ============================== 4. PERMISSIONS & PACKAGING ============================== -->
+<h2><span class="n">4</span>Permissions, FLS &amp; packaging</h2>
+<p class="lede">One new permission set, one new custom permission — everything else extends what
+users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging guidelines.</p>
+
+<div class="card"><div class="scroll"><table>
+  <thead><tr><th>Change</th><th>What</th><th>Who</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag new">NEW</span> permset <code>st_GISLink_StyleTemplateManager</code></td>
+      <td>cloned <i>structurally</i> from <code>st_GISLink_SyncTemplateManager</code> (the repo's direct precedent): CRUD on the 4 new objects, class access to new controller/service, asset upload/delete node, + the custom permission below</td>
+      <td>GIS admins who author templates</td></tr>
+    <tr><td><span class="tag new">NEW</span> custom permission <code>st_GISLink_ManageStyleTemplate</code></td>
+      <td>the in-code authoring gate — <code>FeatureManagement.checkPermission</code> (existing pattern, <code>StGISLinkApp.cls:63</code>)</td>
+      <td>granted inside the new permset</td></tr>
+    <tr><td><span class="tag exist">EXTEND</span> <code>Sitetracker_Maps_User</code> · <code>st_GISLink_Viewer</code></td>
+      <td>object Read + field Read on the 4 new objects. Apply = layer edit + template read — <b>no manage perm needed to apply a published template</b></td>
+      <td>every map user, via permsets they already hold</td></tr>
+    <tr><td><span class="tag warn">not reused</span> <code>st_GISLink_SyncTemplateManager</code></td>
+      <td>folding style-manage into it would <b>silently escalate every existing sync manager on package upgrade</b> — clone the shape, keep the grant separate</td><td>—</td></tr>
+    <tr><td><span class="tag warn">not reused</span> PT / work-management sets</td>
+      <td>wrong module — PT admins keep exactly what they own today (the status-colour overlay); base symbology is GIS Link's concern</td><td>—</td></tr>
+  </tbody>
+</table></div></div>
+
+<div class="grid2" style="margin-top:14px">
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">FLS &amp; per-template access</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td>Record access</td><td>OWD Public Read (internal); Write/Admin via <code>__Share</code> rows, two custom rowCauses. UI asks <code>UserRecordAccess.HasEditAccess</code> — never re-implements sharing math</td></tr>
+      <tr><td>Read-only fields</td><td><code>st_Published_Style__c</code> · <code>st_Published_Version__c</code> · <code>st_Published_Checksum__c</code> — compiler-only writes (documented system-context exception; everything else USER_MODE)</td></tr>
+      <tr><td>Admin role grants</td><td>SF system administrators only (ModifyAllData check in service)</td></tr>
+    </tbody></table>
+  </div></div>
+  <div class="card"><div class="pad">
+    <b style="font-size:13px">External users (SCP / community "Mobile Plus")</b>
+    <table style="margin-top:8px"><tbody>
+      <tr><td>Role</td><td><b>Consumers only</b> — never the manager permset</td></tr>
+      <tr><td>The trap</td><td>External OWD defaults to <b>Private</b> regardless of internal Public Read — object Read alone won't show them template records</td></tr>
+      <tr><td>The answer</td><td>The compiled-document delivery read (Active docs only) runs as a <b>documented system-context read</b>: published, validated, non-sensitive artifact. No packaged external sharing rules, works for SCP now and mobile later. Closes the prior-pack Q27 SCP miss</td></tr>
+    </tbody></table>
+  </div></div>
+</div>
+
+<div class="card" style="margin-top:14px"><div class="pad">
+  <b style="font-size:13px">Packaging — can we add new objects, and where do they go?</b>
+  <p class="note" style="margin:6px 0 10px"><b>Yes — new custom objects and new fields on existing
+  packaged objects are additive changes, supported in upgrades for both 1GP and 2GP.</b> The 1GP
+  caveat that matters: once released, packaged components can never be deleted or renamed — API
+  names are permanent. (One more reason the naming decisions — the template-association question T1, the two lock fields — are settled
+  before Phase 1 ships.)</p>
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>1GP (core)</th><th>2GP (Dispatch Central)</th></tr></thead>
+    <tbody>
+      <tr><td>Root</td><td class="mono">src/main/default/</td><td class="mono">2gp-packages/sitetracker-dispatch-central/force-app/main/default/</td></tr>
+      <tr><td>Prefixes</td><td>Apex <code>St</code> · objects unprefixed (<code>Map_Layer__c</code>) · fields <code>st_</code></td><td>Apex <code>Dc</code>/<code>Stf</code> · objects <code>stf_</code></td></tr>
+      <tr><td>Cross-package</td><td colspan="2">2GP ↔ 1GP <b>only through the adapter</b>: <code>DcDmlUtils → DcPackageInterfaceAdapter → (Callable) → strk.StSecondGenAccessAdapter → strk.StDMLUtils</code>; objects referenced as <code>strk__</code>/<code>strk2__</code></td></tr>
+      <tr><td>Guideline source</td><td colspan="2" class="mono">strk/.claude/skills/general/00-overview.md (package structure, namespace rules) · 05-2gp-patterns.md (adapter, stf_ prefix, trigger constraints)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout" style="margin:12px 0 0"><b>Decision: all four new objects ship in 1GP</b>
+  (<span class="mono">src/main/default/objects/</span>), following <code>Map_Layer__c</code> /
+  <code>GIS_Sync_Template__c</code> / <code>Map_Object_Configuration__c</code> — the entire GIS
+  module lives there, and so do the consumers (<code>SitetrackerMapsController</code>, the maps
+  bundle). Putting them in 2GP would force every hot-path style read through the cross-package
+  adapter with <code>strk2__</code> prefixes and couple GIS releases to Dispatch Central's train.
+  2GP untouched in v1 (prior decision Q2/04 §6, reconfirmed against the guideline docs).</div>
+</div></div>
+
+<!-- ============================== 5. PHASES ============================== -->
+<h2><span class="n">5</span>Phases (web-only v1)</h2>
+<div class="phases">
+  <div class="ph"><div class="num">PHASE 0</div><div class="nm">Prerequisites</div>
+    <div class="note">renderer write-order (SIT-66034) · verify-reads of the named classes · answer T1 (template association)</div></div>
+  <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
+    <div class="note">3 objects (revised — template-as-JSON + asset + usage junction) · 3×2 lookups + renderer-view · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
+  <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
+    <div class="note">validation · sparse-merge · opacity pre-multiply · checksum · FOR UPDATE publish</div></div>
+  <div class="ph"><div class="num">PHASE 3</div><div class="nm">API</div>
+    <div class="note">selector/service · @RemoteAction + Platform Cache · REST stub</div></div>
+  <div class="ph"><div class="num">PHASE 4</div><div class="nm">Lifecycle</div>
+    <div class="note">trigger guards · clone/apply/switch (no detach — removed 12 Aug) · stale-template notification · seed ST Default (3 colours)</div></div>
+  <div class="ph"><div class="num">PHASE 5</div><div class="nm">Assets</div>
+    <div class="note">upload/renditions/dedup/sanitize · manifest embed · delete-precheck</div></div>
+  <div class="ph"><div class="num">PHASE 6</div><div class="nm">Web UI</div>
+    <div class="note">style panel (incl. mixed-geometry) · switcher · settings LWC · imports incl. <b>KML style seeding (T9)</b> · <i>gated on design screens</i></div></div>
+  <div class="ph"><div class="num">PHASE 7</div><div class="nm">Migration &amp; parity</div>
+    <div class="note">flag-OFF byte-identical proof · migration-assist batch</div></div>
+  <div class="ph"><div class="num">PHASE 8</div><div class="nm">Testing</div>
+    <div class="note">ordering invariants · concurrency · XSS/SVG · perf @2,000 sites</div></div>
+</div>
+<div class="callout" style="margin-top:14px"><b>Phases 1–5 have no design dependency — backend can
+start immediately.</b> Only Phase 6 waits on the design action items (SIT-58366 comment 192070 — all decided 12 Aug, screens in progress with design).</div>
+
+<!-- ============================== 6. STATUS ============================== -->
+<h2><span class="n">6</span>Decision status — after the 12 Aug design sync</h2>
+<p class="lede">The 12 Aug call (Darshan · Arinjit · Chandrasekhar) walked every open design question
+and decided all of them — including <b>two reversals</b> of earlier positions (no detach in v1;
+fonts are IN v1). The full dated decision log, with what was superseded and why, is on the
+<a href="#" onclick="showPage('refs');return false"><b>References page</b></a>.</p>
+
+<div class="grid2">
+<div class="card"><div class="pad">
+  <b style="font-size:13px">Still genuinely open — engineering</b>
+  <table style="margin-top:9px"><tbody>
+    <tr><td class="mono">T1</td><td><b>Template association:</b> linked <b>per layer</b> (as designed) or scoped <b>per source</b>? <span class="tag warn">one word settles it</span></td></tr>
+    <tr><td class="mono">T4</td><td><b>Colour library storage home</b> — committed net-new colours join an org-wide library in every picker; needs a home (org-level record vs field). Now also fed by ArcGIS import (forked colours land here). <span class="tag warn">decide the home</span></td></tr>
+    <tr><td class="mono">T7</td><td><b>Permissions timing:</b> full sharing UI in v1 vs coarse permset first (model itself is settled). <span class="tag warn">sprint call</span></td></tr>
+    <tr><td class="mono">T8</td><td><b>Scheduled tasks:</b> worst-case storage measurement opens Phase 1; Phase-0 verify-reads; panel width 280 vs 340 check; prototype dash-rendering review. <span class="tag ok">scheduled</span></td></tr>
+  </tbody></table>
+</div></div>
+
+<div class="card"><div class="pad">
+  <b style="font-size:13px">Decided 12 Aug — design action items (Arinjit)</b>
+  <table style="margin-top:9px"><tbody>
+    <tr><td>Loading state — dim panel + circular loader, interactions blocked</td></tr>
+    <tr><td>Empty-layer message ("no records to style yet")</td></tr>
+    <tr><td>Represent-by "are you sure?" dialog (wipes per-value colours)</td></tr>
+    <tr><td>Opacity warning banner + layer-row warning tooltip</td></tr>
+    <tr><td>Google Earth import banner ("styling not imported")</td></tr>
+    <tr><td>"In use" badge + disabled delete/archive row states</td></tr>
+    <tr><td>"Template updated while you were away" notification (covers the version-conflict case too)</td></tr>
+    <tr><td>Quick review of the 8 standard-shape artwork</td></tr>
+  </tbody></table>
+</div></div>
+</div>
+
+<div class="callout" style="margin-top:14px"><b>Headline decisions from the call:</b> no detach in v1
+(every layer always has a template; ST Default = 3 colours is the floor) · fonts confirmed IN v1 ·
+point outlines drawn <b>outside</b> on both platforms (web sprite/CIM path now committed) ·
+value list capped at 10 rows · ArcGIS import <b>forks</b> the styling into an editable Sitetracker
+template, never syncing back · per-value dash styling stays. <b>Nothing blocks Phases 1–5 —
+backend can start now.</b></div>
+
+</div><!-- /page-plan -->
+
+<div id="page-refs" hidden>
+
+<h2><span class="n">R1</span>Decision log — what was decided, when, by whom, and what it replaced</h2>
+<p class="lede">Newest first. <span class="tag dead">superseded</span> rows are kept deliberately —
+reviewers should see what changed and why, not just the final answer.</p>
+<div class="card"><div class="scroll"><table class="dlog">
+<thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · call</td><td><b>No detach in v1 — at all.</b> Every layer always has a template; users switch, never remove. <span class="tag ok">final</span></td><td>After removal there is no sane fallback for file/KML layers ("what's the default styling?" had no answer); ST Default is the universal floor, and switching to it covers the trial-then-undo case with zero extra UI</td></tr>
+<tr><td>11 Aug · Darshan</td><td>Detach requires a confirmation dialog before snapping to default <span class="tag dead">superseded 12 Aug</span></td><td>Was the answer to "never silently restyle" — made obsolete when detach itself was removed</td></tr>
+<tr><td>12 Aug · call</td><td><b>Fonts are IN v1.</b> <span class="tag ok">final</span></td><td>The PRD's "defer map-side application" wording was a typo; service-stream customers explicitly asked for fonts. v1 is web-only so the mobile baked-font limit doesn't bite yet</td></tr>
+<tr><td>11 Aug · plan</td><td>Recommend moving font upload to v2 <span class="tag dead">superseded 12 Aug</span></td><td>Was based on reading the PRD literally (upload with no visible effect)</td></tr>
+<tr><td>12 Aug · call</td><td><b>Point outlines draw OUTSIDE the shape on both platforms</b> — web commits to the image/advanced-symbol (CIM/sprite) path <span class="tag ok">final</span></td><td>Design specced outer deliberately (Arinjit had the prototype drawn that way); cross-platform consistency beats the cheaper centered-ring compromise</td></tr>
+<tr><td>12 Aug · call</td><td><b>ArcGIS import = fork-on-import.</b> Styling is copied into an editable Sitetracker template applied to the layer; changes never flow back to ArcGIS (no reverse sync in v1); the UI says so <span class="tag ok">final</span></td><td>Sitetracker must hold its own source of truth without ever overwriting the customer's ArcGIS content; reverse sync is a "great problem to have later"</td></tr>
+<tr><td>12 Aug · call</td><td><b>Value list capped at 10 rows</b>; modal journey (paginate/group/filter) only if customers demand it; suggest a coarser field at ~100+ values <span class="tag ok">final</span></td><td>Ship the simple thing first; the 600-service org is real but is better served by "colour by unit code" than by 600 rows</td></tr>
+<tr><td>12 Aug · call</td><td><b>Per-value dash styling stays a feature</b> <span class="tag ok">final</span></td><td>Dash size/caps can encode meaning (short dashes = short units); engineering flags perf limits rather than cutting capability</td></tr>
+<tr><td>12 Aug · call</td><td><b>No label zoom-level control in v1</b> — one system-wide default, easily changed variable <span class="tag ok">final</span></td><td>The value lives in the data format already; exposing a per-template control adds UI for a knob nobody asked to turn yet</td></tr>
+<tr><td>12 Aug · call</td><td><b>Stale-template notification pattern</b>: "updated while you were away — load latest / keep viewing yours" covers both shared-template edits and version conflicts <span class="tag ok">final</span></td><td>One pattern, two situations; avoids both silent restyles and blocking dialogs</td></tr>
+<tr><td>12 Aug · call</td><td><b>Blocked delete: disable the whole row</b> — delete AND archive, in bulk bar and right-click menu; "in use" badge <span class="tag ok">final</span></td><td>You shouldn't be able to archive what layers depend on either; greyed controls + badge explain themselves</td></tr>
+<tr><td>11 Aug · Darshan</td><td><b>KML/KMZ styling is parsed &amp; imported</b> (SIT-66031 Option A committed; notice becomes parse-failure fallback) <span class="tag ok">final</span></td><td>KML files carry styling; silently discarding it surprises users — parse when available, be honest when parsing fails</td></tr>
+<tr><td>11 Aug · Darshan</td><td><b>Styling mode (Simple/Categorical) persists per layer-link</b> (<code>st_&lt;Geom&gt;_Styling_Mode__c</code>) <span class="tag ok">final</span></td><td>Must survive reload; stored per layer (not on the template) so shared templates can display differently per layer and mode switching never dirties the template</td></tr>
+<tr><td>11 Aug · Darshan</td><td><b>Schema simplified 4 → 3 objects</b> (template-as-JSON + asset + usage junction) <span class="tag ok">final</span></td><td>See R2 below — the full story</td></tr>
+<tr><td>11 Aug · Darshan</td><td><b>Field names made readable</b> (Provided_By/Imported_From, Style_Definition/Published_Style, Styling_Mode…) <span class="tag ok">final</span></td><td>1GP API names are permanent — the only cheap moment to fix names is before Phase 1</td></tr>
+<tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — detail in docs 15/16</td></tr>
+</tbody></table></div></div>
+
+<h2><span class="n">R2</span>Why 3 objects — and why not 1, 2, 4, or something existing</h2>
+<p class="lede">The schema was challenged twice and got better both times. The reasoning, so a
+reviewer doesn't have to re-litigate it:</p>
+<div class="card"><div class="pad">
+<p><b>Why not ONE object with everything in JSON?</b> Two things can't live inside a blob:
+<b>(1) icons are shared</b> — one uploaded image is used by many templates, carries its own file
+(ContentVersion), caps and dedup, so it must be its own record; <b>(2) "can't delete an icon in
+use" needs a real foreign key</b> — with icon references as strings inside JSON, the check is an
+unindexable text-scan and nothing stops a direct API delete. A lookup with <code>Restrict</code>
+makes the delete impossible at the database level.</p>
+<p><b>Why not FOUR (the original design: Template → Rule → Stop records)?</b> Challenged 11 Aug
+("why child records when the template is JSON anyway?") and it didn't survive: validation is
+compiler work either way, locking is whole-template, sharing is template-level, and the record
+graph had to be serialized to JSON for checksums regardless — so the records were a normalized
+copy of a JSON that existed anyway, at the cost of reconciling up to ~600 child rows on every
+Save vs one update. The prototype's own save model (one snapshot string) is the blob shape.</p>
+<p><b>Why not an EXISTING object?</b> Nine candidates were evaluated (doc 16 §1b). The recurring
+disqualifiers: <code>Layer_Styling__c</code> is a per-layer field, not shareable/versionable;
+<code>GIS_Sync_Template__c</code> models field mappings, not renderers; Custom Metadata Types
+(the PT-status-colours pattern) need an async metadata deploy per admin save, have no record
+sharing, and can't be the target of a Restrict lookup — that authoring experience is exactly
+what this feature escapes. One CMT survives as the kill-switch only.</p>
+<p><b>So: 3.</b> <code>Map_Style_Template__c</code> (the unit users name, share, apply, version) ·
+<code>Map_Style_Asset__c</code> (the unit that outlives any one template) ·
+<code>Map_Style_Asset_Usage__c</code> (the database-grade guarantee connecting them, rebuilt by the
+compiler at each save).</p>
+</div></div>
+
+<h2><span class="n">R3</span>Field dictionary — what each field does, and when it changes</h2>
+<p class="lede">Per field: the question it answers, and exactly when it is written. "Compiler"
+means the publish/save server logic — users never write those fields directly.</p>
+
+<div class="card"><div class="pad fdict">
+<h4><code>Map_Style_Template__c</code> — the template</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
+<tr><td><code>Name</code></td><td>What shows in every picker</td><td>Create / rename · user</td></tr>
+<tr><td><code>st_Status__c</code></td><td>Draft (invisible to layers) / Active (usable) / Archived (read-only history)</td><td>First publish sets Active; archive/unarchive actions · user</td></tr>
+<tr><td><code>st_Provided_By__c</code></td><td>Is this the shipped Sitetracker default (never edited in place — clone to edit) or org-created?</td><td>Once, at creation · seed script or create flow; never changes</td></tr>
+<tr><td><code>st_Imported_From__c</code></td><td>Is this a locked mirror of vendor styling (ArcGIS/Vetro/KML)? Drives the edit lock + the re-sync "sync styles too" offer</td><td>Set at import; cleared on clone (the clone is yours to edit)</td></tr>
+<tr><td><code>st_Geometry_Type__c</code></td><td>Which geometry this template styles — filters pickers so a point template never appears on a line layer</td><td>Once, at creation · user; immutable</td></tr>
+<tr><td><code>st_Is_Organization_Default__c</code></td><td>The org-wide fallback tier in precedence ("layer has no template → use this")</td><td>Admin toggle in settings; a trigger keeps exactly one true</td></tr>
+<tr><td><code>st_Style_Definition__c</code></td><td>The editable snapshot the builder loads — sparse per-value overrides, inheritance un-resolved</td><td>Every builder Save · user via service</td></tr>
+<tr><td><code>st_Published_Style__c</code></td><td>The resolved document the map draws — inheritance flattened, opacity pre-multiplied, icons embedded</td><td>Only at Publish · compiler</td></tr>
+<tr><td><code>st_Published_Version__c</code></td><td>"Is my cached copy stale?" — counts publishes, not edits</td><td>+1 each publish · compiler</td></tr>
+<tr><td><code>st_Published_Checksum__c</code></td><td>Cheap "did content actually change?" — skip re-downloads</td><td>Each publish · compiler</td></tr>
+<tr><td><code>st_Imported_Source_Id__c</code></td><td>"Have we already imported this ArcGIS layer's styling?" — re-import matches here instead of duplicating</td><td>At import · import flow (External Id)</td></tr>
+<tr><td><code>st_Cloned_From_Template__c</code></td><td>Lineage — which template this copy came from (clone-of-default, copy-on-write)</td><td>At clone · clone flow; never changes</td></tr>
+<tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
+</tbody></table></div>
+
+<h4><code>Map_Style_Asset__c</code> — the shared icon library</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
+<tr><td><code>Name</code> + <code>st_Asset_Type__c</code></td><td>What the icon picker shows; which 50-per-type cap it counts against</td><td>Upload · user</td></tr>
+<tr><td>file (ContentVersion)</td><td>The actual bytes — lives in file storage (the big pool), not record storage</td><td>Upload · user</td></tr>
+<tr><td>PNG renditions</td><td>What map engines actually consume (mobile can never render SVG)</td><td>Built at upload, client-side</td></tr>
+<tr><td><code>st_File_Checksum__c</code></td><td>Dedup — the same file uploaded twice resolves to one record</td><td>At upload · upload flow</td></tr>
+</tbody></table></div>
+
+<h4><code>Map_Style_Asset_Usage__c</code> — the junction (2 fields, 1 job)</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
+<tr><td><code>st_Style_Template__c</code></td><td>Which template uses…</td><td rowspan="2">Rebuilt on every template save · compiler diffs referenced assets vs existing rows</td></tr>
+<tr><td><code>st_Style_Asset__c</code> (Restrict)</td><td>…which asset. The <code>Restrict</code> makes deleting an in-use icon impossible, and "in use by N templates" one indexed query</td></tr>
+</tbody></table></div>
+
+<h4>Layer-side (on <code>Map_Layer__c</code> and <code>Map_Object_Configuration__c</code>, ×3 geometries)</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
+<tr><td><code>st_&lt;Geom&gt;_Style_Template__c</code></td><td>Which template styles this layer's points / lines / areas (three because one file-sourced record can carry all three geometries as children)</td><td>Apply/switch template · user; also set by import-fork and ST-Default seeding</td></tr>
+<tr><td><code>st_&lt;Geom&gt;_Styling_Mode__c</code></td><td>Which view the layer displays — Simple or Categorical — so it survives reload; per layer so shared templates can differ per layer</td><td>Mode toggle · user</td></tr>
+</tbody></table></div>
+</div></div>
+
+<h2><span class="n">R4</span>When things happen — the workflows, end to end</h2>
+<div class="card"><div class="scroll"><table>
+<thead><tr><th>Flow</th><th>What happens, in order</th></tr></thead><tbody>
+<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Style_Definition__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, bumps version, sets checksum, rebuilds the asset-usage rows, Status→Active</td></tr>
+<tr><td><b>Apply / switch on a layer</b></td><td>Sets the geometry's <code>st_&lt;Geom&gt;_Style_Template__c</code> lookup. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
+<tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Imported_From__c=ArcGIS</code>, <code>st_Imported_Source_Id__c</code> set) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
+<tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer gets the org default template (ST Default: 3 colours — sites / segments / areas) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
+<tr><td><b>Edit a template others use</b></td><td>Publish updates the shared doc. Other sessions viewing affected layers get "this template was updated while you were away — load the latest / keep viewing yours" — never a silent restyle. The same message covers "someone published while you were editing"</td></tr>
+<tr><td><b>Delete an icon</b></td><td>Allowed only when no usage rows point at it — otherwise the platform refuses (Restrict) and the UI shows "in use by N templates"</td></tr>
+<tr><td><b>Delete / archive a template</b></td><td>Blocked while any layer links it: row-level delete AND archive controls disabled (bulk bar + right-click), "in use" badge explains why. Hard delete only at zero references</td></tr>
+<tr><td><b>Re-sync an ArcGIS layer</b></td><td>The only moment source-styling changes can surface (no auto-detection exists) → sync flow offers "sync styles too": update the forked template from source, or keep the current one</td></tr>
+</tbody></table></div></div>
+
+<div class="callout" style="margin-top:16px"><b>Where the deeper detail lives:</b> doc 15 (solution
+design — schema tables, compiler contract, permissions), doc 16 (implementation plan — decisions
+§2a-bis/§2f, phases, cross-engine matrix), both under
+<span class="mono">jira-work/SIT-58366/style-template-pack/</span>; live design asks on SIT-58366
+comment 192070.</div>
+
+</div><!-- /page-refs -->
+
+<footer>Source of truth: <span class="mono">jira-work/SIT-58366/style-template-pack/</span> — docs 14 (discovery TDD), 15 (solution design), 16 (this plan) · design pack in <span class="mono">../design-handover-v1/</span> · findings &amp; design asks on SIT-58366 (comments 190363, 192070). Every repo claim in the source docs carries file:line.</footer>
+</div>
+
+<script>
+function showPage(w){
+  var plan=document.getElementById('page-plan'),refs=document.getElementById('page-refs');
+  plan.hidden=(w!=='plan');refs.hidden=(w!=='refs');
+  document.getElementById('btn-plan').classList.toggle('on',w==='plan');
+  document.getElementById('btn-refs').classList.toggle('on',w==='refs');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
