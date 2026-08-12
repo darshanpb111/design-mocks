@@ -181,7 +181,6 @@ Mixed geometry exists only at the record level; no mixed-geometry UI or renderin
   <text class="f" x="356" y="161">st_Geometry_Type__c (nullable)</text>
   <text class="f" x="356" y="178">st_Is_Organization_Default__c (single, trigger)</text>
   <text class="f" x="356" y="195">st_Published_Style__c  LTA 131,072</text>
-  <text class="f" x="356" y="212">st_Published_Checksum__c (SHA-256)</text>
   <text class="f" x="356" y="229">st_Imported_Source_Id__c (ExtId, seed key)</text>
   <text class="lbl" x="356" y="272">sharing: OWD Read · Write/Admin via __Share</text>
 
@@ -206,9 +205,9 @@ Mixed geometry exists only at the record level; no mixed-geometry UI or renderin
   <!-- asset -->
   <rect class="obj objnew" x="470" y="360" width="270" height="96" rx="8"/>
   <text class="t" x="486" y="384">Map_Style_Asset__c  (org-level)</text>
-  <text class="f" x="486" y="406">st_Type__c SVG/PNG/Font · checksum dedup</text>
+  <text class="f" x="486" y="406">st_Asset_Type__c SVG/PNG/Font · st_File_Checksum__c dedup</text>
   <text class="f" x="486" y="423">st_Content_Version_Id__c (original file)</text>
-  <text class="f" x="486" y="440">st_Rendition_Json__c (data-URI PNGs)</text>
+  <text class="f" x="486" y="440">st_Png_Renditions__c (data-URI PNGs)</text>
 
   <!-- relationships -->
   <path class="rel" d="M250 99 H340"/>
@@ -250,7 +249,7 @@ Mixed geometry exists only at the record level; no mixed-geometry UI or renderin
       <tr><td><span class="tag ok">chosen</span></td><td>Layer → Template lookups — one indexed hop, USER_MODE-safe, additive/upgrade-safe, Restrict = referential integrity free</td></tr>
       <tr><td><span class="tag warn">rejected</span></td><td>Map-level + overrides — no Map record exists; override-merge re-creates drift</td></tr>
       <tr><td><span class="tag warn">rejected</span></td><td>Junction — buys per-assignment overrides (replaced by copy-on-write); extra hot-path hop</td></tr>
-      <tr><td><span class="tag warn">deferred</span></td><td>Version rows — version+checksum on the doc already covers cache/audit/conflict</td></tr>
+      <tr><td><span class="tag warn">deferred</span></td><td>Version rows — <code>SystemModstamp</code> already covers cache and conflict detection</td></tr>
     </tbody></table>
     <p class="note" style="margin:8px 0 0"><b>Apply = live reference</b> to immutable published
     versions. Shared edit prompts <i>"apply to all N / copy for this layer"</i> — copy-on-write,
@@ -353,7 +352,7 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <b style="font-size:13px">Caching &amp; delivery</b>
     <table style="margin-top:8px"><tbody>
       <tr><td>Server</td><td>Platform Cache (existing <code>'sitetracker'</code> partition), key <code>templateId:version</code></td></tr>
-      <tr><td>Web</td><td>@RemoteAction <code>getCompiledStyleTemplates()</code> → version-keyed store; checksum short-circuits reparse; fetched <b>per template per session, not per layer</b></td></tr>
+      <tr><td>Web</td><td>@RemoteAction <code>getCompiledStyleTemplates()</code> → modstamp-keyed store; <code>SystemModstamp</code> short-circuits reparse; fetched <b>per template per session, not per layer</b></td></tr>
       <tr><td>Mobile (future)</td><td>REST <code>/StStyleTemplates</code> + ETag/304 — stub ships in v1, unused until mobile re-opens</td></tr>
       <tr><td>Assets</td><td>ride the doc as data-URIs — zero extra round-trips, offline-safe, no per-file ACLs</td></tr>
     </tbody></table>
@@ -363,8 +362,8 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <table style="margin-top:8px"><tbody>
       <tr><td>Delete-protection</td><td>real FKs with <code>Restrict</code>: a referenced template or in-use asset <b>cannot</b> be hard-deleted — platform-enforced, no JSON scanning</td></tr>
       <tr><td>Publish</td><td><code>SELECT … FOR UPDATE</code> + compile in one transaction — simultaneous publishes serialize</td></tr>
-      <tr><td>Conflict detection</td><td><code>st_Published_Checksum__c</code> optimistic check: the editor sends the checksum it loaded; mismatch at publish → "someone published while you were editing" (Salesforce API is last-write-wins by default — detection is ours, one comparison)</td></tr>
-      <tr><td>Seed</td><td>ST Default upserted post-install by External Id <code>ST_DEFAULT</code> — idempotent, upgrade-safe</td></tr>
+      <tr><td>Conflict detection</td><td><code>SystemModstamp</code> optimistic check: the editor sends the modstamp it loaded; mismatch at publish → "someone published while you were editing" — the standard platform pattern, zero custom fields</td></tr>
+      <tr><td>Seed</td><td><b>Per supported asset type, riding the Map Object Configuration post-install path that already ships MOCs</b> — the default template is delivered and linked on the shipped MOC record (decided 12 Aug); idempotent, upgrade-safe. File-sourced layers (no MOC) fall back to the geometry-scoped org default</td></tr>
     </tbody></table>
   </div></div>
 </div>
@@ -417,7 +416,7 @@ layer.st_&lt;Geom&gt;_Style_Template__c          <span class="c">// 1. layer lin
 <!-- ============================== 3. FORMAT ============================== -->
 <h2><span class="n">3</span>Format — authoring model vs the compiled contract</h2>
 <p class="lede">Admins author the <b>object graph</b>; clients only ever see the <b>compiled
-document</b> — validated, inheritance-resolved, checksummed, Esri-renderer semantics (so ArcGIS
+document</b> — validated, inheritance-resolved, Esri-renderer semantics (so ArcGIS
 imports map near-losslessly and mobile's existing types already match).</p>
 
 <div class="card"><div class="pad" style="padding-bottom:8px">
@@ -438,7 +437,7 @@ imports map near-losslessly and mobile's existing types already match).</p>
 <pre class="codeblock">{
   <span class="k">"schemaVersion"</span>: <span class="n">1</span>,                    <span class="c">// unknown major → client ignores, falls back</span>
   <span class="k">"templateId"</span>: <span class="s">"a0X…"</span>, <span class="k">"name"</span>: <span class="s">"Acme Fiber Standard"</span>,
-  <span class="k">"version"</span>: <span class="n">12</span>, <span class="k">"checksum"</span>: <span class="s">"sha256:…"</span>, <span class="k">"origin"</span>: <span class="s">"org"</span>,
+  <span class="k">"origin"</span>: <span class="s">"org"</span>,
   <span class="k">"capabilities"</span>: [<span class="s">"simple"</span>,<span class="s">"uniqueValue"</span>,<span class="s">"labels"</span>,<span class="s">"icons"</span>],
   <span class="k">"iconManifest"</span>: { <span class="k">"vault"</span>: { <span class="k">"png"</span>: <span class="s">"data:image/png;base64,…"</span> } },   <span class="c">// ≤200 KB</span>
 
@@ -479,7 +478,7 @@ imports map near-losslessly and mobile's existing types already match).</p>
   <div class="card"><div class="pad">
     <b style="font-size:13px">Where each property lives</b>
     <table style="margin-top:8px"><tbody>
-      <tr><td>Template</td><td>identity, status, locks, default flag, version/checksum</td></tr>
+      <tr><td>Template</td><td>identity, status, locks, default flag</td></tr>
       <tr><td>Rule (geometry)</td><td>renderer type, classification, zoom, <b>layer opacity, label, offset</b>, Simple + default symbols</td></tr>
       <tr><td>Stop (category)</td><td>value, label, <b>sparse override</b>, icon FK, sort (= match precedence)</td></tr>
       <tr><td>Layer</td><td><b>nothing but the lookups</b> — deviation = clone</td></tr>
@@ -578,7 +577,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
     <b style="font-size:13px">FLS &amp; per-template access</b>
     <table style="margin-top:8px"><tbody>
       <tr><td>Record access</td><td>OWD Public Read (internal); Write/Admin via <code>__Share</code> rows, two custom rowCauses. UI asks <code>UserRecordAccess.HasEditAccess</code> — never re-implements sharing math</td></tr>
-      <tr><td>Read-only fields</td><td><code>st_Published_Style__c</code> · <code>st_Published_Checksum__c</code> — compiler-only writes (documented system-context exception; everything else USER_MODE)</td></tr>
+      <tr><td>Read-only fields</td><td><code>st_Published_Style__c</code> — compiler-only write (documented system-context exception; everything else USER_MODE)</td></tr>
       <tr><td>Admin role grants</td><td>SF system administrators only (ModifyAllData check in service)</td></tr>
     </tbody></table>
   </div></div>
@@ -625,11 +624,11 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
   <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
     <div class="note">3 objects (revised — template-as-JSON + asset + usage junction) · 3×2 lookups + renderer-view · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
   <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
-    <div class="note">validation · sparse-merge · opacity pre-multiply · checksum · FOR UPDATE publish</div></div>
+    <div class="note">validation · sparse-merge · opacity pre-multiply · FOR UPDATE publish</div></div>
   <div class="ph"><div class="num">PHASE 3</div><div class="nm">API</div>
     <div class="note">selector/service · @RemoteAction + Platform Cache · REST stub</div></div>
   <div class="ph"><div class="num">PHASE 4</div><div class="nm">Lifecycle</div>
-    <div class="note">trigger guards · clone/apply/switch (no detach — removed 12 Aug) · stale-template notification · seed ST Default (3 colours)</div></div>
+    <div class="note">trigger guards · clone/apply/switch (no detach — removed 12 Aug) · stale-template notification · default templates ship per asset type with their MOCs</div></div>
   <div class="ph"><div class="num">PHASE 5</div><div class="nm">Assets</div>
     <div class="note">upload/renditions/dedup/sanitize · manifest embed · delete-precheck</div></div>
   <div class="ph"><div class="num">PHASE 6</div><div class="nm">Web UI</div>
@@ -676,7 +675,7 @@ fonts are IN v1). The full dated decision log, with what was superseded and why,
 </div>
 
 <div class="callout" style="margin-top:14px"><b>Headline decisions from the call:</b> no detach in v1
-(every layer always has a template; ST Default = 3 colours is the floor) · fonts confirmed IN v1 ·
+(every layer always has a template; the shipped per-asset-type defaults are the floor) · fonts confirmed IN v1 ·
 point outlines drawn <b>outside</b> on both platforms (web sprite/CIM path now committed) ·
 value list capped at 10 rows · ArcGIS import <b>forks</b> the styling into an editable Sitetracker
 template, never syncing back · per-value dash styling stays. <b>Nothing blocks Phases 1–5 —
@@ -691,6 +690,8 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>Dropped <code>st_Published_Checksum__c</code> too</b> <span class="tag ok">final</span></td><td>"Why is it even needed when each template is a record" — it isn't: the standard <code>SystemModstamp</code> (free on every record) natively answers both "is my cache stale" and "did someone publish while I was editing". A SHA-256 added a compiler step and a field for questions the platform already answers</td></tr>
+<tr><td>12 Aug · Darshan</td><td><b>Default templates ship per asset type with their Map Object Configuration</b> <span class="tag ok">final</span></td><td>MOCs are already shipped per supported asset type — the default template rides the same post-install path and is linked on the shipped MOC, instead of a separate standalone seed</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Dropped <code>st_Published_Version__c</code> and <code>st_Cloned_From_Template__c</code></b> <span class="tag ok">final</span></td><td>The checksum already answers both "is my cache stale" and "did someone publish while I was editing" — a counter added nothing; clone lineage had no consumer (no history UI, no behaviour reads it). Clone-to-edit and copy-on-write remain as actions</td></tr>
 <tr><td>12 Aug · call</td><td><b>No detach in v1 — at all.</b> Every layer always has a template; users switch, never remove. <span class="tag ok">final</span></td><td>After removal there is no sane fallback for file/KML layers ("what's the default styling?" had no answer); ST Default is the universal floor, and switching to it covers the trial-then-undo case with zero extra UI</td></tr>
 <tr><td>11 Aug · Darshan</td><td>Detach requires a confirmation dialog before snapping to default <span class="tag dead">superseded 12 Aug</span></td><td>Was the answer to "never silently restyle" — made obsolete when detach itself was removed</td></tr>
@@ -753,8 +754,7 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><code>st_Geometry_Type__c</code></td><td>Which geometry this template styles — filters pickers so a point template never appears on a line layer</td><td>Once, at creation · user; immutable</td></tr>
 <tr><td><code>st_Is_Organization_Default__c</code></td><td>The org-wide fallback tier in precedence ("layer has no template → use this")</td><td>Admin toggle in settings; a trigger keeps exactly one true</td></tr>
 <tr><td><code>st_Style_Definition__c</code></td><td>The editable snapshot the builder loads — sparse per-value overrides, inheritance un-resolved</td><td>Every builder Save · user via service</td></tr>
-<tr><td><code>st_Published_Style__c</code></td><td>The resolved document the map draws — inheritance flattened, opacity pre-multiplied, icons embedded</td><td>Only at Publish · compiler</td></tr>
-<tr><td><code>st_Published_Checksum__c</code></td><td>Cheap "did content actually change?" — cache validation, and the optimistic publish check ("someone published while you were editing" = the checksum you loaded no longer matches)</td><td>Each publish · compiler</td></tr>
+<tr><td><code>st_Published_Style__c</code></td><td>The resolved document the map draws — inheritance flattened, opacity pre-multiplied, icons embedded. Staleness &amp; publish conflicts use the record's standard <code>SystemModstamp</code> — no custom field</td><td>Only at Publish · compiler</td></tr>
 <tr><td><code>st_Imported_Source_Id__c</code></td><td>"Have we already imported this ArcGIS layer's styling?" — re-import matches here instead of duplicating</td><td>At import · import flow (External Id)</td></tr>
 <tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
 </tbody></table></div>
@@ -786,7 +786,7 @@ means the publish/save server logic — users never write those fields directly.
 <h2><span class="n">R4</span>When things happen — the workflows, end to end</h2>
 <div class="card"><div class="scroll"><table>
 <thead><tr><th>Flow</th><th>What happens, in order</th></tr></thead><tbody>
-<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Style_Definition__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, sets the checksum, rebuilds the asset-usage rows, Status→Active</td></tr>
+<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Style_Definition__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, rebuilds the asset-usage rows, Status→Active</td></tr>
 <tr><td><b>Apply / switch on a layer</b></td><td>Sets the geometry's <code>st_&lt;Geom&gt;_Style_Template__c</code> lookup. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
 <tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Imported_From__c=ArcGIS</code>, <code>st_Imported_Source_Id__c</code> set) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
 <tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer gets the org default template (ST Default: 3 colours — sites / segments / areas) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
@@ -812,7 +812,6 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td><code>st_Is_Organization_Default__c</code></td><td><b>true</b> (trigger keeps it the only true)</td><td>false</td><td>false</td></tr>
 <tr><td><code>st_Style_Definition__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
 <tr><td><code>st_Published_Style__c</code></td><td>compiled doc, v3</td><td>compiled doc, v1</td><td><b>null</b> — never published</td></tr>
-<tr><td><code>st_Published_Checksum__c</code></td><td class="mono">a91f…c2</td><td class="mono">7d04…9e</td><td>— (never published)</td></tr>
 <tr><td><code>st_Imported_Source_Id__c</code></td><td>—</td><td><span class="mono">arcgis:svc/FiberBackbone/2</span> — re-import matches here</td><td>—</td></tr>
 </tbody></table></div>
 
