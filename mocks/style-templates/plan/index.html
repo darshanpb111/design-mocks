@@ -283,6 +283,10 @@ the children matching its geometry, remaining geometries use the org default —
         <td class="mono">MapLayerService.cls:52-266</td>
         <td><span class="tag warn">rejected</span></td>
         <td>No queryability, FLS, lookups or sharing granularity for rules/stops. <span class="tag ok">survives</span> for what files are good at: <b>asset originals</b></td></tr>
+      <tr><td>Attachment / Files as the asset registry<br><span class="note">asked 12 Aug — replace Map_Style_Asset__c?</span></td>
+        <td class="mono">st_Content_Version_Id__c (bytes already live in Files)</td>
+        <td><span class="tag warn">rejected</span></td>
+        <td>Attachment: deprecated, no custom fields, parent-scoped. ContentVersion-with-custom-fields is close, but <b>custom lookups can't target ContentDocument/ContentVersion</b> — the Restrict delete-protection and one-query in-use check would degrade to trigger code + text-id references; file edits mint new version ids; library sharing plumbing. Avoided cost: ~100 records × 2 KB. <span class="tag ok">survives</span> as the bytes store behind the thin registry</td></tr>
       <tr><td>Static Resources</td>
         <td class="mono">staticresources/STMaps* (our bundles)</td>
         <td><span class="tag warn">rejected</span></td>
@@ -676,6 +680,7 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays</b> <span class="tag ok">final</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (<code>buildStyleRenderer</code>). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b><code>st_Imported_Source_Id__c</code> dropped</b> <span class="tag ok">final</span></td><td>Re-sync happens on a layer, and the layer's <code>st_Style_Template__c</code> IS the template forked from its source — the association already exists. Orphaned-fork edge (user switched templates): re-import forks fresh, accepted</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Provenance merged into ONE picklist</b> — <code>st_Provided_By__c</code>: Sitetracker | ArcGIS | Vetro | KML | Organization <span class="tag ok">final</span></td><td>The two lock fields encoded mutually exclusive states — one dimension pretending to be two. One rule replaces both locks: editable ⇔ Organization; clones stamp Organization (lock-lift for free)</td></tr>
