@@ -183,9 +183,9 @@ the children matching its geometry, remaining geometries use the org default —
 <h4 style="margin-top:2px"><code>Map_Style_Template__c</code> <span class="tag new">NEW</span> — sharing: OWD Read · Write/Admin via <code>__Share</code></h4>
 <div class="scroll"><table>
 <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
-<tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required; unique per org enforced in save service</td></tr>
-<tr><td><code>st_Status__c</code></td><td>Picklist: Draft / Active / Archived</td><td>Draft</td><td>restricted; Draft is invisible to layer pickers</td></tr>
-<tr><td><code>st_Provided_By__c</code></td><td>Picklist: Sitetracker / ArcGIS / Vetro / KML / Organization</td><td>Organization</td><td>set once at creation; VR blocks change; <b>read-only ⇔ 'Sitetracker'</b> (only the shipped template is protected — vendor forks are fully editable per the 12 Aug call; rest is record access + FLS)</td></tr>
+<tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required; uniqueness enforced at trigger/unique-field level (service-only checks race)</td></tr>
+<tr><td><code>st_Status__c</code></td><td>Picklist: Draft / Active / Archived</td><td>Draft</td><td>restricted; Draft is invisible to layer pickers. <b>No draft staging on Active</b>: editing an in-use Active template goes live on Save (stale-notification fires); safe experimentation = clone → edit → apply</td></tr>
+<tr><td><code>st_Provided_By__c</code></td><td><b>Text(40)</b> — open-ended (vendor names unknowable up front); conventional values: Sitetracker / ArcGIS / Vetro / KML / Organization</td><td>Organization</td><td>set once at creation; VR blocks change; <b>read-only ⇔ 'Sitetracker'</b> (only the shipped template is protected — vendor forks are fully editable per the 12 Aug call; rest is record access + FLS)</td></tr>
 <tr><td><code>st_Geometry_Type__c</code></td><td>Picklist: Point / Polyline / Polygon</td><td><b>derived</b> from the Map Layer / MOC the template is created from (or the import source)</td><td>required; never a free user pick; immutable after create (VR)</td></tr>
 <tr><td><code>st_Is_Organization_Default__c</code></td><td>Checkbox</td><td>false</td><td>trigger keeps exactly one true per geometry</td></tr>
 <tr><td><code>st_Styling_Mode__c</code></td><td>Picklist: Simple / Categorical</td><td>Simple</td><td>restricted</td></tr>
@@ -200,7 +200,7 @@ the children matching its geometry, remaining geometries use the org default —
 <tr><td><code>st_Label_Min_Zoom__c</code></td><td>Number(2,0)</td><td>system default</td><td>VR 0–23</td></tr>
 <tr><td><code>st_Label_Halo_Color__c</code></td><td>Text(7)</td><td>#FFFFFF</td><td>VR hex</td></tr>
 <tr><td><code>st_Icon_Asset__c</code></td><td>Lookup(<code>Map_Style_Asset__c</code>)</td><td>—</td><td><b>Restrict</b> — Simple-mode icon; platform blocks deleting an icon in use</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>the ONLY JSON (per-value sparse overrides); closed-set validated in the save service; ~20–35 KB at the 100-value cap. <b>131,072 is the platform ceiling</b> — no bigger field type exists; safe because icons are by-reference (<code>iconAssetId</code> ~25 chars; images live on the asset record), so entries stay tiny; escape hatch if ever exceeded = child records (priced)</td></tr>
+<tr><td><code>st_Value_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>the ONLY JSON (per-value sparse overrides); closed-set validated <b>in the trigger</b> (every write path — API included; the service adds friendly errors); consumer keeps a defensive parse+fallback; ~20–35 KB at the 100-value cap. <b>131,072 is the platform ceiling</b> — no bigger field type exists; safe because icons are by-reference (<code>iconAssetId</code> ~25 chars; images live on the asset record), so entries stay tiny; escape hatch if ever exceeded = child records (priced)</td></tr>
 </tbody></table></div>
 <p class="note" style="margin:8px 0 0">Staleness &amp; publish-conflict detection use the record's standard <code>SystemModstamp</code> — no custom field. Defaults marked here are the proposed shipped values; the ST Default templates ship per asset type with their MOC.</p>
 
@@ -210,15 +210,15 @@ the children matching its geometry, remaining geometries use the org default —
 <tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required</td></tr>
 <tr><td><code>st_Asset_Type__c</code></td><td>Picklist: SVG / PNG / Font</td><td>—</td><td>required; 50-per-type cap enforced in upload service</td></tr>
 <tr><td><code>st_Content_Version_Id__c</code></td><td>Text(18)</td><td>—</td><td>set at upload — original bytes live in Files (5 MB cap)</td></tr>
-<tr><td><code>st_Png_Renditions__c</code></td><td>LongTextArea(32,768)</td><td>—</td><td>data-URI PNGs, built client-side at upload; what both map engines consume</td></tr>
+<tr><td><code>st_Png_Renditions__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>data-URI PNGs, built client-side at upload; what both map engines consume</td></tr>
 <tr><td><code>st_File_Checksum__c</code></td><td>Text(80), External Id</td><td>—</td><td>SHA-256 of the file — upload dedup (same file → same record)</td></tr>
 </tbody></table></div>
-<p class="note" style="margin:8px 0 0">Delete guard: <code>st_Icon_Asset__c</code> Restrict (platform) + a <code>before delete</code> trigger scanning non-archived templates' <code>st_Value_Styles__c</code> — blocks with "in use by: X, Y".</p>
+<p class="note" style="margin:8px 0 0">Delete guard: <code>st_Icon_Asset__c</code> Restrict (platform) + a <code>before delete</code> trigger scanning Categorical, non-archived templates' <code>st_Value_Styles__c</code> — <b>chunked in-transaction</b> (ids first, LTA re-fetched ~50/chunk, references dropped per chunk ≈ 1.75 MB live heap; ~5,000-template coverage under the 100-SOQL limit) — blocks with "in use by: X, Y".</p>
 
 <h4><code>Map_Layer__c</code> &amp; <code>Map_Object_Configuration__c</code> <span class="tag exist">EXISTING</span> — one new field each</h4>
 <div class="scroll"><table>
 <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
-<tr><td><code>st_Style_Template__c</code></td><td>Lookup(<code>Map_Style_Template__c</code>)</td><td>— (null → precedence fallback)</td><td><b>Restrict</b> — a linked template can't be deleted; geometry must match the layer's (save-service check). On MOC it doubles as the shipped per-asset-type default link</td></tr>
+<tr><td><code>st_Style_Template__c</code></td><td>Lookup(<code>Map_Style_Template__c</code>)</td><td>— (null → precedence fallback)</td><td><b>Restrict</b> — a linked template can't be deleted; geometry must match the layer's (save-service check). On MOC it is purely the customer's choice — shipped templates arrive UNLINKED (users link as required)</td></tr>
 </tbody></table></div>
 </div></div>
 
@@ -357,7 +357,7 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
       <tr><td>Delete-protection</td><td>real FKs with <code>Restrict</code>: a referenced template or in-use asset <b>cannot</b> be hard-deleted — platform-enforced, no JSON scanning</td></tr>
       <tr><td>Publish</td><td><code>SELECT … FOR UPDATE</code> + compile in one transaction — simultaneous publishes serialize</td></tr>
       <tr><td>Conflict detection</td><td><code>SystemModstamp</code> optimistic check: the editor sends the modstamp it loaded; mismatch at publish → "someone published while you were editing" — the standard platform pattern, zero custom fields</td></tr>
-      <tr><td>Seed</td><td><b>Per supported asset type, riding the Map Object Configuration post-install path that already ships MOCs</b> — the default template is delivered and linked on the shipped MOC record (decided 12 Aug); idempotent, upgrade-safe. File-sourced layers (no MOC) fall back to the geometry-scoped org default</td></tr>
+      <tr><td>Seed</td><td><b>Per supported asset type, riding the MOC post-install path — but delivered UNLINKED</b> (corrected 12 Aug): users choose whether/where to link; unlinked layers fall through precedence to the shipped Sitetracker template per geometry. Post-install never touches customer links — idempotency for free</td></tr>
     </tbody></table>
   </div></div>
 </div>
@@ -579,7 +579,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
     <table style="margin-top:8px"><tbody>
       <tr><td>Role</td><td><b>Consumers only</b> — never the manager permset</td></tr>
       <tr><td>The trap</td><td>External OWD defaults to <b>Private</b> regardless of internal Public Read — object Read alone won't show them template records</td></tr>
-      <tr><td>The answer</td><td>The template delivery read (Active templates only) runs as a <b>documented system-context read</b>: validated, non-sensitive styling records. No packaged external sharing rules, works for SCP now and mobile later. Closes the prior-pack Q27 SCP miss</td></tr>
+      <tr><td>The answer</td><td>External users have <b>ZERO template record access</b> (no object read). The map delivery endpoint runs a documented system-context read and returns an <b>allowlisted render-DTO</b> — render-relevant values only, never records — so future fields cannot leak through the bypass. No packaged external sharing rules, works for SCP now and mobile later. Closes the prior-pack Q27 SCP miss</td></tr>
     </tbody></table>
   </div></div>
 </div>
@@ -683,6 +683,7 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>Staff-review rulings</b> — 11 findings dispositioned <span class="tag ok">final</span></td><td>Delete-scan = chunked in-transaction (Batch Apex can't block a sync delete); JSON validation moves to the trigger (every write path) with consumer defensive-parse as net; legacy <code>Layer_Styling__c</code> divergence accepted for v1 (no write-back); shipped templates arrive UNLINKED (kills the upgrade-idempotency risk); external users get zero record access — allowlisted render-DTO only; renditions upsized to 131 KB; <code>Provided_By</code> → Text(40) (open-ended vendors, lock only on 'Sitetracker'); no-draft-staging stated (clone to experiment); SystemModstamp coarseness accepted</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Usage junction dropped — final schema is 2 objects</b>: Template + Asset <span class="tag ok">final</span></td><td>"Do we need it?" — no: its rows were code-maintained at every save, so the platform-Restrict guarantee was only as strong as the sync code, and it taxed frequent saves to accelerate a rare check. Replaced by <code>st_Icon_Asset__c</code> (Lookup Restrict — the single-valued Simple icon, a real FK) + a before-delete trigger that scans template JSON for per-value references (runs on every delete path incl. API; reads the truth directly, cannot drift; one pass also computes the library's "in use" badges)</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays</b> <span class="tag ok">final</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (<code>buildStyleRenderer</code>). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
@@ -775,7 +776,7 @@ means the publish/save server logic — users never write those fields directly.
 <div class="scroll"><table>
 <thead><tr><th>Mechanism</th><th>What it covers</th><th>How</th></tr></thead><tbody>
 <tr><td><code>st_Icon_Asset__c</code> on the template (Lookup · Restrict)</td><td>The Simple-mode icon — the common case</td><td>Real FK: the platform refuses the delete natively</td></tr>
-<tr><td><code>before delete</code> trigger on <code>Map_Style_Asset__c</code></td><td>Per-value <code>iconAssetId</code> references inside <code>st_Value_Styles__c</code></td><td>Scans non-archived templates' JSON (runs on every delete path incl. API); blocks with "in use by: X, Y"; the same pass computes the library's in-use badges</td></tr>
+<tr><td><code>before delete</code> trigger on <code>Map_Style_Asset__c</code></td><td>Per-value <code>iconAssetId</code> references inside <code>st_Value_Styles__c</code></td><td>Chunked in-transaction scan (ids first, then LTA ~50/chunk with references dropped — heap-bounded to ~1.75 MB; Batch Apex can't block a synchronous delete); runs on every delete path incl. API; blocks with "in use by: X, Y"; the same pass computes the library's in-use badges</td></tr>
 </tbody></table></div>
 
 <h4>Layer-side (on <code>Map_Layer__c</code> and <code>Map_Object_Configuration__c</code>, ×3 geometries)</h4>
@@ -809,8 +810,8 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td><code>Name</code></td><td>Sitetracker Default</td><td>Fiber Backbone — ArcGIS</td><td>Splice Points by Status</td></tr>
 <tr><td><code>st_Status__c</code></td><td>Active</td><td>Active</td><td><b>Draft</b> — invisible to layer pickers</td></tr>
 <tr><td><code>st_Provided_By__c</code></td><td><b>Sitetracker</b> — read-only; clone to edit</td><td><b>ArcGIS</b> — fully editable fork (only Sitetracker is read-only); drives "sync styles too"</td><td>Organization — the only editable value</td></tr>
-<tr><td><code>st_Geometry_Type__c</code></td><td>— (all three, the one exception)</td><td>Line</td><td>Point</td></tr>
-<tr><td><code>st_Is_Organization_Default__c</code></td><td><b>true</b> (trigger keeps it the only true)</td><td>false</td><td>false</td></tr>
+<tr><td><code>st_Geometry_Type__c</code></td><td>Point <span class="note">(one shipped default per geometry — this is the Point one)</span></td><td>Line</td><td>Point</td></tr>
+<tr><td><code>st_Is_Organization_Default__c</code></td><td><b>true</b> (trigger keeps one true per geometry)</td><td>false</td><td>false</td></tr>
 <tr><td><code>st_Value_Styles__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
 </tbody></table></div>
 
