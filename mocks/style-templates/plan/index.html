@@ -153,7 +153,7 @@ over-modelling. The one anomaly is a mixed-geometry <b>file upload</b> (points+l
 the children matching its geometry, remaining geometries use the org default — noted below.</p>
 
 <div class="card"><div class="erdwrap">
-<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold one template lookup; Map Style Template holds scalar style fields and one per-value JSON; a save-maintained usage junction connects templates to assets with a delete-restricting lookup.">
+<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold one template lookup; Map Style Template holds scalar style fields and one per-value JSON; the template holds a delete-restricting icon lookup to the asset; per-value icon references are guarded by a delete-time scan.">
   <!-- existing objects -->
   <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
   <text class="t" x="36" y="64">Map_Layer__c</text>
@@ -180,16 +180,9 @@ the children matching its geometry, remaining geometries use the org default —
   <text class="f" x="372" y="180">st_Symbol_Shape/Size · st_Fill/Outline_Color</text>
   <text class="f" x="372" y="197">st_Outline_Width · st_Layer_Opacity (rule ≥0.10)</text>
   <text class="f" x="372" y="214">st_Offset_X/Y · st_Label_Field/Min_Zoom/Halo</text>
-  <text class="f" x="356" y="238">st_Value_Styles__c — per-value JSON, the ONLY blob</text>
+  <text class="f" x="356" y="238">st_Icon_Asset__c (Lookup · Restrict) — Simple-mode icon</text>
+  <text class="f" x="356" y="255">st_Value_Styles__c — per-value JSON, the ONLY blob</text>
   <text class="lbl" x="356" y="308">sharing: OWD Read · Write/Admin via __Share</text>
-
-  <!-- usage junction -->
-  <rect class="obj objnew" x="712" y="70" width="248" height="112" rx="8"/>
-  <text class="t" x="728" y="94">Map_Style_Asset_Usage__c</text>
-  <text class="f" x="728" y="117">st_Style_Template__c (Lookup)</text>
-  <text class="f" x="728" y="134">st_Style_Asset__c (Lookup · Restrict)</text>
-  <text class="lbl" x="728" y="155">rebuilt by the compiler at every save —</text>
-  <text class="lbl" x="728" y="170">one row per template × referenced asset</text>
 
   <!-- asset -->
   <rect class="obj objnew" x="690" y="260" width="270" height="112" rx="8"/>
@@ -204,15 +197,12 @@ the children matching its geometry, remaining geometries use the org default —
   <text class="lbl" x="258" y="93">Lookup (Restrict)</text>
   <path class="rel" d="M250 255 H295 V190 H340"/>
   <text class="lbl" x="258" y="248">Lookup</text>
-  <path class="rel relmd" d="M630 120 H712"/>
-  <text class="lbl" x="640" y="113">1 ─ * (compiler-maintained)</text>
-  <path class="rel" d="M836 182 V260"/>
-  <text class="lbl" x="846" y="216">Lookup · Restrict</text>
-  <text class="lbl" x="846" y="230">= delete-protection +</text>
-  <text class="lbl" x="846" y="244">"in use by N" in one query</text>
-  <path class="rel" d="M630 238 H660 V310 H690"/>
-  <text class="lbl" x="636" y="290">values reference assets</text>
-  <text class="lbl" x="636" y="304">by id — never embedded</text>
+  <path class="rel" d="M630 240 H660 V300 H690"/>
+  <text class="lbl" x="640" y="228">st_Icon_Asset__c · Lookup Restrict</text>
+  <text class="lbl" x="640" y="242">(platform delete-protection)</text>
+  <path class="rel" d="M630 262 H648 V340 H690" stroke-dasharray="4 3"/>
+  <text class="lbl" x="636" y="330">per-value iconAssetId (in JSON) —</text>
+  <text class="lbl" x="636" y="344">before-delete trigger scans &amp; blocks</text>
 </svg>
 </div></div>
 
@@ -308,10 +298,7 @@ the children matching its geometry, remaining geometries use the org default —
 nothing required (compiler parses JSON; whole-template locking; template-level sharing; the graph
 serializes to JSON for checksum regardless) and cost ~600-row reconciliation per Save vs one update.
 <b>Revised:</b> Template (metadata + <code>st_Value_Styles__c</code> snapshot — the mockup's exact
-shape) · Asset (unchanged) · <b>Asset-Usage junction</b> (save-maintained,
-asset lookup Restrict) which keeps the platform-enforced delete-protection and the one-query
-"in use by N templates" — now uniformly for icons at any level. Layer-side lookups, Styling_Mode
-fields, precedence, copy-on-write and compiler-resolved inheritance all unchanged. The ERD above reflects the revised model; the "is this asset in use" check (runtime-checks table, section&nbsp;2) now queries the usage junction.</div>
+shape) · Asset (unchanged) · an Asset-Usage junction — <i>itself dropped later the same week (see the decision log): its rows were code-maintained, so the "platform-enforced" guarantee was only as strong as the sync code</i>. Final: the Simple icon is a real <code>Restrict</code> lookup on the template; per-value icons are guarded by a delete-time scan. The ERD above reflects the final model.</div>
 
 <!-- ============================== 2. DATA STORAGE ============================== -->
 <h2><span class="n">2</span>Data storage — what lives where, and what it costs</h2>
@@ -365,9 +352,9 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <tr>
       <td style="width:220px"><b>Is this asset in use?</b><br><span class="note">(blocks delete, feeds the tooltip)</span></td>
       <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">SELECT st_Style_Rule__r.st_Style_Template__r.Name
-FROM Map_Style_Asset_Usage__c
-WHERE st_Style_Asset__c = :assetId         <span class="c">// one indexed query — the junction covers icons at every level</span>
-  AND st_Style_Template__r.st_Status__c = 'Active'</pre>
+st_Icon_Asset__c lookup → platform Restrict   <span class="c">// Simple-mode icon: real FK, delete refused natively</span>
+<span class="c">// per-value icons: before-delete trigger scans non-archived</span>
+<span class="c">// templates' st_Value_Styles__c for :assetId → blocks with "in use by: X, Y"</span></pre>
       <span class="note">Possible <i>because</i> icons are FK lookups, not names inside JSON — no text scanning.
       Grouped by template → the "already in use by: …" tooltip. <code>Restrict</code> on the lookup enforces
       the block even if the UI check is bypassed. To go all the way to <i>active layers</i>: one more hop —
@@ -612,7 +599,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
   <div class="ph"><div class="num">PHASE 0</div><div class="nm">Prerequisites</div>
     <div class="note">renderer write-order (SIT-66034) · verify-reads of the named classes · answer T1 (template association)</div></div>
   <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
-    <div class="note">3 objects (template + asset + usage junction) · 1 lookup on layer &amp; MOC · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
+    <div class="note">2 objects (template + asset) · 1 lookup on layer &amp; MOC · st_Icon_Asset__c Restrict + delete-scan trigger · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
   <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
     <div class="note">validation · sparse-merge · opacity pre-multiply · FOR UPDATE publish</div></div>
   <div class="ph"><div class="num">PHASE 3</div><div class="nm">API</div>
@@ -680,6 +667,7 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>Usage junction dropped — final schema is 2 objects</b>: Template + Asset <span class="tag ok">final</span></td><td>"Do we need it?" — no: its rows were code-maintained at every save, so the platform-Restrict guarantee was only as strong as the sync code, and it taxed frequent saves to accelerate a rare check. Replaced by <code>st_Icon_Asset__c</code> (Lookup Restrict — the single-valued Simple icon, a real FK) + a before-delete trigger that scans template JSON for per-value references (runs on every delete path incl. API; reads the truth directly, cannot drift; one pass also computes the library's "in use" badges)</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays</b> <span class="tag ok">final</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (<code>buildStyleRenderer</code>). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b><code>st_Imported_Source_Id__c</code> dropped</b> <span class="tag ok">final</span></td><td>Re-sync happens on a layer, and the layer's <code>st_Style_Template__c</code> IS the template forked from its source — the association already exists. Orphaned-fork edge (user switched templates): re-import forks fresh, accepted</td></tr>
@@ -703,12 +691,12 @@ reviewers should see what changed and why, not just the final answer.</p>
 <tr><td>12 Aug · call</td><td><b>Blocked delete: disable the whole row</b> — delete AND archive, in bulk bar and right-click menu; "in use" badge <span class="tag ok">final</span></td><td>You shouldn't be able to archive what layers depend on either; greyed controls + badge explain themselves</td></tr>
 <tr><td>11 Aug · Darshan</td><td><b>KML/KMZ styling is parsed &amp; imported</b> (SIT-66031 Option A committed; notice becomes parse-failure fallback) <span class="tag ok">final</span></td><td>KML files carry styling; silently discarding it surprises users — parse when available, be honest when parsing fails</td></tr>
 <tr><td>11 Aug · Darshan</td><td>Styling mode persists per layer-link <span class="tag dead">superseded 12 Aug</span></td><td>Was justified by "shared templates can differ per layer" — which contradicts "a template IS a look"; see the superseding row above</td></tr>
-<tr><td>11 Aug · Darshan</td><td><b>Schema simplified 4 → 3 objects</b> (template-as-JSON + asset + usage junction) <span class="tag ok">final</span></td><td>See R2 below — the full story</td></tr>
+<tr><td>11 Aug · Darshan</td><td>Schema simplified 4 → 3 objects (template-as-JSON + asset + usage junction) <span class="tag dead">junction superseded 12 Aug</span></td><td>See R2 below; the junction fell to the same test a day later</td></tr>
 <tr><td>11 Aug · Darshan</td><td><b>Field names made readable</b> (Provided_By/Imported_From, Style_Definition/Published_Style, Styling_Mode…) <span class="tag ok">final</span></td><td>1GP API names are permanent — the only cheap moment to fix names is before Phase 1</td></tr>
 <tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — detail in docs 15/16</td></tr>
 </tbody></table></div></div>
 
-<h2><span class="n">R2</span>Why 3 objects — and why not 1, 2, 4, or something existing</h2>
+<h2><span class="n">R2</span>Why 2 objects — and why not 1, 3, 4, or something existing</h2>
 <p class="lede">The schema was challenged twice and got better both times. The reasoning, so a
 reviewer doesn't have to re-litigate it:</p>
 <div class="card"><div class="pad">
@@ -716,8 +704,9 @@ reviewer doesn't have to re-litigate it:</p>
 <b>(1) icons are shared</b> — one uploaded image is used by many templates, carries its own file
 (ContentVersion), caps and dedup, so it must be its own record; <b>(2) "can't delete an icon in
 use" needs a real foreign key</b> — with icon references as strings inside JSON, the check is an
-unindexable text-scan and nothing stops a direct API delete. A lookup with <code>Restrict</code>
-makes the delete impossible at the database level.</p>
+unindexable text-scan and nothing stops a direct API delete. The single-valued Simple icon gets a real
+<code>Restrict</code> lookup; per-value references are enforced by a before-delete trigger at the
+same database boundary.</p>
 <p><b>Why not FOUR (the original design: Template → Rule → Stop records)?</b> Challenged 11 Aug
 ("why child records when the template is JSON anyway?") and it didn't survive: validation is
 compiler work either way, locking is whole-template, sharing is template-level, and the record
@@ -730,10 +719,12 @@ disqualifiers: <code>Layer_Styling__c</code> is a per-layer field, not shareable
 (the PT-status-colours pattern) need an async metadata deploy per admin save, have no record
 sharing, and can't be the target of a Restrict lookup — that authoring experience is exactly
 what this feature escapes. One CMT survives as the kill-switch only.</p>
-<p><b>So: 3.</b> <code>Map_Style_Template__c</code> (the unit users name, share, apply, version) ·
-<code>Map_Style_Asset__c</code> (the unit that outlives any one template) ·
-<code>Map_Style_Asset_Usage__c</code> (the database-grade guarantee connecting them, rebuilt by the
-compiler at each save).</p>
+<p><b>So: 2.</b> <code>Map_Style_Template__c</code> (the unit users name, share, and apply) ·
+<code>Map_Style_Asset__c</code> (the unit that outlives any one template). A usage junction briefly
+connected them (11 Aug) until the same test that killed the other bookkeeping killed it too: its
+rows were code-maintained at every save. Delete-protection now = the template's
+<code>st_Icon_Asset__c</code> Restrict lookup (Simple icon) + a before-delete scan of template JSON
+(per-value icons).</p>
 </div></div>
 
 <h2><span class="n">R3</span>Field dictionary — what each field does, and when it changes</h2>
@@ -751,6 +742,7 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><code>st_Is_Organization_Default__c</code></td><td>The org-wide fallback tier in precedence ("layer has no template → use this")</td><td>Admin toggle in settings; a trigger keeps exactly one true</td></tr>
 <tr><td><code>st_Value_Styles__c</code></td><td>ONLY the per-value overrides (variable cardinality forces JSON). Everything single-valued — shape, size, fill, outline, layer opacity, offset, label settings — is a typed <b>field</b> (see row below), so Simple mode involves zero JSON</td><td>Every builder Save · user via service</td></tr>
 <tr><td><code>st_Styling_Mode__c</code> (Simple/Categorical) · <code>st_Symbol_Shape__c</code> · <code>st_Symbol_Size__c</code> · <code>st_Fill_Color__c</code> · <code>st_Outline_Color__c</code> · <code>st_Outline_Width__c</code> · <code>st_Layer_Opacity__c</code> · <code>st_Offset_X/Y__c</code> · <code>st_Label_Field__c</code> · <code>st_Label_Min_Zoom__c</code> · <code>st_Label_Halo_Color__c</code></td><td>The common base both modes inherit from, as typed fields: platform validation replaces compiler checks (the 10% opacity floor is a validation rule; colours are hex-validated; shape is a picklist — invalid values are impossible, not caught)</td><td>Builder edits · user</td></tr>
+<tr><td><code>st_Icon_Asset__c</code></td><td>The Simple-mode uploaded icon — single-valued, so it's a real <code>Restrict</code> lookup (this is the platform-enforced half of asset delete-protection)</td><td>Builder edits · user</td></tr>
 <tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
 </tbody></table></div>
 
@@ -763,11 +755,11 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><code>st_File_Checksum__c</code></td><td>Dedup — the same file uploaded twice resolves to one record</td><td>At upload · upload flow</td></tr>
 </tbody></table></div>
 
-<h4><code>Map_Style_Asset_Usage__c</code> — the junction (2 fields, 1 job)</h4>
+<h4>Delete-protection without a junction</h4>
 <div class="scroll"><table>
-<thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
-<tr><td><code>st_Style_Template__c</code></td><td>Which template uses…</td><td rowspan="2">Rebuilt on every template save · compiler diffs referenced assets vs existing rows</td></tr>
-<tr><td><code>st_Style_Asset__c</code> (Restrict)</td><td>…which asset. The <code>Restrict</code> makes deleting an in-use icon impossible, and "in use by N templates" one indexed query</td></tr>
+<thead><tr><th>Mechanism</th><th>What it covers</th><th>How</th></tr></thead><tbody>
+<tr><td><code>st_Icon_Asset__c</code> on the template (Lookup · Restrict)</td><td>The Simple-mode icon — the common case</td><td>Real FK: the platform refuses the delete natively</td></tr>
+<tr><td><code>before delete</code> trigger on <code>Map_Style_Asset__c</code></td><td>Per-value <code>iconAssetId</code> references inside <code>st_Value_Styles__c</code></td><td>Scans non-archived templates' JSON (runs on every delete path incl. API); blocks with "in use by: X, Y"; the same pass computes the library's in-use badges</td></tr>
 </tbody></table></div>
 
 <h4>Layer-side (on <code>Map_Layer__c</code> and <code>Map_Object_Configuration__c</code>, ×3 geometries)</h4>
@@ -780,12 +772,12 @@ means the publish/save server logic — users never write those fields directly.
 <h2><span class="n">R4</span>When things happen — the workflows, end to end</h2>
 <div class="card"><div class="scroll"><table>
 <thead><tr><th>Flow</th><th>What happens, in order</th></tr></thead><tbody>
-<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder → <b>Save = the whole lifecycle</b> (publish collapsed into save, 12 Aug): the service validates (USER_MODE), writes the scalar fields + <code>st_Value_Styles__c</code>, rebuilds the asset-usage rows; first save to Active makes it pickable</td></tr>
+<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder → <b>Save = the whole lifecycle</b> (publish collapsed into save, 12 Aug): the service validates (USER_MODE) and writes the scalar fields + <code>st_Value_Styles__c</code>; first save to Active makes it pickable</td></tr>
 <tr><td><b>Apply / switch on a layer</b></td><td>Sets the layer's <code>st_Style_Template__c</code> lookup — the template (incl. its Simple/Categorical mode) fully describes the look. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
 <tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Provided_By__c=ArcGIS</code>) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
 <tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer gets the org default template (ST Default: 3 colours — sites / segments / areas) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
 <tr><td><b>Edit a template others use</b></td><td>Publish updates the shared doc. Other sessions viewing affected layers get "this template was updated while you were away — load the latest / keep viewing yours" — never a silent restyle. The same message covers "someone published while you were editing"</td></tr>
-<tr><td><b>Delete an icon</b></td><td>Allowed only when no usage rows point at it — otherwise the platform refuses (Restrict) and the UI shows "in use by N templates"</td></tr>
+<tr><td><b>Delete an icon</b></td><td>The platform refuses if any template's <code>st_Icon_Asset__c</code> points at it (Restrict); the before-delete trigger scans per-value references and blocks with "in use by: X, Y"</td></tr>
 <tr><td><b>Delete / archive a template</b></td><td>Blocked while any layer links it: row-level delete AND archive controls disabled (bulk bar + right-click), "in use" badge explains why. Hard delete only at zero references</td></tr>
 <tr><td><b>Re-sync an ArcGIS layer</b></td><td>The only moment source-styling changes can surface (no auto-detection exists) → the layer's own <code>st_Style_Template__c</code> IS the fork (no source-id field needed) → sync flow offers "sync styles too": update it from source, or keep it</td></tr>
 </tbody></table></div></div>
@@ -824,12 +816,8 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td class="mono">MSA-0002</td><td>blocked-flag</td><td>PNG</td><td class="mono">98fa…1c</td><td>③ — uploaded by the org</td></tr>
 </tbody></table></div>
 
-<h4><code>Map_Style_Asset_Usage__c</code> — rebuilt by the compiler at every save</h4>
-<div class="scroll"><table>
-<thead><tr><th><code>st_Style_Template__c</code></th><th><code>st_Style_Asset__c</code> (Restrict)</th><th>Meaning</th></tr></thead><tbody>
-<tr><td>② Fiber Backbone — ArcGIS</td><td>MSA-0001 vault</td><td rowspan="2">Deleting either asset is refused by the platform while its row exists; "in use by 1 template" is one indexed query</td></tr>
-<tr><td>③ Splice Points by Status</td><td>MSA-0002 blocked-flag</td></tr>
-</tbody></table></div>
+<h4>Delete-protection in the sample</h4>
+<p class="note" style="margin:4px 0 8px">② references <span class="mono">MSA-0001</span> as its Simple icon → <code>st_Icon_Asset__c</code> Restrict makes that delete impossible natively. ③ references <span class="mono">MSA-0002</span> only inside <code>st_Value_Styles__c</code> → the before-delete trigger finds it and blocks with "in use by: Splice Points by Status".</p>
 
 <h4>Layer side — a segments layer (one asset type, as always; the ONLY new field)</h4>
 <div class="scroll"><table>
