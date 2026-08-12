@@ -151,7 +151,103 @@ footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-si
 <code>FileLayerHandler.js:300</code>) — but those file children all share <b>one</b>
 <code>Map_Layer__c</code> record, so that one record may need a point + line + area template at once.
 Mixed geometry exists only at the record level; no mixed-geometry UI or rendering exists anywhere.
-(New-object count: 3 after the Aug 11 schema revision below.)</p>
+The diagram shows the current schema (post the 11–12 Aug revisions — the history is in the callout below and the References decision log).</p>
+
+<div class="card"><div class="erdwrap">
+<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold three geometry-scoped template lookups plus styling-mode fields; Map Style Template holds scalar style fields, one per-value JSON and the compiled doc; a compiler-maintained usage junction connects templates to assets with a delete-restricting lookup.">
+  <!-- existing objects -->
+  <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
+  <text class="t" x="36" y="64">Map_Layer__c</text>
+  <text class="badge" x="196" y="64"><tspan fill="#0070D2">EXISTING</tspan></text>
+  <text class="f" x="36" y="86">st_Point_Style_Template__c</text>
+  <text class="f" x="36" y="103">st_Polyline_Style_Template__c</text>
+  <text class="f" x="36" y="120">st_Polygon_Style_Template__c</text>
+  <text class="lbl" x="36" y="141">3 × Lookup (Restrict) + 3 × Styling_Mode__c</text>
+
+  <rect class="obj objexist" x="20" y="196" width="230" height="135" rx="8"/>
+  <text class="t" x="36" y="220">Map_Object_Configuration__c</text>
+  <text class="f" x="36" y="242">st_Point_Style_Template__c</text>
+  <text class="f" x="36" y="259">st_Polyline_Style_Template__c</text>
+  <text class="f" x="36" y="276">st_Polygon_Style_Template__c</text>
+  <text class="lbl" x="36" y="297">same 3 lookups (fallback tier)</text>
+  <text class="lbl" x="36" y="314">ships per asset type WITH its default template</text>
+
+  <!-- template -->
+  <rect class="obj objnew" x="340" y="40" width="290" height="290" rx="8"/>
+  <text class="t" x="356" y="64">Map_Style_Template__c</text>
+  <text class="badge" x="566" y="64"><tspan fill="#00847C">NEW</tspan></text>
+  <text class="f" x="356" y="88">Name · st_Status__c (Draft/Active/Archived)</text>
+  <text class="f" x="356" y="105">st_Provided_By__c (Sitetracker/Org) ← ST-Default lock</text>
+  <text class="f" x="356" y="122">st_Imported_From__c (ArcGIS/Vetro/KML) ← import lock</text>
+  <text class="f" x="356" y="139">st_Geometry_Type__c · st_Is_Organization_Default__c</text>
+  <text class="f" x="356" y="163">scalar style fields (typed, platform-validated):</text>
+  <text class="f" x="372" y="180">st_Symbol_Shape/Size · st_Fill/Outline_Color</text>
+  <text class="f" x="372" y="197">st_Outline_Width · st_Layer_Opacity (rule ≥0.10)</text>
+  <text class="f" x="372" y="214">st_Offset_X/Y · st_Label_Field/Min_Zoom/Halo</text>
+  <text class="f" x="356" y="238">st_Value_Styles__c — per-value JSON, the ONLY blob</text>
+  <text class="f" x="356" y="255">st_Published_Style__c — compiled (staleness = SystemModstamp)</text>
+  <text class="f" x="356" y="272">st_Imported_Source_Id__c (ExtId, re-import match)</text>
+  <text class="lbl" x="356" y="308">sharing: OWD Read · Write/Admin via __Share</text>
+
+  <!-- usage junction -->
+  <rect class="obj objnew" x="712" y="70" width="248" height="112" rx="8"/>
+  <text class="t" x="728" y="94">Map_Style_Asset_Usage__c</text>
+  <text class="f" x="728" y="117">st_Style_Template__c (Lookup)</text>
+  <text class="f" x="728" y="134">st_Style_Asset__c (Lookup · Restrict)</text>
+  <text class="lbl" x="728" y="155">rebuilt by the compiler at every save —</text>
+  <text class="lbl" x="728" y="170">one row per template × referenced asset</text>
+
+  <!-- asset -->
+  <rect class="obj objnew" x="690" y="260" width="270" height="112" rx="8"/>
+  <text class="t" x="706" y="284">Map_Style_Asset__c  (org-level)</text>
+  <text class="f" x="706" y="306">st_Asset_Type__c SVG/PNG/Font</text>
+  <text class="f" x="706" y="323">st_File_Checksum__c (upload dedup)</text>
+  <text class="f" x="706" y="340">st_Content_Version_Id__c (original file)</text>
+  <text class="f" x="706" y="357">st_Png_Renditions__c (data-URI PNGs)</text>
+
+  <!-- relationships -->
+  <path class="rel" d="M250 99 H340"/>
+  <text class="lbl" x="258" y="93">Lookup ×3 (Restrict)</text>
+  <path class="rel" d="M250 255 H295 V190 H340"/>
+  <text class="lbl" x="258" y="248">Lookup ×3</text>
+  <path class="rel relmd" d="M630 120 H712"/>
+  <text class="lbl" x="640" y="113">1 ─ * (compiler-maintained)</text>
+  <path class="rel" d="M836 182 V260"/>
+  <text class="lbl" x="846" y="216">Lookup · Restrict</text>
+  <text class="lbl" x="846" y="230">= delete-protection +</text>
+  <text class="lbl" x="846" y="244">"in use by N" in one query</text>
+  <path class="rel" d="M630 238 H660 V310 H690"/>
+  <text class="lbl" x="636" y="290">values reference assets</text>
+  <text class="lbl" x="636" y="304">by id — never embedded</text>
+</svg></span>
+  <div>
+    <div class="kicker">Sitetracker · GIS Link · SIT-58366</div>
+    <h1>GIS Map Style Templates — Technical Implementation Plan</h1>
+  </div>
+</header>
+<div class="meta">
+  <span class="pill hot">v1 = web only · mobile parked</span>
+  <span class="pill">strk · 1GP · namespace additive-only</span>
+  <span class="pill">Lightning Maps (beta) · ArcGIS JS 4.34</span>
+  <span class="pill">updated 2026-08-12</span>
+  <span class="pill hot">12 Aug design sync: every design question decided</span>
+</div>
+
+<div class="tabs">
+  <button class="tabbtn on" id="btn-plan" onclick="showPage('plan')">Implementation plan</button>
+  <button class="tabbtn" id="btn-refs" onclick="showPage('refs')">References — why, when &amp; how</button>
+</div>
+
+<div id="page-plan">
+<!-- ============================== 1. OBJECT LINKING ============================== -->
+<h2><span class="n">1</span>Object linking — the schema and how a layer finds its style</h2>
+<p class="lede">Two existing objects gain <b>three geometry-scoped lookups each</b>. Why three:
+<b>rendered layers are always single-geometry</b> (Sitetracker object layers by the required
+<code>Geometry_Type__c</code> picklist; file uploads split into single-geometry GroupLayer children,
+<code>FileLayerHandler.js:300</code>) — but those file children all share <b>one</b>
+<code>Map_Layer__c</code> record, so that one record may need a point + line + area template at once.
+Mixed geometry exists only at the record level; no mixed-geometry UI or rendering exists anywhere.
+The diagram shows the current schema (post the 11–12 Aug revisions — the history is in the callout below and the References decision log).</p>
 
 <div class="card"><div class="erdwrap">
 <svg class="erd" viewBox="0 0 980 470" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold three geometry-scoped lookups to Map Style Template; template has master-detail children Rule and Stop; Stop looks up Asset with delete restriction.">
@@ -232,9 +328,8 @@ Mixed geometry exists only at the record level; no mixed-geometry UI or renderin
     <b style="font-size:13px">How a layer resolves its style (per geometry)</b>
     <div class="flow" style="margin-top:10px">
       <span class="step hi">layer lookup</span><span class="arr">→</span>
-      <span class="step">object-config lookup</span><span class="arr">→</span>
-      <span class="step">org default</span><span class="arr">→</span>
-      <span class="step">ST Default (shipped)</span><span class="arr">→</span>
+      <span class="step">object-config lookup <i>(shipped per-asset-type default rides here)</i></span><span class="arr">→</span>
+      <span class="step">org default (geometry-scoped — the file-layer floor)</span><span class="arr">→</span>
       <span class="step">vendor renderer</span><span class="arr">→</span>
       <span class="step">geometry fallback</span><span class="arr">→</span>
       <span class="step">legacy Layer_Styling__c</span>
@@ -319,8 +414,7 @@ serializes to JSON for checksum regardless) and cost ~600-row reconciliation per
 shape — + compiled doc) · Asset (unchanged) · <b>Asset-Usage junction</b> (compiler-maintained,
 asset lookup Restrict) which keeps the platform-enforced delete-protection and the one-query
 "in use by N templates" — now uniformly for icons at any level. Layer-side lookups, Styling_Mode
-fields, precedence, copy-on-write and compiler-resolved inheritance all unchanged. The ERD above
-shows the pre-revision graph; the "is this asset in use" check (runtime-checks table, section&nbsp;2) now queries the usage junction.</div>
+fields, precedence, copy-on-write and compiler-resolved inheritance all unchanged. The ERD above reflects the revised model; the "is this asset in use" check (runtime-checks table, section&nbsp;2) now queries the usage junction.</div>
 
 <!-- ============================== 2. DATA STORAGE ============================== -->
 <h2><span class="n">2</span>Data storage — what lives where, and what it costs</h2>
