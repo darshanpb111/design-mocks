@@ -714,7 +714,7 @@ reviewers should see what changed and why, not just the final answer.</p>
 <tr><td>11 Aug · Darshan</td><td>Styling mode persists per layer-link <span class="tag dead">superseded 12 Aug</span></td><td>Was justified by "shared templates can differ per layer" — which contradicts "a template IS a look"; see the superseding row above</td></tr>
 <tr><td>11 Aug · Darshan</td><td>Schema simplified 4 → 3 objects (template-as-JSON + asset + usage junction) <span class="tag dead">junction superseded 12 Aug</span></td><td>See R2 below; the junction fell to the same test a day later</td></tr>
 <tr><td>11 Aug · Darshan</td><td><b>Field names made readable</b> (Provided_By/Imported_From, Style_Definition/Published_Style, Styling_Mode…) <span class="tag ok">final</span></td><td>1GP API names are permanent — the only cheap moment to fix names is before Phase 1</td></tr>
-<tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — detail in docs 15/16</td></tr>
+<tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — each is reflected in the schema and workflow sections of this page</td></tr>
 </tbody></table></div></div>
 
 <h2><span class="n">R2</span>Why 2 objects — and why not 1, 3, 4, or something existing</h2>
@@ -734,7 +734,7 @@ compiler work either way, locking is whole-template, sharing is template-level, 
 graph had to be serialized to JSON for checksums regardless — so the records were a normalized
 copy of a JSON that existed anyway, at the cost of reconciling up to ~600 child rows on every
 Save vs one update. The prototype's own save model (one snapshot string) is the blob shape.</p>
-<p><b>Why not an EXISTING object?</b> Nine candidates were evaluated (doc 16 §1b). The recurring
+<p><b>Why not an EXISTING object?</b> Nine candidates were evaluated — the full table with evidence is on the <a href="#" onclick="showPage('plan');return false">Plan page</a>, section 1, "Why new objects". The recurring
 disqualifiers: <code>Layer_Styling__c</code> is a per-layer field, not shareable/versionable;
 <code>GIS_Sync_Template__c</code> models field mappings, not renderers; Custom Metadata Types
 (the PT-status-colours pattern) need an async metadata deploy per admin save, have no record
@@ -867,15 +867,15 @@ parts the renderer reads, never where anything is stored.</p>
 that's the no-detach decision made concrete: the default template is the floor, never emptiness.</p>
 </div></div>
 
-<div class="callout" style="margin-top:16px"><b>Where the deeper detail lives:</b> doc 15 (solution
-design — schema tables, compiler contract, permissions), doc 16 (implementation plan — decisions
-§2a-bis/§2f, phases, cross-engine matrix), both under
-<span class="mono">jira-work/SIT-58366/style-template-pack/</span>; live design asks on SIT-58366
-comment 192070.</div>
+<div class="callout" style="margin-top:16px"><b>This page is self-contained.</b> The
+<a href="#" onclick="showPage('plan');return false">Plan tab</a> carries the schema (field-by-field
+with types, defaults and validation), precedence, permissions, cross-engine limits and phases; this
+References tab carries the complete dated decision log, the field dictionary, the workflows and the
+sample data. Design action items are tracked on epic SIT-58366 (comment 192070).</div>
 
 </div><!-- /page-refs -->
 
-<footer>Source of truth: <span class="mono">jira-work/SIT-58366/style-template-pack/</span> — <b>doc 17 (consolidated technical design — CURRENT TRUTH, frozen 2026-08-12)</b>; docs 14/15/16 = dated decision history · design pack in <span class="mono">../design-handover-v1/</span> · design asks on SIT-58366 comment 192070. Every repo claim carries file:line.</footer>
+<footer>Technical design frozen 2026-08-12 — this page is the reviewer-facing copy and is self-contained (schema, decisions, workflows, sample data across the two tabs). Design action items: epic SIT-58366, comment 192070.</footer>
 </div>
 
 <script>
