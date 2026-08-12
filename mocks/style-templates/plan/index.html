@@ -153,7 +153,7 @@ over-modelling. The one anomaly is a mixed-geometry <b>file upload</b> (points+l
 the children matching its geometry, remaining geometries use the org default — noted below.</p>
 
 <div class="card"><div class="erdwrap">
-<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold one template lookup; Map Style Template holds scalar style fields, one per-value JSON and the compiled doc; a compiler-maintained usage junction connects templates to assets with a delete-restricting lookup.">
+<svg class="erd" viewBox="0 0 980 440" role="img" aria-label="Entity relationship diagram: Map Layer and Map Object Configuration each hold one template lookup; Map Style Template holds scalar style fields and one per-value JSON; a save-maintained usage junction connects templates to assets with a delete-restricting lookup.">
   <!-- existing objects -->
   <rect class="obj objexist" x="20" y="40" width="230" height="118" rx="8"/>
   <text class="t" x="36" y="64">Map_Layer__c</text>
@@ -173,16 +173,14 @@ the children matching its geometry, remaining geometries use the org default —
   <text class="t" x="356" y="64">Map_Style_Template__c</text>
   <text class="badge" x="566" y="64"><tspan fill="#00847C">NEW</tspan></text>
   <text class="f" x="356" y="88">Name · st_Status__c (Draft/Active/Archived)</text>
-  <text class="f" x="356" y="105">st_Provided_By__c (Sitetracker/Org) ← ST-Default lock</text>
-  <text class="f" x="356" y="122">st_Imported_From__c (ArcGIS/Vetro/KML) ← import lock</text>
+  <text class="f" x="356" y="105">st_Provided_By__c — Sitetracker/ArcGIS/Vetro/KML/Organization</text>
+  <text class="f" x="356" y="122">   (one provenance picklist: editable ⇔ Organization)</text>
   <text class="f" x="356" y="139">st_Geometry_Type__c · st_Is_Organization_Default__c</text>
   <text class="f" x="356" y="163">scalar style fields incl. st_Styling_Mode__c (Simple/Categorical):</text>
   <text class="f" x="372" y="180">st_Symbol_Shape/Size · st_Fill/Outline_Color</text>
   <text class="f" x="372" y="197">st_Outline_Width · st_Layer_Opacity (rule ≥0.10)</text>
   <text class="f" x="372" y="214">st_Offset_X/Y · st_Label_Field/Min_Zoom/Halo</text>
   <text class="f" x="356" y="238">st_Value_Styles__c — per-value JSON, the ONLY blob</text>
-  <text class="f" x="356" y="255">st_Published_Style__c — compiled (staleness = SystemModstamp)</text>
-  <text class="f" x="356" y="272">st_Imported_Source_Id__c (ExtId, re-import match)</text>
   <text class="lbl" x="356" y="308">sharing: OWD Read · Write/Admin via __Share</text>
 
   <!-- usage junction -->
@@ -306,7 +304,7 @@ the children matching its geometry, remaining geometries use the org default —
 nothing required (compiler parses JSON; whole-template locking; template-level sharing; the graph
 serializes to JSON for checksum regardless) and cost ~600-row reconciliation per Save vs one update.
 <b>Revised:</b> Template (metadata + <code>st_Value_Styles__c</code> snapshot — the mockup's exact
-shape — + compiled doc) · Asset (unchanged) · <b>Asset-Usage junction</b> (compiler-maintained,
+shape) · Asset (unchanged) · <b>Asset-Usage junction</b> (save-maintained,
 asset lookup Restrict) which keeps the platform-enforced delete-protection and the one-query
 "in use by N templates" — now uniformly for icons at any level. Layer-side lookups, Styling_Mode
 fields, precedence, copy-on-write and compiler-resolved inheritance all unchanged. The ERD above reflects the revised model; the "is this asset in use" check (runtime-checks table, section&nbsp;2) now queries the usage junction.</div>
@@ -321,9 +319,9 @@ fields, precedence, copy-on-write and compiler-resolved inheritance all unchange
 <tbody>
 <tr><td>Template graph (template + rules + stops + assets)</td><td>custom-object records</td><td>Data</td>
   <td><b>~2 KB per record, flat</b> — long-text content does <u>not</u> add. Worst-case template ≈ 607 records ≈ 1.2 MB; 100 templates ≈ 0.1 GB</td></tr>
-<tr><td>Compiled style document (the thing clients consume)</td><td><code>st_Published_Style__c</code> LongTextArea</td><td>Data</td>
+<tr><td>Compiled style document</td><td><b>dropped 12 Aug</b> — clients render from the record itself (scalar fields + value JSON)</td><td>—</td>
   <td>≤ 50 KB target, still counts ~2 KB — effectively free</td></tr>
-<tr><td>Icon manifest (name → data-URI renditions)</td><td>embedded in the compiled doc <i>(or its own field — see measurement)</i></td><td>Data</td>
+<tr><td>Icon renditions (data-URI PNGs)</td><td>on each asset record (<code>st_Png_Renditions__c</code>) — fetched per asset, cached</td><td>Data</td>
   <td>≤ 200 KB per template cap</td></tr>
 <tr><td>Uploaded SVG/PNG originals</td><td><b>ContentVersion</b> (uploaded over REST — never Apex heap)</td><td>File</td>
   <td>caps: 5 MB/file, 50 per type → absolute worst 500 MB; realistic ~20 MB</td></tr>
@@ -341,7 +339,7 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <b style="font-size:13px">Caching &amp; delivery</b>
     <table style="margin-top:8px"><tbody>
       <tr><td>Server</td><td>Platform Cache (existing <code>'sitetracker'</code> partition), key <code>templateId:version</code></td></tr>
-      <tr><td>Web</td><td>@RemoteAction <code>getCompiledStyleTemplates()</code> → modstamp-keyed store; <code>SystemModstamp</code> short-circuits reparse; fetched <b>per template per session, not per layer</b></td></tr>
+      <tr><td>Web</td><td>@RemoteAction <code>getStyleTemplates()</code> returns the template records (scalar fields + <code>st_Value_Styles__c</code>) → modstamp-keyed store; the client builds Esri renderers exactly as it does today; fetched <b>per template per session, not per layer</b></td></tr>
       <tr><td>Mobile (future)</td><td>REST <code>/StStyleTemplates</code> + ETag/304 — stub ships in v1, unused until mobile re-opens</td></tr>
       <tr><td>Assets</td><td>ride the doc as data-URIs — zero extra round-trips, offline-safe, no per-file ACLs</td></tr>
     </tbody></table>
@@ -379,7 +377,7 @@ layer.st_Style_Template__c                 <span class="c">// 1. layer link</spa
         .st_Style_Template__c               <span class="c">// 2. object-config link</span>
 ?? orgDefaultId                             <span class="c">// 3. cached in GIS config CMT</span>
 ?? [SELECT Id FROM Map_Style_Template__c
-    WHERE st_Imported_Source_Id__c='ST_DEFAULT'] <span class="c">// 4. shipped default</span></pre>
+    WHERE st_Provided_By__c='Sitetracker'] <span class="c">// 4. shipped default (via its shipped MOC link)</span></pre>
       <span class="note">Two meanings kept distinct: the <b>resolved</b> template above (what the map paints,
       what the switcher pins to top) vs the org-wide <code>st_Status__c='Active'</code> lifecycle state.
       Status is checked at <b>link time only</b> — an Archived template keeps resolving for layers that
@@ -388,8 +386,7 @@ layer.st_Style_Template__c                 <span class="c">// 1. layer link</spa
     <tr>
       <td><b>Is this template editable by me?</b></td>
       <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">editable =
-     t.st_Provided_By__c != 'Sitetracker'        <span class="c">// shipped ST Default — never edited in place; clone to edit (decided)</span>
-  && t.st_Imported_From__c == null                 <span class="c">// ArcGIS/Vetro import lock (clone lifts it)</span>
+     t.st_Provided_By__c == 'Organization'       <span class="c">// ONE rule: shipped + imported templates are read-only; clone stamps Organization</span>
   && t.st_Status__c != 'Archived'           <span class="c">// unarchive first</span>
   && FeatureManagement.checkPermission('st_GISLink_ManageStyleTemplate')
   && [SELECT HasEditAccess FROM UserRecordAccess
@@ -403,8 +400,8 @@ layer.st_Style_Template__c                 <span class="c">// 1. layer link</spa
 </div></div>
 
 <!-- ============================== 3. FORMAT ============================== -->
-<h2><span class="n">3</span>Format — authoring model vs the compiled contract</h2>
-<p class="lede">Admins author the <b>object graph</b>; clients only ever see the <b>compiled
+<h2><span class="n">3</span>Format — the record IS the contract</h2>
+<p class="lede">Admins author the record; clients read the same record — scalar fields + the per-value JSON — and build renderers client-side (dropped compiled doc, 12 Aug). Below, the legacy framing: <b>compiled
 document</b> — validated, inheritance-resolved, Esri-renderer semantics (so ArcGIS
 imports map near-losslessly and mobile's existing types already match).</p>
 
@@ -534,7 +531,7 @@ imports map near-losslessly and mobile's existing types already match).</p>
   </table></div>
   <p class="note" style="margin:10px 0 0"><b>Verify-at-build:</b> CIM symbols through the ArcGIS
   print/export service; CIM swatches in any legend path that reads the ArcGIS renderer directly
-  (our legend derives from the compiled doc, so it is already immune); iOS icon rendering on 10.3.1.</p>
+  (our legend derives from the same template records, so it is already immune); iOS icon rendering on 10.3.1.</p>
 </div></div>
 
 <!-- ============================== 4. PERMISSIONS & PACKAGING ============================== -->
@@ -566,7 +563,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
     <b style="font-size:13px">FLS &amp; per-template access</b>
     <table style="margin-top:8px"><tbody>
       <tr><td>Record access</td><td>OWD Public Read (internal); Write/Admin via <code>__Share</code> rows, two custom rowCauses. UI asks <code>UserRecordAccess.HasEditAccess</code> — never re-implements sharing math</td></tr>
-      <tr><td>Read-only fields</td><td><code>st_Published_Style__c</code> — compiler-only write (documented system-context exception; everything else USER_MODE)</td></tr>
+      <tr><td>Read-only fields</td><td>none left — validation runs in the save service (USER_MODE); <code>st_Provided_By__c</code> is set once at creation and never editable</td></tr>
       <tr><td>Admin role grants</td><td>SF system administrators only (ModifyAllData check in service)</td></tr>
     </tbody></table>
   </div></div>
@@ -575,7 +572,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
     <table style="margin-top:8px"><tbody>
       <tr><td>Role</td><td><b>Consumers only</b> — never the manager permset</td></tr>
       <tr><td>The trap</td><td>External OWD defaults to <b>Private</b> regardless of internal Public Read — object Read alone won't show them template records</td></tr>
-      <tr><td>The answer</td><td>The compiled-document delivery read (Active docs only) runs as a <b>documented system-context read</b>: published, validated, non-sensitive artifact. No packaged external sharing rules, works for SCP now and mobile later. Closes the prior-pack Q27 SCP miss</td></tr>
+      <tr><td>The answer</td><td>The template delivery read (Active templates only) runs as a <b>documented system-context read</b>: validated, non-sensitive styling records. No packaged external sharing rules, works for SCP now and mobile later. Closes the prior-pack Q27 SCP miss</td></tr>
     </tbody></table>
   </div></div>
 </div>
@@ -679,6 +676,9 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (<code>buildStyleRenderer</code>). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
+<tr><td>12 Aug · Darshan</td><td><b><code>st_Imported_Source_Id__c</code> dropped</b> <span class="tag ok">final</span></td><td>Re-sync happens on a layer, and the layer's <code>st_Style_Template__c</code> IS the template forked from its source — the association already exists. Orphaned-fork edge (user switched templates): re-import forks fresh, accepted</td></tr>
+<tr><td>12 Aug · Darshan</td><td><b>Provenance merged into ONE picklist</b> — <code>st_Provided_By__c</code>: Sitetracker | ArcGIS | Vetro | KML | Organization <span class="tag ok">final</span></td><td>The two lock fields encoded mutually exclusive states — one dimension pretending to be two. One rule replaces both locks: editable ⇔ Organization; clones stamp Organization (lock-lift for free)</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Styling mode is a TEMPLATE field</b> — <code>st_Styling_Mode__c</code> joins the scalar fields; layer objects gain exactly ONE field (<code>st_Style_Template__c</code>) <span class="tag ok">final</span></td><td>"Why on Map Layer? It can be part of the template" — accepted: a template IS a look; different look = different template (copy-on-write). Layer-side mode split one appearance across two sources of truth, and the 12 Aug notification pattern already handles mode edits like any other shared edit. Reload persistence comes free (it's on the record)</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>One template lookup per layer object</b> — the per-geometry triplets removed <span class="tag ok">final</span></td><td>A <code>Map_Layer__c</code> is one asset type on Sitetracker (single MOC lookup, one <code>Layer_Type__c</code>) → one geometry. The triplet existed only for mixed-geometry file uploads; those now style matching-geometry children and default the rest</td></tr>
 <tr><td>12 Aug · Darshan</td><td><b>Scalars become typed fields; JSON keeps only the value list</b> (<code>st_Value_Styles__c</code>, ex Style_Definition) <span class="tag ok">final</span></td><td>Team suggestion (store the Simple/Categorical-overlapping attributes as individual fields OR one common-JSON field): <b>individual fields chosen</b> — a common-JSON field would still parse on every read and could still hold a typo'd key or malformed hex, while real fields make those states unrepresentable (picklist, Number, hex validation rule) and get platform validation, history and reports. The 10% opacity floor becomes a validation rule. Per-value styles are N slots and must stay JSON — but at the 100-value cap that's ~20–35 KB vs the 131 KB limit (4–5× headroom), because icons never ride the JSON (asset-id references only; renditions live on asset records)</td></tr>
@@ -741,13 +741,10 @@ means the publish/save server logic — users never write those fields directly.
 <thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
 <tr><td><code>Name</code></td><td>What shows in every picker</td><td>Create / rename · user</td></tr>
 <tr><td><code>st_Status__c</code></td><td>Draft (invisible to layers) / Active (usable) / Archived (read-only history)</td><td>First publish sets Active; archive/unarchive actions · user</td></tr>
-<tr><td><code>st_Provided_By__c</code></td><td>Is this the shipped Sitetracker default (never edited in place — clone to edit) or org-created?</td><td>Once, at creation · seed script or create flow; never changes</td></tr>
-<tr><td><code>st_Imported_From__c</code></td><td>Is this a locked mirror of vendor styling (ArcGIS/Vetro/KML)? Drives the edit lock + the re-sync "sync styles too" offer</td><td>Set at import; cleared on clone (the clone is yours to edit)</td></tr>
+<tr><td><code>st_Provided_By__c</code></td><td>The ONE provenance field (merged 12 Aug): Sitetracker | ArcGIS | Vetro | KML | Organization. One rule replaces both old locks: <b>editable ⇔ Organization</b>. Also drives the re-sync "sync styles too" offer (vendor values)</td><td>Once, at creation · seed/import/create flow; never changes; clones stamp Organization</td></tr>
 <tr><td><code>st_Geometry_Type__c</code></td><td>Which geometry this template styles — filters pickers so a point template never appears on a line layer</td><td>Once, at creation · user; immutable</td></tr>
 <tr><td><code>st_Is_Organization_Default__c</code></td><td>The org-wide fallback tier in precedence ("layer has no template → use this")</td><td>Admin toggle in settings; a trigger keeps exactly one true</td></tr>
 <tr><td><code>st_Value_Styles__c</code></td><td>ONLY the per-value overrides (variable cardinality forces JSON). Everything single-valued — shape, size, fill, outline, layer opacity, offset, label settings — is a typed <b>field</b> (see row below), so Simple mode involves zero JSON</td><td>Every builder Save · user via service</td></tr>
-<tr><td><code>st_Published_Style__c</code></td><td>The resolved document the map draws — inheritance flattened, opacity pre-multiplied, icons embedded. Staleness &amp; publish conflicts use the record's standard <code>SystemModstamp</code> — no custom field</td><td>Only at Publish · compiler</td></tr>
-<tr><td><code>st_Imported_Source_Id__c</code></td><td>"Have we already imported this ArcGIS layer's styling?" — re-import matches here instead of duplicating</td><td>At import · import flow (External Id)</td></tr>
 <tr><td><code>st_Styling_Mode__c</code> (Simple/Categorical) · <code>st_Symbol_Shape__c</code> · <code>st_Symbol_Size__c</code> · <code>st_Fill_Color__c</code> · <code>st_Outline_Color__c</code> · <code>st_Outline_Width__c</code> · <code>st_Layer_Opacity__c</code> · <code>st_Offset_X/Y__c</code> · <code>st_Label_Field__c</code> · <code>st_Label_Min_Zoom__c</code> · <code>st_Label_Halo_Color__c</code></td><td>The common base both modes inherit from, as typed fields: platform validation replaces compiler checks (the 10% opacity floor is a validation rule; colours are hex-validated; shape is a picklist — invalid values are impossible, not caught)</td><td>Builder edits · user</td></tr>
 <tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
 </tbody></table></div>
@@ -778,14 +775,14 @@ means the publish/save server logic — users never write those fields directly.
 <h2><span class="n">R4</span>When things happen — the workflows, end to end</h2>
 <div class="card"><div class="scroll"><table>
 <thead><tr><th>Flow</th><th>What happens, in order</th></tr></thead><tbody>
-<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Value_Styles__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, rebuilds the asset-usage rows, Status→Active</td></tr>
+<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder → <b>Save = the whole lifecycle</b> (publish collapsed into save, 12 Aug): the service validates (USER_MODE), writes the scalar fields + <code>st_Value_Styles__c</code>, rebuilds the asset-usage rows; first save to Active makes it pickable</td></tr>
 <tr><td><b>Apply / switch on a layer</b></td><td>Sets the layer's <code>st_Style_Template__c</code> lookup — the template (incl. its Simple/Categorical mode) fully describes the look. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
-<tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Imported_From__c=ArcGIS</code>, <code>st_Imported_Source_Id__c</code> set) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
+<tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Provided_By__c=ArcGIS</code>) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
 <tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer gets the org default template (ST Default: 3 colours — sites / segments / areas) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
 <tr><td><b>Edit a template others use</b></td><td>Publish updates the shared doc. Other sessions viewing affected layers get "this template was updated while you were away — load the latest / keep viewing yours" — never a silent restyle. The same message covers "someone published while you were editing"</td></tr>
 <tr><td><b>Delete an icon</b></td><td>Allowed only when no usage rows point at it — otherwise the platform refuses (Restrict) and the UI shows "in use by N templates"</td></tr>
 <tr><td><b>Delete / archive a template</b></td><td>Blocked while any layer links it: row-level delete AND archive controls disabled (bulk bar + right-click), "in use" badge explains why. Hard delete only at zero references</td></tr>
-<tr><td><b>Re-sync an ArcGIS layer</b></td><td>The only moment source-styling changes can surface (no auto-detection exists) → sync flow offers "sync styles too": update the forked template from source, or keep the current one</td></tr>
+<tr><td><b>Re-sync an ArcGIS layer</b></td><td>The only moment source-styling changes can surface (no auto-detection exists) → the layer's own <code>st_Style_Template__c</code> IS the fork (no source-id field needed) → sync flow offers "sync styles too": update it from source, or keep it</td></tr>
 </tbody></table></div></div>
 
 <h2><span class="n">R5</span>Sample data — what real records look like (illustrative only)</h2>
@@ -798,13 +795,10 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <thead><tr><th>Field</th><th>① Shipped default</th><th>② Forked from ArcGIS</th><th>③ Org-created (cloned from ①), still draft</th></tr></thead><tbody>
 <tr><td><code>Name</code></td><td>Sitetracker Default</td><td>Fiber Backbone — ArcGIS</td><td>Splice Points by Status</td></tr>
 <tr><td><code>st_Status__c</code></td><td>Active</td><td>Active</td><td><b>Draft</b> — invisible to layer pickers</td></tr>
-<tr><td><code>st_Provided_By__c</code></td><td><b>Sitetracker</b> — never edited in place; clone to edit</td><td>Organization</td><td>Organization</td></tr>
-<tr><td><code>st_Imported_From__c</code></td><td>—</td><td><b>ArcGIS</b> — locked mirror; re-sync offers "sync styles too"</td><td>—</td></tr>
+<tr><td><code>st_Provided_By__c</code></td><td><b>Sitetracker</b> — read-only; clone to edit</td><td><b>ArcGIS</b> — read-only fork marker; drives "sync styles too"</td><td>Organization — the only editable value</td></tr>
 <tr><td><code>st_Geometry_Type__c</code></td><td>— (all three, the one exception)</td><td>Line</td><td>Point</td></tr>
 <tr><td><code>st_Is_Organization_Default__c</code></td><td><b>true</b> (trigger keeps it the only true)</td><td>false</td><td>false</td></tr>
 <tr><td><code>st_Value_Styles__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
-<tr><td><code>st_Published_Style__c</code></td><td>compiled doc, v3</td><td>compiled doc, v1</td><td><b>null</b> — never published</td></tr>
-<tr><td><code>st_Imported_Source_Id__c</code></td><td>—</td><td><span class="mono">arcgis:svc/FiberBackbone/2</span> — re-import matches here</td><td>—</td></tr>
 </tbody></table></div>
 
 <h4>③’s scalar fields (Simple mode = no JSON at all): shape=circle · size=10 · fill=#00847C · outline=#FFFFFF/1.5 · opacity=0.9 · label=Name, minZoom 13. And inside <code>st_Value_Styles__c</code> — only the per-value list:</h4>
