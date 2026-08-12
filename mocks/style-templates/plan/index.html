@@ -825,6 +825,24 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 }
 <span class="c">// ~150–250 chars per value → 100-value cap ≈ 20–35 KB vs the 131 KB field limit: 4–5× headroom</span></pre>
 
+<h4>Field → value, side by side: the SAME fields in a Simple vs a Categorical template</h4>
+<div class="scroll"><table>
+<thead><tr><th>Field</th><th>ⓐ Simple — "Handholes — Teal"</th><th>ⓑ Categorical — "Splice Points by Status"</th></tr></thead><tbody>
+<tr><td><code>st_Styling_Mode__c</code></td><td><b>Simple</b></td><td><b>Categorical</b></td></tr>
+<tr><td><code>st_Geometry_Type__c</code></td><td>Point <span class="note">(derived from the layer's MOC)</span></td><td>Point <span class="note">(derived)</span></td></tr>
+<tr><td><code>st_Symbol_Shape__c</code></td><td>circle — <b>the whole look</b></td><td>circle — <b>the base every value inherits</b></td></tr>
+<tr><td><code>st_Symbol_Size__c</code></td><td>10</td><td>10 — a value overrides only if its entry says so</td></tr>
+<tr><td><code>st_Fill_Color__c</code></td><td>#00847C — everything draws this colour</td><td>#00847C — used by values with <i>no</i> fill override (e.g. "In Progress")</td></tr>
+<tr><td><code>st_Outline_Color__c</code> / <code>st_Outline_Width__c</code></td><td>#FFFFFF / 1.0</td><td>#FFFFFF / 1.0 — inherited by all values</td></tr>
+<tr><td><code>st_Layer_Opacity__c</code></td><td>0.90</td><td>0.90 — applies to the whole layer either way</td></tr>
+<tr><td><code>st_Icon_Asset__c</code></td><td>→ <span class="mono">MSA-0001</span> "vault" — draw the icon instead of the shape <span class="note">(hard FK, Restrict)</span></td><td>— <span class="note">per-value icons don't use this field; they ride the JSON as <code>iconAssetId</code> soft links</span></td></tr>
+<tr><td><code>st_Label_Field__c</code> / <code>st_Label_Min_Zoom__c</code> / halo</td><td>Name / 13 / #FFFFFF</td><td>Name / 13 / #FFFFFF</td></tr>
+<tr><td><code>st_Value_Styles__c</code></td><td><b>null — Simple needs no JSON at all</b></td><td>the JSON above: <code>representBy</code> + sparse per-value entries; "Blocked" carries <code>iconAssetId: MSA-0002</code></td></tr>
+</tbody></table></div>
+<p class="note" style="margin:8px 0 0">Reading the two columns together: Categorical is not a different
+data shape — it's the Simple base <i>plus</i> a value list. Switching a template's mode changes which
+parts the renderer reads, never where anything is stored.</p>
+
 <h4><code>Map_Style_Asset__c</code> — the org icon library (shared, not per-template)</h4>
 <div class="scroll"><table>
 <thead><tr><th></th><th><code>Name</code></th><th><code>st_Asset_Type__c</code></th><th><code>st_File_Checksum__c</code></th><th>Referenced by</th></tr></thead><tbody>
