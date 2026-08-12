@@ -125,7 +125,7 @@ footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-si
 <header class="hero">
   <span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4L21 8l-9 4.6L3 8z"/><path d="M3.4 12.2L12 16.6l8.6-4.4M3.4 16.1L12 20.5l8.6-4.4"/></svg></span>
   <div>
-    <div class="kicker">Sitetracker · GIS Link · SIT-58366</div>
+    <div class="kicker">Sitetracker · GIS Link · the styling epic</div>
     <h1>GIS Map Style Templates — Technical Implementation Plan</h1>
   </div>
 </header>
@@ -146,10 +146,10 @@ footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-si
 <!-- ============================== 1. OBJECT LINKING ============================== -->
 <h2><span class="n">1</span>Object linking — the schema and how a layer finds its style</h2>
 <p class="lede"><b>Exactly one new field — the template lookup</b> — on each of the two existing objects
-(corrected 12 Aug, Darshan): a <code>Map_Layer__c</code> is one asset type on Sitetracker — one MOC
+(corrected 12 Aug, Engineering): a <code>Map_Layer__c</code> is one asset type on Sitetracker — one MOC
 lookup, one <code>Layer_Type__c</code> — hence one geometry, so per-geometry lookup triplets were
 over-modelling. The one anomaly is a mixed-geometry <b>file upload</b> (points+lines in one KML,
-<code>FileLayerHandler.js:300</code> renders children off one record): the applied template styles
+the file-layer handler renders children off one record): the applied template styles
 the children matching its geometry, remaining geometries use the org default — noted below.</p>
 
 <div class="card"><div class="erdwrap">
@@ -234,7 +234,7 @@ the children matching its geometry, remaining geometries use the org default —
       <span class="step">legacy Layer_Styling__c</span>
     </div>
     <p class="note" style="margin:10px 0 0">Exactly one winner per geometry. State overlays apply
-    <i>after</i> (PT status → selection → variance) — write order fixed by SIT-66034 so the two
+    <i>after</i> (PT status → selection → variance) — write order fixed by the renderer write-order story so the two
     features never fight over <code>layer.renderer</code>.</p>
   </div></div>
   <div class="card"><div class="pad">
@@ -262,11 +262,11 @@ the children matching its geometry, remaining geometries use the org default —
     <thead><tr><th>Candidate</th><th>Where (evidence)</th><th></th><th>Why rejected as the store · what survives</th></tr></thead>
     <tbody>
       <tr><td><code>Map_Layer__c.Layer_Styling__c</code><br><span class="note">the existing 128 KB style blob</span></td>
-        <td class="mono">Layer_Styling__c.field-meta.xml:10<br>SitetrackerLayerDmlService.cls:365,386</td>
+        <td class="mono">Layer_Styling__c.field-meta.xml:10<br>the layer DML service</td>
         <td><span class="tag warn">rejected</span></td>
         <td><b>Per-layer by construction</b> — no reuse across layers is the exact problem; no versioning, no sharing, unvalidated JSON. <span class="tag ok">survives</span> as the flag-OFF fallback + migration source</td></tr>
       <tr><td><code>GIS_Sync_Template__c</code><br><span class="note">extend it with style fields</span></td>
-        <td class="mono">objects/GIS_Sync_Template__c/<br>IsDefault__c.field-meta.xml:5-7<br>SyncTemplateSelector.cls:44</td>
+        <td class="mono">objects/GIS_Sync_Template__c/<br>IsDefault__c.field-meta.xml:5-7<br>the sync-template selector</td>
         <td><span class="tag warn">rejected</span></td>
         <td>Different domain (sync field mappings) with its own children, permset and live customer data — overloading couples two features' upgrade paths. <span class="tag ok">survives</span> as the <b>pattern</b>: single-default trigger, selector shape, permset shape</td></tr>
       <tr><td><code>Map_Object_Configuration__c</code><br><span class="note">as-built colour fields precedent</span></td>
@@ -278,7 +278,7 @@ the children matching its geometry, remaining geometries use the org default —
         <td><span class="tag warn">rejected</span></td>
         <td>Single-purpose mobile colour config — no graph, no lifecycle</td></tr>
       <tr><td>Custom Metadata Type<br><span class="note">the PT-status-colours pattern</span></td>
-        <td class="mono">Production_Tracking_Status_Color__mdt<br>StGISProductionTrackingController.cls:1613</td>
+        <td class="mono">Production_Tracking_Status_Color__mdt<br>the PT controller</td>
         <td><span class="tag warn">rejected</span></td>
         <td><b>The authoring UX we are escaping</b>: every admin save = async <code>Metadata.Operations.enqueueDeployment</code>; no record sharing; layers cannot Restrict-lookup a CMT. <span class="tag ok">survives</span> as one protected record — the kill-switch only</td></tr>
       <tr><td>Other template objects<br><span class="note">Project/Job/Activity/Budget templates</span></td>
@@ -286,7 +286,7 @@ the children matching its geometry, remaining geometries use the org default —
         <td><span class="tag warn">rejected</span></td>
         <td>Domain-specific parents — semantic abuse. <code>Project_Template_Version__c</code> noted as the versioned-clone precedent if version rows ever return</td></tr>
       <tr><td>ContentVersion / Documents<br><span class="note">as the structured store</span></td>
-        <td class="mono">MapLayerService.cls:52-266</td>
+        <td class="mono">the map-layer service</td>
         <td><span class="tag warn">rejected</span></td>
         <td>No queryability, FLS, lookups or sharing granularity for rules/stops. <span class="tag ok">survives</span> for what files are good at: <b>asset originals</b></td></tr>
       <tr><td>Attachment / Files as the asset registry<br><span class="note">asked 12 Aug — replace Map_Style_Asset__c?</span></td>
@@ -553,7 +553,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
       <td>cloned <i>structurally</i> from <code>st_GISLink_SyncTemplateManager</code> (the repo's direct precedent): CRUD on the 4 new objects, class access to new controller/service, asset upload/delete node, + the custom permission below</td>
       <td>GIS admins who author templates</td></tr>
     <tr><td><span class="tag new">NEW</span> custom permission <code>st_GISLink_ManageStyleTemplate</code></td>
-      <td>the in-code authoring gate — <code>FeatureManagement.checkPermission</code> (existing pattern, <code>StGISLinkApp.cls:63</code>)</td>
+      <td>the in-code authoring gate — <code>FeatureManagement.checkPermission</code> (existing pattern, <code>the GIS app controller</code>)</td>
       <td>granted inside the new permset</td></tr>
     <tr><td><span class="tag exist">EXTEND</span> <code>Sitetracker_Maps_User</code> · <code>st_GISLink_Viewer</code></td>
       <td>object Read + field Read on the 4 new objects. Apply = layer edit + template read — <b>no manage perm needed to apply a published template</b></td>
@@ -613,7 +613,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
 <h2><span class="n">5</span>Phases (web-only v1)</h2>
 <div class="phases">
   <div class="ph"><div class="num">PHASE 0</div><div class="nm">Prerequisites</div>
-    <div class="note">renderer write-order (SIT-66034) · verify-reads of the named classes · answer T1 (template association)</div></div>
+    <div class="note">renderer write-order the renderer write-order story · verify-reads of the named classes · answer T1 (template association)</div></div>
   <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
     <div class="note">2 objects (template + asset) · 1 lookup on layer &amp; MOC · st_Icon_Asset__c Restrict + delete-scan trigger · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
   <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
@@ -632,11 +632,11 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
     <div class="note">ordering invariants · concurrency · XSS/SVG · perf @2,000 sites</div></div>
 </div>
 <div class="callout" style="margin-top:14px"><b>Phases 1–5 have no design dependency — backend can
-start immediately.</b> Only Phase 6 waits on the design action items (SIT-58366 comment 192070 — all decided 12 Aug, screens in progress with design).</div>
+start immediately.</b> Only Phase 6 waits on the design action items (the epic's design-items tracker — all decided 12 Aug, screens in progress with design).</div>
 
 <!-- ============================== 6. STATUS ============================== -->
 <h2><span class="n">6</span>Decision status — after the 12 Aug design sync</h2>
-<p class="lede">The 12 Aug call (Darshan · Arinjit · Chandrasekhar) walked every open design question
+<p class="lede">The 12 Aug call (Engineering · Design · Design) walked every open design question
 and decided all of them — including <b>two reversals</b> of earlier positions (no detach in v1;
 fonts are IN v1). The full dated decision log, with what was superseded and why, is on the
 <a href="#" onclick="showPage('refs');return false"><b>References page</b></a>.</p>
@@ -648,12 +648,12 @@ fonts are IN v1). The full dated decision log, with what was superseded and why,
     <tr><td class="mono">T1</td><td><b>Template association:</b> linked <b>per layer</b> (as designed) or scoped <b>per source</b>? <span class="tag warn">one word settles it</span></td></tr>
     <tr><td class="mono">T4</td><td><b>Colour library:</b> <span class="tag ok">CLOSED 12 Aug — frozen.</span> Three tiers, one field of schema: "used in this template" = <b>derived</b> (zero storage) · "my recents" = <b>localStorage</b> (zero schema) · org brand palette = <b>one TextArea(255) on a hierarchy Custom Setting</b>, UI-capped at 24 (forced curation). Imports do NOT auto-feed the palette — only an explicit "add to org palette" writes it</td></tr>
     <tr><td class="mono">T7</td><td><b>Permissions timing:</b> <span class="tag ok">CLOSED 12 Aug</span> — v1 ships coarse: <b>System Administrator full access to both objects</b> via the packaged permset; no sharing UI in v1. The record-sharing model (OWD/<code>__Share</code>/custom permission) stays in the schema ready for finer grants later, shipped as required</td></tr>
-    <tr><td class="mono">T8</td><td><b>Engineering verifications:</b> <span class="tag ok">ALL DONE 12 Aug, from code.</span> Panel width: no conflict — the 340px is the floating layers-control (<code>LayersPanel.jsx:24</code>), no docked right-panel standard exists → design's 280 stands. Dash math correct (<code>dashArrayFor</code>: len−physW / gap+physW compensates cap extension exactly; preview-only, live map uses CIM). Verify-reads: all targets exist; sync-template trigger is org-wide single-default — ours must be per-geometry, adapt not copy. Storage measured: worst-case 100-value JSON = <b>9.1 KB (14× headroom)</b>; renditions capped at the 128px set ≈ 48 KB (2.7×)</td></tr>
+    <tr><td class="mono">T8</td><td><b>Engineering verifications:</b> <span class="tag ok">ALL DONE 12 Aug, from code.</span> Panel width: no conflict — the 340px is the floating layers-control (the layers-control component), no docked right-panel standard exists → design's 280 stands. Dash math correct (the dash-compensation function: len−physW / gap+physW compensates cap extension exactly; preview-only, live map uses CIM). Verify-reads: all targets exist; sync-template trigger is org-wide single-default — ours must be per-geometry, adapt not copy. Storage measured: worst-case 100-value JSON = <b>9.1 KB (14× headroom)</b>; renditions capped at the 128px set ≈ 48 KB (2.7×)</td></tr>
   </tbody></table>
 </div></div>
 
 <div class="card"><div class="pad">
-  <b style="font-size:13px">Decided 12 Aug — design action items (Arinjit)</b>
+  <b style="font-size:13px">Decided 12 Aug — design action items (Design)</b>
   <table style="margin-top:9px"><tbody>
     <tr><td>Loading state — dim panel + circular loader, interactions blocked</td></tr>
     <tr><td>Empty-layer message ("no records to style yet")</td></tr>
@@ -684,36 +684,36 @@ reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
 <tr><td>12 Aug · code-verified</td><td><b>All four engineering checks done</b>: 280px panel stands (no docked-panel standard; 340 is the layers-control popover) · prototype dash compensation math correct · verify-read targets all exist (single-default trigger needs per-geometry adaptation) · storage measured: 100-value JSON = 9.1 KB (14×), renditions cap = 128px set (48 KB) <span class="tag ok">final</span></td><td>The Phase-1 "measure first" gate is satisfied before Phase 1 even starts</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>T4 closed &amp; frozen: colour library = derived + localStorage + one Custom-Setting TextArea(255), capped 24</b> <span class="tag ok">final</span></td><td>A colour list is not an entity (no object); CMTs need metadata deploys (rejected); the 255-char cap forces curation. Imports don't auto-feed — explicit "add to org palette" only. Net new schema for the whole colour feature: one field on a setting</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>T7 closed: v1 permissions are coarse</b> — SysAdmin full access on both objects; sharing UI later as required <span class="tag ok">final</span></td><td>The sharing model stays in the schema unused-but-ready; v1 protections beyond admin gating are structural (Sitetracker lock VR, external zero record access)</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>T4 closed &amp; frozen: colour library = derived + localStorage + one Custom-Setting TextArea(255), capped 24</b> <span class="tag ok">final</span></td><td>A colour list is not an entity (no object); CMTs need metadata deploys (rejected); the 255-char cap forces curation. Imports don't auto-feed — explicit "add to org palette" only. Net new schema for the whole colour feature: one field on a setting</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>T7 closed: v1 permissions are coarse</b> — SysAdmin full access on both objects; sharing UI later as required <span class="tag ok">final</span></td><td>The sharing model stays in the schema unused-but-ready; v1 protections beyond admin gating are structural (Sitetracker lock VR, external zero record access)</td></tr>
 <tr><td>12 Aug · code-confirmed</td><td><b>T1 closed: template association is PER LAYER</b> <span class="tag ok">final</span></td><td>"Source" is a formula field, not an entity — no record for a source-scoped lookup; ArcGIS delivers styling per sub-layer with per-sub-layer geometry; the legacy contract is per-layer; per-geometry templates make per-source impossible without forcing same-geometry layers identical</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Staff-review rulings</b> — 11 findings dispositioned <span class="tag ok">final</span></td><td>Delete-scan = chunked in-transaction (Batch Apex can't block a sync delete); JSON validation moves to the trigger (every write path) with consumer defensive-parse as net; legacy <code>Layer_Styling__c</code> divergence accepted for v1 (no write-back); shipped templates arrive UNLINKED (kills the upgrade-idempotency risk); external users get zero record access — allowlisted render-DTO only; renditions upsized to 131 KB; <code>Provided_By</code> → Text(40) (open-ended vendors, lock only on 'Sitetracker'); no-draft-staging stated (clone to experiment); SystemModstamp coarseness accepted</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Usage junction dropped — final schema is 2 objects</b>: Template + Asset <span class="tag ok">final</span></td><td>"Do we need it?" — no: its rows were code-maintained at every save, so the platform-Restrict guarantee was only as strong as the sync code, and it taxed frequent saves to accelerate a rare check. Replaced by <code>st_Icon_Asset__c</code> (Lookup Restrict — the single-valued Simple icon, a real FK) + a before-delete trigger that scans template JSON for per-value references (runs on every delete path incl. API; reads the truth directly, cannot drift; one pass also computes the library's "in use" badges)</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays</b> <span class="tag ok">final</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (<code>buildStyleRenderer</code>). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b><code>st_Imported_Source_Id__c</code> dropped</b> <span class="tag ok">final</span></td><td>Re-sync happens on a layer, and the layer's <code>st_Style_Template__c</code> IS the template forked from its source — the association already exists. Orphaned-fork edge (user switched templates): re-import forks fresh, accepted</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Provenance merged into ONE picklist</b> — <code>st_Provided_By__c</code>: Sitetracker | ArcGIS | Vetro | KML | Organization <span class="tag ok">final</span></td><td>The two lock fields encoded mutually exclusive states — one dimension pretending to be two. Lock rule (corrected same day): read-only ⇔ Sitetracker — only the shipped template is protected; vendor forks stay fully editable per the fork-on-import call decision; clones stamp Organization</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Styling mode is a TEMPLATE field</b> — <code>st_Styling_Mode__c</code> joins the scalar fields; layer objects gain exactly ONE field (<code>st_Style_Template__c</code>) <span class="tag ok">final</span></td><td>"Why on Map Layer? It can be part of the template" — accepted: a template IS a look; different look = different template (copy-on-write). Layer-side mode split one appearance across two sources of truth, and the 12 Aug notification pattern already handles mode edits like any other shared edit. Reload persistence comes free (it's on the record)</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>One template lookup per layer object</b> — the per-geometry triplets removed <span class="tag ok">final</span></td><td>A <code>Map_Layer__c</code> is one asset type on Sitetracker (single MOC lookup, one <code>Layer_Type__c</code>) → one geometry. The triplet existed only for mixed-geometry file uploads; those now style matching-geometry children and default the rest</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Scalars become typed fields; JSON keeps only the value list</b> (<code>st_Value_Styles__c</code>, ex Style_Definition) <span class="tag ok">final</span></td><td>Team suggestion (store the Simple/Categorical-overlapping attributes as individual fields OR one common-JSON field): <b>individual fields chosen</b> — a common-JSON field would still parse on every read and could still hold a typo'd key or malformed hex, while real fields make those states unrepresentable (picklist, Number, hex validation rule) and get platform validation, history and reports. The 10% opacity floor becomes a validation rule. Per-value styles are N slots and must stay JSON — but at the 100-value cap that's ~20–35 KB vs the 131 KB limit (4–5× headroom), because icons never ride the JSON (asset-id references only; renditions live on asset records)</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Dropped <code>st_Published_Checksum__c</code> too</b> <span class="tag ok">final</span></td><td>"Why is it even needed when each template is a record" — it isn't: the standard <code>SystemModstamp</code> (free on every record) natively answers both "is my cache stale" and "did someone publish while I was editing". A SHA-256 added a compiler step and a field for questions the platform already answers</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Default templates ship per asset type with their Map Object Configuration</b> <span class="tag ok">final</span></td><td>MOCs are already shipped per supported asset type — the default template rides the same post-install path and is linked on the shipped MOC, instead of a separate standalone seed</td></tr>
-<tr><td>12 Aug · Darshan</td><td><b>Dropped <code>st_Published_Version__c</code> and <code>st_Cloned_From_Template__c</code></b> <span class="tag ok">final</span></td><td>The checksum already answers both "is my cache stale" and "did someone publish while I was editing" — a counter added nothing; clone lineage had no consumer (no history UI, no behaviour reads it). Clone-to-edit and copy-on-write remain as actions</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Staff-review rulings</b> — 11 findings dispositioned <span class="tag ok">final</span></td><td>Delete-scan = chunked in-transaction (Batch Apex can't block a sync delete); JSON validation moves to the trigger (every write path) with consumer defensive-parse as net; legacy <code>Layer_Styling__c</code> divergence accepted for v1 (no write-back); shipped templates arrive UNLINKED (kills the upgrade-idempotency risk); external users get zero record access — allowlisted render-DTO only; renditions upsized to 131 KB; <code>Provided_By</code> → Text(40) (open-ended vendors, lock only on 'Sitetracker'); no-draft-staging stated (clone to experiment); SystemModstamp coarseness accepted</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Usage junction dropped — final schema is 2 objects</b>: Template + Asset <span class="tag ok">final</span></td><td>"Do we need it?" — no: its rows were code-maintained at every save, so the platform-Restrict guarantee was only as strong as the sync code, and it taxed frequent saves to accelerate a rare check. Replaced by <code>st_Icon_Asset__c</code> (Lookup Restrict — the single-valued Simple icon, a real FK) + a before-delete trigger that scans template JSON for per-value references (runs on every delete path incl. API; reads the truth directly, cannot drift; one pass also computes the library's "in use" badges)</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays</b> <span class="tag ok">final</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (the existing client renderer-builder). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b><code>st_Imported_Source_Id__c</code> dropped</b> <span class="tag ok">final</span></td><td>Re-sync happens on a layer, and the layer's <code>st_Style_Template__c</code> IS the template forked from its source — the association already exists. Orphaned-fork edge (user switched templates): re-import forks fresh, accepted</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Provenance merged into ONE picklist</b> — <code>st_Provided_By__c</code>: Sitetracker | ArcGIS | Vetro | KML | Organization <span class="tag ok">final</span></td><td>The two lock fields encoded mutually exclusive states — one dimension pretending to be two. Lock rule (corrected same day): read-only ⇔ Sitetracker — only the shipped template is protected; vendor forks stay fully editable per the fork-on-import call decision; clones stamp Organization</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Styling mode is a TEMPLATE field</b> — <code>st_Styling_Mode__c</code> joins the scalar fields; layer objects gain exactly ONE field (<code>st_Style_Template__c</code>) <span class="tag ok">final</span></td><td>"Why on Map Layer? It can be part of the template" — accepted: a template IS a look; different look = different template (copy-on-write). Layer-side mode split one appearance across two sources of truth, and the 12 Aug notification pattern already handles mode edits like any other shared edit. Reload persistence comes free (it's on the record)</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>One template lookup per layer object</b> — the per-geometry triplets removed <span class="tag ok">final</span></td><td>A <code>Map_Layer__c</code> is one asset type on Sitetracker (single MOC lookup, one <code>Layer_Type__c</code>) → one geometry. The triplet existed only for mixed-geometry file uploads; those now style matching-geometry children and default the rest</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Scalars become typed fields; JSON keeps only the value list</b> (<code>st_Value_Styles__c</code>, ex Style_Definition) <span class="tag ok">final</span></td><td>Team suggestion (store the Simple/Categorical-overlapping attributes as individual fields OR one common-JSON field): <b>individual fields chosen</b> — a common-JSON field would still parse on every read and could still hold a typo'd key or malformed hex, while real fields make those states unrepresentable (picklist, Number, hex validation rule) and get platform validation, history and reports. The 10% opacity floor becomes a validation rule. Per-value styles are N slots and must stay JSON — but at the 100-value cap that's ~20–35 KB vs the 131 KB limit (4–5× headroom), because icons never ride the JSON (asset-id references only; renditions live on asset records)</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Dropped <code>st_Published_Checksum__c</code> too</b> <span class="tag ok">final</span></td><td>"Why is it even needed when each template is a record" — it isn't: the standard <code>SystemModstamp</code> (free on every record) natively answers both "is my cache stale" and "did someone publish while I was editing". A SHA-256 added a compiler step and a field for questions the platform already answers</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Default templates ship per asset type with their Map Object Configuration</b> <span class="tag ok">final</span></td><td>MOCs are already shipped per supported asset type — the default template rides the same post-install path and is linked on the shipped MOC, instead of a separate standalone seed</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Dropped <code>st_Published_Version__c</code> and <code>st_Cloned_From_Template__c</code></b> <span class="tag ok">final</span></td><td>The checksum already answers both "is my cache stale" and "did someone publish while I was editing" — a counter added nothing; clone lineage had no consumer (no history UI, no behaviour reads it). Clone-to-edit and copy-on-write remain as actions</td></tr>
 <tr><td>12 Aug · call</td><td><b>No detach in v1 — at all.</b> Every layer always has a template; users switch, never remove. <span class="tag ok">final</span></td><td>After removal there is no sane fallback for file/KML layers ("what's the default styling?" had no answer); ST Default is the universal floor, and switching to it covers the trial-then-undo case with zero extra UI</td></tr>
-<tr><td>11 Aug · Darshan</td><td>Detach requires a confirmation dialog before snapping to default <span class="tag dead">superseded 12 Aug</span></td><td>Was the answer to "never silently restyle" — made obsolete when detach itself was removed</td></tr>
+<tr><td>11 Aug · Engineering</td><td>Detach requires a confirmation dialog before snapping to default <span class="tag dead">superseded 12 Aug</span></td><td>Was the answer to "never silently restyle" — made obsolete when detach itself was removed</td></tr>
 <tr><td>12 Aug · call</td><td><b>Fonts are IN v1.</b> <span class="tag ok">final</span></td><td>The PRD's "defer map-side application" wording was a typo; service-stream customers explicitly asked for fonts. v1 is web-only so the mobile baked-font limit doesn't bite yet</td></tr>
 <tr><td>11 Aug · plan</td><td>Recommend moving font upload to v2 <span class="tag dead">superseded 12 Aug</span></td><td>Was based on reading the PRD literally (upload with no visible effect)</td></tr>
-<tr><td>12 Aug · call</td><td><b>Point outlines draw OUTSIDE the shape on both platforms</b> — web commits to the image/advanced-symbol (CIM/sprite) path <span class="tag ok">final</span></td><td>Design specced outer deliberately (Arinjit had the prototype drawn that way); cross-platform consistency beats the cheaper centered-ring compromise</td></tr>
+<tr><td>12 Aug · call</td><td><b>Point outlines draw OUTSIDE the shape on both platforms</b> — web commits to the image/advanced-symbol (CIM/sprite) path <span class="tag ok">final</span></td><td>Design specced outer deliberately (Design had the prototype drawn that way); cross-platform consistency beats the cheaper centered-ring compromise</td></tr>
 <tr><td>12 Aug · call</td><td><b>ArcGIS import = fork-on-import.</b> Styling is copied into an editable Sitetracker template applied to the layer; changes never flow back to ArcGIS (no reverse sync in v1); the UI says so <span class="tag ok">final</span></td><td>Sitetracker must hold its own source of truth without ever overwriting the customer's ArcGIS content; reverse sync is a "great problem to have later"</td></tr>
 <tr><td>12 Aug · call</td><td><b>Value list capped at 10 rows</b>; modal journey (paginate/group/filter) only if customers demand it; suggest a coarser field at ~100+ values <span class="tag ok">final</span></td><td>Ship the simple thing first; the 600-service org is real but is better served by "colour by unit code" than by 600 rows</td></tr>
 <tr><td>12 Aug · call</td><td><b>Per-value dash styling stays a feature</b> <span class="tag ok">final</span></td><td>Dash size/caps can encode meaning (short dashes = short units); engineering flags perf limits rather than cutting capability</td></tr>
 <tr><td>12 Aug · call</td><td><b>No label zoom-level control in v1</b> — one system-wide default, easily changed variable <span class="tag ok">final</span></td><td>The value lives in the data format already; exposing a per-template control adds UI for a knob nobody asked to turn yet</td></tr>
 <tr><td>12 Aug · call</td><td><b>Stale-template notification pattern</b>: "updated while you were away — load latest / keep viewing yours" covers both shared-template edits and version conflicts <span class="tag ok">final</span></td><td>One pattern, two situations; avoids both silent restyles and blocking dialogs</td></tr>
 <tr><td>12 Aug · call</td><td><b>Blocked delete: disable the whole row</b> — delete AND archive, in bulk bar and right-click menu; "in use" badge <span class="tag ok">final</span></td><td>You shouldn't be able to archive what layers depend on either; greyed controls + badge explain themselves</td></tr>
-<tr><td>11 Aug · Darshan</td><td><b>KML/KMZ styling is parsed &amp; imported</b> (SIT-66031 Option A committed; notice becomes parse-failure fallback) <span class="tag ok">final</span></td><td>KML files carry styling; silently discarding it surprises users — parse when available, be honest when parsing fails</td></tr>
-<tr><td>11 Aug · Darshan</td><td>Styling mode persists per layer-link <span class="tag dead">superseded 12 Aug</span></td><td>Was justified by "shared templates can differ per layer" — which contradicts "a template IS a look"; see the superseding row above</td></tr>
-<tr><td>11 Aug · Darshan</td><td>Schema simplified 4 → 3 objects (template-as-JSON + asset + usage junction) <span class="tag dead">junction superseded 12 Aug</span></td><td>See R2 below; the junction fell to the same test a day later</td></tr>
-<tr><td>11 Aug · Darshan</td><td><b>Field names made readable</b> (Provided_By/Imported_From, Style_Definition/Published_Style, Styling_Mode…) <span class="tag ok">final</span></td><td>1GP API names are permanent — the only cheap moment to fix names is before Phase 1</td></tr>
+<tr><td>11 Aug · Engineering</td><td><b>KML/KMZ styling is parsed &amp; imported</b> (the committed KML-styling fix committed; notice becomes parse-failure fallback) <span class="tag ok">final</span></td><td>KML files carry styling; silently discarding it surprises users — parse when available, be honest when parsing fails</td></tr>
+<tr><td>11 Aug · Engineering</td><td>Styling mode persists per layer-link <span class="tag dead">superseded 12 Aug</span></td><td>Was justified by "shared templates can differ per layer" — which contradicts "a template IS a look"; see the superseding row above</td></tr>
+<tr><td>11 Aug · Engineering</td><td>Schema simplified 4 → 3 objects (template-as-JSON + asset + usage junction) <span class="tag dead">junction superseded 12 Aug</span></td><td>See R2 below; the junction fell to the same test a day later</td></tr>
+<tr><td>11 Aug · Engineering</td><td><b>Field names made readable</b> (Provided_By/Imported_From, Style_Definition/Published_Style, Styling_Mode…) <span class="tag ok">final</span></td><td>1GP API names are permanent — the only cheap moment to fix names is before Phase 1</td></tr>
 <tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — each is reflected in the schema and workflow sections of this page</td></tr>
 </tbody></table></div></div>
 
@@ -871,11 +871,11 @@ that's the no-detach decision made concrete: the default template is the floor, 
 <a href="#" onclick="showPage('plan');return false">Plan tab</a> carries the schema (field-by-field
 with types, defaults and validation), precedence, permissions, cross-engine limits and phases; this
 References tab carries the complete dated decision log, the field dictionary, the workflows and the
-sample data. Design action items are tracked on epic SIT-58366 (comment 192070).</div>
+sample data. Design action items are tracked on the epic's design-items tracker.</div>
 
 </div><!-- /page-refs -->
 
-<footer>Technical design frozen 2026-08-12 — this page is the reviewer-facing copy and is self-contained (schema, decisions, workflows, sample data across the two tabs). Design action items: epic SIT-58366, comment 192070.</footer>
+<footer>Technical design frozen 2026-08-12 — this page is the reviewer-facing copy and is self-contained (schema, decisions, workflows, sample data across the two tabs). Design action items: the epic's design-items tracker.</footer>
 </div>
 
 <script>
