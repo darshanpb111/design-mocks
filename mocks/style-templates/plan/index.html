@@ -181,9 +181,8 @@ Mixed geometry exists only at the record level; no mixed-geometry UI or renderin
   <text class="f" x="356" y="161">st_Geometry_Type__c (nullable)</text>
   <text class="f" x="356" y="178">st_Is_Organization_Default__c (single, trigger)</text>
   <text class="f" x="356" y="195">st_Published_Style__c  LTA 131,072</text>
-  <text class="f" x="356" y="212">st_Published_Version__c · st_Published_Checksum__c</text>
+  <text class="f" x="356" y="212">st_Published_Checksum__c (SHA-256)</text>
   <text class="f" x="356" y="229">st_Imported_Source_Id__c (ExtId, seed key)</text>
-  <text class="f" x="356" y="246">st_Cloned_From_Template__c (self)</text>
   <text class="lbl" x="356" y="272">sharing: OWD Read · Write/Admin via __Share</text>
 
   <!-- rule -->
@@ -364,7 +363,7 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <table style="margin-top:8px"><tbody>
       <tr><td>Delete-protection</td><td>real FKs with <code>Restrict</code>: a referenced template or in-use asset <b>cannot</b> be hard-deleted — platform-enforced, no JSON scanning</td></tr>
       <tr><td>Publish</td><td><code>SELECT … FOR UPDATE</code> + compile in one transaction — simultaneous publishes serialize</td></tr>
-      <tr><td>Conflict detection</td><td><code>st_Published_Version__c</code> optimistic check: editor sends expected version, mismatch → "someone published v12 while you were editing" (Salesforce API is last-write-wins by default — detection is ours, one comparison)</td></tr>
+      <tr><td>Conflict detection</td><td><code>st_Published_Checksum__c</code> optimistic check: the editor sends the checksum it loaded; mismatch at publish → "someone published while you were editing" (Salesforce API is last-write-wins by default — detection is ours, one comparison)</td></tr>
       <tr><td>Seed</td><td>ST Default upserted post-install by External Id <code>ST_DEFAULT</code> — idempotent, upgrade-safe</td></tr>
     </tbody></table>
   </div></div>
@@ -579,7 +578,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
     <b style="font-size:13px">FLS &amp; per-template access</b>
     <table style="margin-top:8px"><tbody>
       <tr><td>Record access</td><td>OWD Public Read (internal); Write/Admin via <code>__Share</code> rows, two custom rowCauses. UI asks <code>UserRecordAccess.HasEditAccess</code> — never re-implements sharing math</td></tr>
-      <tr><td>Read-only fields</td><td><code>st_Published_Style__c</code> · <code>st_Published_Version__c</code> · <code>st_Published_Checksum__c</code> — compiler-only writes (documented system-context exception; everything else USER_MODE)</td></tr>
+      <tr><td>Read-only fields</td><td><code>st_Published_Style__c</code> · <code>st_Published_Checksum__c</code> — compiler-only writes (documented system-context exception; everything else USER_MODE)</td></tr>
       <tr><td>Admin role grants</td><td>SF system administrators only (ModifyAllData check in service)</td></tr>
     </tbody></table>
   </div></div>
@@ -692,6 +691,7 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>12 Aug · Darshan</td><td><b>Dropped <code>st_Published_Version__c</code> and <code>st_Cloned_From_Template__c</code></b> <span class="tag ok">final</span></td><td>The checksum already answers both "is my cache stale" and "did someone publish while I was editing" — a counter added nothing; clone lineage had no consumer (no history UI, no behaviour reads it). Clone-to-edit and copy-on-write remain as actions</td></tr>
 <tr><td>12 Aug · call</td><td><b>No detach in v1 — at all.</b> Every layer always has a template; users switch, never remove. <span class="tag ok">final</span></td><td>After removal there is no sane fallback for file/KML layers ("what's the default styling?" had no answer); ST Default is the universal floor, and switching to it covers the trial-then-undo case with zero extra UI</td></tr>
 <tr><td>11 Aug · Darshan</td><td>Detach requires a confirmation dialog before snapping to default <span class="tag dead">superseded 12 Aug</span></td><td>Was the answer to "never silently restyle" — made obsolete when detach itself was removed</td></tr>
 <tr><td>12 Aug · call</td><td><b>Fonts are IN v1.</b> <span class="tag ok">final</span></td><td>The PRD's "defer map-side application" wording was a typo; service-stream customers explicitly asked for fonts. v1 is web-only so the mobile baked-font limit doesn't bite yet</td></tr>
@@ -754,10 +754,8 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><code>st_Is_Organization_Default__c</code></td><td>The org-wide fallback tier in precedence ("layer has no template → use this")</td><td>Admin toggle in settings; a trigger keeps exactly one true</td></tr>
 <tr><td><code>st_Style_Definition__c</code></td><td>The editable snapshot the builder loads — sparse per-value overrides, inheritance un-resolved</td><td>Every builder Save · user via service</td></tr>
 <tr><td><code>st_Published_Style__c</code></td><td>The resolved document the map draws — inheritance flattened, opacity pre-multiplied, icons embedded</td><td>Only at Publish · compiler</td></tr>
-<tr><td><code>st_Published_Version__c</code></td><td>"Is my cached copy stale?" — counts publishes, not edits</td><td>+1 each publish · compiler</td></tr>
-<tr><td><code>st_Published_Checksum__c</code></td><td>Cheap "did content actually change?" — skip re-downloads</td><td>Each publish · compiler</td></tr>
+<tr><td><code>st_Published_Checksum__c</code></td><td>Cheap "did content actually change?" — cache validation, and the optimistic publish check ("someone published while you were editing" = the checksum you loaded no longer matches)</td><td>Each publish · compiler</td></tr>
 <tr><td><code>st_Imported_Source_Id__c</code></td><td>"Have we already imported this ArcGIS layer's styling?" — re-import matches here instead of duplicating</td><td>At import · import flow (External Id)</td></tr>
-<tr><td><code>st_Cloned_From_Template__c</code></td><td>Lineage — which template this copy came from (clone-of-default, copy-on-write)</td><td>At clone · clone flow; never changes</td></tr>
 <tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
 </tbody></table></div>
 
@@ -788,7 +786,7 @@ means the publish/save server logic — users never write those fields directly.
 <h2><span class="n">R4</span>When things happen — the workflows, end to end</h2>
 <div class="card"><div class="scroll"><table>
 <thead><tr><th>Flow</th><th>What happens, in order</th></tr></thead><tbody>
-<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Style_Definition__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, bumps version, sets checksum, rebuilds the asset-usage rows, Status→Active</td></tr>
+<tr><td><b>Create a template</b></td><td>New record (Draft) → user edits in the builder (each Save writes <code>st_Style_Definition__c</code>) → Publish: compiler validates, resolves inheritance, clamps opacity, embeds icons → writes <code>st_Published_Style__c</code>, sets the checksum, rebuilds the asset-usage rows, Status→Active</td></tr>
 <tr><td><b>Apply / switch on a layer</b></td><td>Sets the geometry's <code>st_&lt;Geom&gt;_Style_Template__c</code> lookup. Map re-renders from the published doc. Switching back to ST Default is the only "removal" — there is no detach</td></tr>
 <tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (<code>st_Imported_From__c=ArcGIS</code>, <code>st_Imported_Source_Id__c</code> set) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
 <tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer gets the org default template (ST Default: 3 colours — sites / segments / areas) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
@@ -805,7 +803,7 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <div class="card"><div class="pad fdict">
 <h4><code>Map_Style_Template__c</code> — three records, three life stories</h4>
 <div class="scroll"><table>
-<thead><tr><th>Field</th><th>① Shipped default</th><th>② Forked from ArcGIS</th><th>③ Org-created, still draft</th></tr></thead><tbody>
+<thead><tr><th>Field</th><th>① Shipped default</th><th>② Forked from ArcGIS</th><th>③ Org-created (cloned from ①), still draft</th></tr></thead><tbody>
 <tr><td><code>Name</code></td><td>Sitetracker Default</td><td>Fiber Backbone — ArcGIS</td><td>Splice Points by Status</td></tr>
 <tr><td><code>st_Status__c</code></td><td>Active</td><td>Active</td><td><b>Draft</b> — invisible to layer pickers</td></tr>
 <tr><td><code>st_Provided_By__c</code></td><td><b>Sitetracker</b> — never edited in place; clone to edit</td><td>Organization</td><td>Organization</td></tr>
@@ -814,9 +812,8 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td><code>st_Is_Organization_Default__c</code></td><td><b>true</b> (trigger keeps it the only true)</td><td>false</td><td>false</td></tr>
 <tr><td><code>st_Style_Definition__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
 <tr><td><code>st_Published_Style__c</code></td><td>compiled doc, v3</td><td>compiled doc, v1</td><td><b>null</b> — never published</td></tr>
-<tr><td><code>st_Published_Version__c</code> / <code>st_Published_Checksum__c</code></td><td>3 · <span class="mono">a91f…c2</span></td><td>1 · <span class="mono">7d04…9e</span></td><td>0 · —</td></tr>
+<tr><td><code>st_Published_Checksum__c</code></td><td class="mono">a91f…c2</td><td class="mono">7d04…9e</td><td>— (never published)</td></tr>
 <tr><td><code>st_Imported_Source_Id__c</code></td><td>—</td><td><span class="mono">arcgis:svc/FiberBackbone/2</span> — re-import matches here</td><td>—</td></tr>
-<tr><td><code>st_Cloned_From_Template__c</code></td><td>—</td><td>—</td><td>→ ① (started as a clone of the default)</td></tr>
 </tbody></table></div>
 
 <h4>Inside <code>st_Style_Definition__c</code> of ③ (trimmed) — sparse overrides, inheritance un-resolved</h4>
