@@ -164,17 +164,17 @@ the children matching its geometry, remaining geometries use the shipped protect
   <text class="t" x="376" y="88">Map_Style_Template__c</text>
   <text class="lbl" x="376" y="108">NEW · the look, one geometry</text>
   <rect class="obj objnew" x="740" y="62" width="220" height="70" rx="8"/>
-  <text class="t" x="756" y="88">Map_Style_Asset__c</text>
-  <text class="lbl" x="756" y="108">NEW · org icon library ≤100</text>
+  <text class="t" x="756" y="88">Salesforce Files (ContentVersion)</text>
+  <text class="lbl" x="756" y="108">EXISTING platform · PNG stored as the file</text>
   <path class="rel" d="M220 56 H290 V85 H360"/>
   <path class="rel" d="M220 144 H290 V109 H360"/>
   <text class="lbl" x="236" y="46">st_Style_Template__c</text>
   <text class="lbl" x="236" y="176">st_Style_Template__c</text>
   <text class="lbl" x="262" y="101">Lookup · Restrict</text>
   <path class="rel" d="M590 82 H740"/>
-  <text class="lbl" x="604" y="74">st_Icon_Asset__c · Lookup Restrict</text>
+  <text class="lbl" x="604" y="74">st_Icon_Document_Id__c (Text — stable doc id)</text>
   <path class="rel" d="M590 112 H740" stroke-dasharray="4 3"/>
-  <text class="lbl" x="600" y="130">per-value iconAssetId (JSON) → delete-time scan</text>
+  <text class="lbl" x="600" y="130">per-value iconDocumentId (JSON) → soft UI warning</text>
   <text class="lbl" x="756" y="152">bytes → ContentVersion (file storage)</text>
 </svg>
 </div></div>
@@ -197,21 +197,21 @@ the children matching its geometry, remaining geometries use the shipped protect
 <tr><td><code>st_Label_Min_Zoom__c</code></td><td>Number(2,0)</td><td>system default</td><td>VR 0–23</td></tr>
 <tr><td><code>st_Label_Halo_Color__c</code></td><td>Text(7)</td><td>#FFFFFF</td><td>VR hex</td></tr>
 <tr><td><code>st_Symbol_Shape__c</code></td><td>Picklist (8 shapes)</td><td>circle</td><td>restricted. <b>REINSTATED 13 Aug — the 8 standard shapes live IN the JS bundles</b> (web static resource + RN app, rasterized at build from one design-owned SVG source). Bundled assets have no record id, so this field is the shape KEY. Protected by construction; day-zero offline on mobile (the spike's own bundled-default recommendation)</td></tr>
-<tr><td><code>st_Icon_Asset__c</code></td><td>Lookup(<code>Map_Style_Asset__c</code>), optional</td><td>—</td><td><b>Restrict</b> — uploaded icons only; when set, the icon overrides the shape</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>the ONLY JSON (per-value sparse overrides); closed-set validated <b>in the trigger</b> (every write path — API included; the service adds friendly errors); consumer keeps a defensive parse+fallback; ~20–35 KB at the 100-value cap. <b>131,072 is the platform ceiling</b> — no bigger field type exists; safe because icons are by-reference (<code>iconAssetId</code> ~25 chars; images live on the asset record), so entries stay tiny; escape hatch if ever exceeded = child records (priced)</td></tr>
+<tr><td><code>st_Icon_Document_Id__c</code></td><td>Text(18), optional</td><td>—</td><td><b>ContentDocumentId of an uploaded icon</b> (13 Aug: the asset object is DROPPED — icons are Salesforce Files); stable across file versions, so replacing artwork updates every referencing template in place; set = icon overrides shape</td></tr>
+<tr><td><code>st_Value_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>the ONLY JSON (per-value sparse overrides); closed-set validated <b>in the trigger</b> (every write path — API included; the service adds friendly errors); consumer keeps a defensive parse+fallback; ~20–35 KB at the 100-value cap. <b>131,072 is the platform ceiling</b> — no bigger field type exists; safe because icons are by-reference (<code>iconDocumentId</code> ~25 chars; images live in Files), so entries stay tiny; escape hatch if ever exceeded = child records (priced)</td></tr>
 </tbody></table></div>
 <p class="note" style="margin:8px 0 0">Staleness &amp; publish-conflict detection use the record's standard <code>SystemModstamp</code> — no custom field. Defaults marked here are the proposed shipped values; the ST Default templates ship per asset type with their MOC.</p>
 
-<h4><code>Map_Style_Asset__c</code> <span class="tag new">NEW</span> — org-level icon library (≤ 50 SVG + 50 PNG)</h4>
+<h4>Icons = Salesforce Files <span class="tag exist">EXISTING capability</span> — no icon object (13 Aug; soft delete-protection accepted)</h4>
 <div class="scroll"><table>
-<thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
-<tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required</td></tr>
-<tr><td><code>st_Asset_Type__c</code></td><td>Picklist: SVG / PNG / Font</td><td>—</td><td>required; 50-per-type cap enforced in upload service</td></tr>
-<tr><td><code>st_Content_Version_Id__c</code></td><td>Text(18)</td><td>—</td><td>set at upload — original bytes live in Files (5 MB cap)</td></tr>
-<tr><td><code>st_Png_Renditions__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>data-URI PNGs, built client-side at upload; what both map engines consume</td></tr>
-<tr><td><code>st_File_Checksum__c</code></td><td>Text(80), External Id</td><td>—</td><td>SHA-256 of the file — upload dedup</td></tr>
+<thead><tr><th>Concern</th><th>How Files covers it</th></tr></thead><tbody>
+<tr><td>Upload</td><td>rasterize SVG→PNG client-side; store <b>the PNG as the ContentVersion</b>; one packaged custom checkbox on ContentVersion marks library membership; 50-icon cap counts marked latest versions</td></tr>
+<tr><td>Identity / naming</td><td><code>Title</code> = display name; references everywhere are the <b>stable ContentDocumentId</b> — replacing artwork updates every referencing template in place</td></tr>
+<tr><td>Dedup</td><td><code>ContentVersion.Checksum</code> — standard, auto-computed by the platform</td></tr>
+<tr><td>Runtime resolution</td><td>the shipped the map-layer file service pattern (id → ContentDocumentLink/ContentVersion → VersionData) — proven strk code, reused not rebuilt</td></tr>
+<tr><td>Delete-protection</td><td><b>SOFT (accepted 13 Aug)</b>: no ContentDocument trigger (a packaged global file-delete trigger was the deal-breaker); the delete flow shows "in use by: X, Y" (on-demand JSON scan, advisory); a hard-deleted referenced icon degrades to the colour+size fallback — already a requirement</td></tr>
+<tr><td>Mobile later</td><td>file binaries don't ride record sync — a small download-and-cache pipeline is owed when mobile unparks (flagged)</td></tr>
 </tbody></table></div>
-<p class="note" style="margin:8px 0 0">Delete guard: <code>st_Icon_Asset__c</code> Restrict (platform) + a <code>before delete</code> trigger scanning Categorical, non-archived templates' <code>st_Value_Styles__c</code> — <b>chunked in-transaction</b> (ids first, LTA re-fetched ~50/chunk, references dropped per chunk ≈ 1.75 MB live heap; ~5,000-template coverage under the 100-SOQL limit) — blocks with "in use by: X, Y".</p>
 
 <h4><code>Map_Layer__c</code> &amp; <code>Map_Object_Configuration__c</code> <span class="tag exist">EXISTING</span> — one new field each</h4>
 <div class="scroll"><table>
@@ -290,7 +290,7 @@ the children matching its geometry, remaining geometries use the shipped protect
       <tr><td>Attachment / Files as the asset registry<br><span class="note">asked 12 Aug — replace Map_Style_Asset__c?</span></td>
         <td class="mono">st_Content_Version_Id__c (bytes already live in Files)</td>
         <td><span class="tag warn">rejected</span></td>
-        <td>Attachment: deprecated, no custom fields, parent-scoped. ContentVersion-with-custom-fields is close, but <b>custom lookups can't target ContentDocument/ContentVersion</b> — the Restrict delete-protection and one-query in-use check would degrade to trigger code + text-id references; file edits mint new version ids; library sharing plumbing. Avoided cost: ~100 records × 2 KB. <span class="tag ok">survives</span> as the bytes store behind the thin registry</td></tr>
+        <td>Attachment: deprecated — still no. ContentVersion: <b>rejected 12 Aug under hard-FK requirements, ADOPTED 13 Aug once shapes moved to bundles and delete-protection went soft</b> — Checksum/FileType/stable-doc-id are platform-native, resolution reuses the shipped map-layer file pattern, and no packaged ContentDocument trigger is needed under the soft model. <span class="tag ok">the icon store</span></td></tr>
       <tr><td>Static Resources</td>
         <td class="mono">staticresources/STMaps* (our bundles)</td>
         <td><span class="tag warn">rejected</span></td>
@@ -326,7 +326,7 @@ shape) · Asset (unchanged) · an Asset-Usage junction — <i>itself dropped lat
   <td><b>~2 KB per record, flat</b> — long-text content does <u>not</u> add. Worst-case template ≈ 607 records ≈ 1.2 MB; 100 templates ≈ 0.1 GB</td></tr>
 <tr><td>Compiled style document</td><td><b>dropped 12 Aug</b> — clients render from the record itself (scalar fields + value JSON)</td><td>—</td>
   <td>≤ 50 KB target, still counts ~2 KB — effectively free</td></tr>
-<tr><td>Icon renditions (data-URI PNGs)</td><td>on each asset record (<code>st_Png_Renditions__c</code>) — fetched per asset, cached</td><td>Data</td>
+<tr><td>Icon images (PNG)</td><td>ContentVersion files — resolved per document id, cached; <b>file storage pool</b>, zero record-storage pressure</td><td>File</td>
   <td>≤ 200 KB per template cap</td></tr>
 <tr><td>Uploaded SVG/PNG originals</td><td><b>ContentVersion</b> (uploaded over REST — never Apex heap)</td><td>File</td>
   <td>caps: 5 MB/file, 50 per type → absolute worst 500 MB; realistic ~20 MB</td></tr>
@@ -366,9 +366,9 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <tr>
       <td style="width:220px"><b>Is this asset in use?</b><br><span class="note">(blocks delete, feeds the tooltip)</span></td>
       <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">SELECT st_Style_Rule__r.st_Style_Template__r.Name
-st_Icon_Asset__c lookup → platform Restrict   <span class="c">// Simple-mode icon: real FK, delete refused natively</span>
-<span class="c">// per-value icons: before-delete trigger scans non-archived</span>
-<span class="c">// templates' st_Value_Styles__c for :assetId → blocks with "in use by: X, Y"</span></pre>
+<span class="c">// SOFT protection (13 Aug): the delete flow's UI runs the chunked JSON scan</span>
+<span class="c">// on demand → shows "in use by: X, Y" as a WARNING; no trigger anywhere.</span>
+<span class="c">// Hard-deleted referenced icon → values render the colour+size fallback.</span></pre>
       <span class="note">Possible <i>because</i> icons are FK lookups, not names inside JSON — no text scanning.
       Grouped by template → the "already in use by: …" tooltip. <code>Restrict</code> on the lookup enforces
       the block even if the UI check is bypassed. To go all the way to <i>active layers</i>: one more hop —
@@ -609,7 +609,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
   <div class="ph"><div class="num">PHASE 0</div><div class="nm">Prerequisites</div>
     <div class="note">renderer write-order the renderer write-order story · verify-reads of the named classes · answer T1 (template association)</div></div>
   <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
-    <div class="note">2 objects (template + asset) · 1 lookup on layer &amp; MOC · st_Icon_Asset__c Restrict + delete-scan trigger · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
+    <div class="note">ONE object (template) · icons = Salesforce Files · 1 lookup on layer &amp; MOC · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
   <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
     <div class="note">validation · sparse-merge · opacity pre-multiply · FOR UPDATE publish</div></div>
   <div class="ph"><div class="num">PHASE 3</div><div class="nm">API</div>
@@ -678,6 +678,8 @@ reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
 <tr><td>12 Aug · code-verified</td><td><b>All four engineering checks done</b>: 280px panel stands (no docked-panel standard; 340 is the layers-control popover) · prototype dash compensation math correct · verify-read targets all exist (single-default trigger needs per-geometry adaptation) · storage measured: 100-value JSON = 9.1 KB (14×), renditions cap = 128px set (48 KB) <span class="tag ok">final</span></td><td>The Phase-1 "measure first" gate is satisfied before Phase 1 even starts</td></tr>
+<tr><td>13 Aug · Engineering</td><td><b><code>Map_Style_Asset__c</code> DROPPED — icons are Salesforce Files; delete-protection SOFT. Final schema: ONE object</b> <span class="tag ok">final</span></td><td>With shapes bundled, the object's remaining jobs all had platform natives: Checksum auto-computed (dedup), Title, FileType, stable ContentDocumentId (artwork replacement propagates free), and strk's shipped the map-layer file service resolution pattern. The hard delete-guarantee was the last prop — accepting the soft model (UI warning + the already-required colour+size fallback) removed it without a packaged global ContentDocument trigger</td></tr>
+<tr><td>12 Aug · Engineering</td><td>Attachment/Files as the asset store — rejected <span class="tag dead">superseded 13 Aug</span></td><td>Correct under that day's requirements (hard FK protection, shapes as records, renditions field); both requirements fell the next day — shapes moved to bundles, protection went soft</td></tr>
 <tr><td>13 Aug · Engineering</td><td><b>Standard shapes live IN the JS bundles</b> — web static resource + RN app, one design-owned SVG source rasterized at build; <code>st_Symbol_Shape__c</code> reinstated as the shape key; the 8 seeded asset records + asset-side protection flag removed <span class="tag ok">final</span></td><td>Both SDKs consume bundled images natively (ArcGIS picture-marker data-URIs; rnmapbox &lt;Images&gt;), the mobile spike itself recommended bundled-default fallback, and bundle contents are protected by construction — stronger than a VR, plus day-zero offline. Parity rule: both bundles generate from ONE SVG set, never hand-copied</td></tr>
 <tr><td>13 Aug · Engineering</td><td>Shapes as seeded protected asset records <span class="tag dead">superseded same day</span></td><td>Correct under records-only thinking; the bundle question ("can render SDKs access bundle assets?") revealed the stronger home</td></tr>
 <tr><td>13 Aug · Engineering</td><td><b>Schema slimmed again: Status, Provided_By, Geometry_Type and org-default DROPPED; <code>st_Is_Protected__c</code> + optional MOC-context lookup added</b> <span class="tag ok">final</span></td><td>One checkbox does the only lock that mattered (shipped templates); provenance had no consumer (re-sync keys off the LAYER's source); geometry-agnostic templates match the call's "one default, 3 colours" better than the per-geometry split did; no Draft/Archive — live from creation (create = clone of default), retire = unlink + delete. Guards kept: Categorical requires the MOC context (representBy needs an object). "Protected object" = no tab/layouts/list views + permset (custom objects can't carry the platform protected flag)</td></tr>
@@ -686,7 +688,7 @@ reviewers should see what changed and why, not just the final answer.</p>
 <tr><td>12 Aug · code-confirmed</td><td><b>T1 closed: template association is PER LAYER</b> <span class="tag ok">final</span></td><td>"Source" is a formula field, not an entity — no record for a source-scoped lookup; ArcGIS delivers styling per sub-layer with per-sub-layer geometry; the legacy contract is per-layer; per-geometry templates make per-source impossible without forcing same-geometry layers identical</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Staff-review rulings</b> — 11 findings dispositioned <span class="tag ok">final</span></td><td>Delete-scan = chunked in-transaction (Batch Apex can't block a sync delete); JSON validation moves to the trigger (every write path) with consumer defensive-parse as net; legacy <code>Layer_Styling__c</code> divergence accepted for v1 (no write-back); shipped templates arrive UNLINKED (kills the upgrade-idempotency risk); external users get zero record access — allowlisted render-DTO only; renditions upsized to 131 KB; <code>Provided_By</code> → Text(40) (open-ended vendors, lock only on 'Sitetracker'); no-draft-staging stated (clone to experiment); SystemModstamp coarseness accepted</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Usage junction dropped — final schema is 2 objects</b>: Template + Asset <span class="tag ok">final</span></td><td>"Do we need it?" — no: its rows were code-maintained at every save, so the platform-Restrict guarantee was only as strong as the sync code, and it taxed frequent saves to accelerate a rare check. Replaced by <code>st_Icon_Asset__c</code> (Lookup Restrict — the single-valued Simple icon, a real FK) + a before-delete trigger that scans template JSON for per-value references (runs on every delete path incl. API; reads the truth directly, cannot drift; one pass also computes the library's "in use" badges)</td></tr>
-<tr><td>12 Aug · Engineering</td><td><b>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays</b> <span class="tag ok">final</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
+<tr><td>12 Aug · Engineering</td><td>Attachment/Files as the asset store — analyzed, rejected; the thin registry stays <span class="tag dead">superseded 13 Aug (see above)</span></td><td>Attachment is deprecated legacy (no custom fields, parent-scoped). ContentVersion already holds the bytes — but custom lookups can't target it, so Restrict delete-protection would degrade to trigger + text-id code; version ids churn on every edit. The registry it would replace is 4 fields × ≤100 records</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Compiled doc dropped — the record IS the contract; Publish collapses into Save</b> <span class="tag ok">final</span></td><td>Every job the compiled doc had is gone or trivial after the scalar split: icons by-reference, opacity at render, inheritance = a ~10-line client merge the map bundle already does (the existing client renderer-builder). Status still gates visibility; saves to shared templates fire the stale notification</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b><code>st_Imported_Source_Id__c</code> dropped</b> <span class="tag ok">final</span></td><td>Re-sync happens on a layer, and the layer's <code>st_Style_Template__c</code> IS the template forked from its source — the association already exists. Orphaned-fork edge (user switched templates): re-import forks fresh, accepted</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Provenance merged into ONE picklist</b> — <code>st_Provided_By__c</code>: Sitetracker | ArcGIS | Vetro | KML | Organization <span class="tag ok">final</span></td><td>The two lock fields encoded mutually exclusive states — one dimension pretending to be two. Lock rule (corrected same day): read-only ⇔ Sitetracker — only the shipped template is protected; vendor forks stay fully editable per the fork-on-import call decision; clones stamp Organization</td></tr>
@@ -714,17 +716,16 @@ reviewers should see what changed and why, not just the final answer.</p>
 <tr><td>≤11 Aug</td><td>Shipped ST Default is clone-then-edit · live reference + copy-on-write · one template per geometry · compiled-doc publish model · permissions = record sharing</td><td>Earlier decisions, unchanged — each is reflected in the schema and workflow sections of this page</td></tr>
 </tbody></table></div></div>
 
-<h2><span class="n">R2</span>Why 2 objects — and why not 1, 3, 4, or something existing</h2>
+<h2><span class="n">R2</span>Why ONE object — and how 4 became 1</h2>
 <p class="lede">The schema was challenged twice and got better both times. The reasoning, so a
 reviewer doesn't have to re-litigate it:</p>
 <div class="card"><div class="pad">
-<p><b>Why not ONE object with everything in JSON?</b> Two things can't live inside a blob:
-<b>(1) icons are shared</b> — one uploaded image is used by many templates, carries its own file
-(ContentVersion), caps and dedup, so it must be its own record; <b>(2) "can't delete an icon in
-use" needs a real foreign key</b> — with icon references as strings inside JSON, the check is an
-unindexable text-scan and nothing stops a direct API delete. The single-valued Simple icon gets a real
-<code>Restrict</code> lookup; per-value references are enforced by a before-delete trigger at the
-same database boundary.</p>
+<p><b>How it collapsed to one:</b> Rules/Stops fell first (content, not identity — 11 Aug); the
+usage junction next (code-maintained rows — 12 Aug); then the asset registry itself (13 Aug), once
+shapes moved into the JS bundles and the hard delete-guarantee was traded for a soft warning —
+at which point every remaining job had a platform native: Files hold the bytes, <code>Checksum</code>
+dedups, the stable ContentDocumentId is the reference, and the shipped map-layer file pattern does
+resolution.</p>
 <p><b>Why not FOUR (the original design: Template → Rule → Stop records)?</b> Challenged 11 Aug
 ("why child records when the template is JSON anyway?") and it didn't survive: validation is
 compiler work either way, locking is whole-template, sharing is template-level, and the record
@@ -737,12 +738,11 @@ disqualifiers: <code>Layer_Styling__c</code> is a per-layer field, not shareable
 (the PT-status-colours pattern) need an async metadata deploy per admin save, have no record
 sharing, and can't be the target of a Restrict lookup — that authoring experience is exactly
 what this feature escapes. One CMT survives as the kill-switch only.</p>
-<p><b>So: 2.</b> <code>Map_Style_Template__c</code> (the unit users name, share, and apply) ·
-<code>Map_Style_Asset__c</code> (the unit that outlives any one template). A usage junction briefly
-connected them (11 Aug) until the same test that killed the other bookkeeping killed it too: its
-rows were code-maintained at every save. Delete-protection now = the template's
-<code>st_Icon_Asset__c</code> Restrict lookup (Simple icon) + a before-delete scan of template JSON
-(per-value icons).</p>
+<p><b>So: ONE.</b> <code>Map_Style_Template__c</code> is the only custom object. Icons are
+Salesforce Files (13 Aug — the asset object fell once shapes moved to the bundles and
+delete-protection went soft); a usage junction existed for a day (11 Aug) before failing the
+code-maintained-rows test. Icon delete-protection is a soft UI warning + the required colour+size
+render fallback.</p>
 </div></div>
 
 <h2><span class="n">R3</span>Field dictionary — what each field does, and when it changes</h2>
@@ -756,26 +756,27 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><code>Name</code></td><td>What shows in every picker</td><td>Create / rename · user</td></tr>
 <tr><td><code>st_Is_Protected__c</code></td><td>The ONE lock: true only on Sitetracker-shipped templates — VR blocks all edits; forks and clones are created unprotected</td><td>Seed only · never by users</td></tr>
 <tr><td><code>st_Map_Object_Configuration__c</code></td><td>Asset-type context — picker filtering, the object behind representBy (required for Categorical), and how a shipped default declares its asset type</td><td>Create/import flow · user</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td>ONLY the per-value overrides (variable cardinality forces JSON). Everything single-valued is a typed <b>field</b> (rows below). Per-value icons are stored as <code>iconAssetId</code> references — the images themselves live on <code>Map_Style_Asset__c</code>, the same org library the Simple icon uses</td><td>Every builder Save · user via service</td></tr>
+<tr><td><code>st_Value_Styles__c</code></td><td>ONLY the per-value overrides (variable cardinality forces JSON). Everything single-valued is a typed <b>field</b> (rows below). Per-value icons are stored as <code>iconDocumentId</code> references — the images are ContentVersion files, same store the Simple icon field points at</td><td>Every builder Save · user via service</td></tr>
 <tr><td><code>st_Styling_Mode__c</code> (Simple/Categorical) · <code>st_Symbol_Size__c</code> · <code>st_Fill_Color__c</code> · <code>st_Outline_Color__c</code> · <code>st_Outline_Width__c</code> · <code>st_Layer_Opacity__c</code> · <code>st_Offset_X/Y__c</code> · <code>st_Label_Field__c</code> · <code>st_Label_Min_Zoom__c</code> · <code>st_Label_Halo_Color__c</code></td><td>The common base both modes inherit from, as typed fields: platform validation replaces compiler checks (the 10% opacity floor is a validation rule; colours are hex-validated; sizes/colours are typed — invalid values are impossible, not caught)</td><td>Builder edits · user</td></tr>
-<tr><td><code>st_Icon_Asset__c</code></td><td>The Simple-mode uploaded icon — single-valued, so it's a real <code>Restrict</code> lookup (this is the platform-enforced half of asset delete-protection)</td><td>Builder edits · user</td></tr>
+<tr><td><code>st_Icon_Document_Id__c</code></td><td>The Simple-mode uploaded icon — a stable ContentDocumentId; replacing the file's artwork updates every referencing template in place</td><td>Builder edits · user</td></tr>
 <tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
 </tbody></table></div>
 
-<h4><code>Map_Style_Asset__c</code> — the shared icon library</h4>
+<h4>Icons — Salesforce Files, not an object</h4>
 <div class="scroll"><table>
-<thead><tr><th>Field</th><th>What it answers</th><th>Written when · by</th></tr></thead><tbody>
-<tr><td><code>Name</code> + <code>st_Asset_Type__c</code></td><td>What the icon picker shows; which 50-per-type cap it counts against</td><td>Upload · user</td></tr>
-<tr><td>file (ContentVersion)</td><td>The actual bytes — lives in file storage (the big pool), not record storage</td><td>Upload · user</td></tr>
-<tr><td>PNG renditions</td><td>What map engines actually consume (mobile can never render SVG)</td><td>Built at upload, client-side</td></tr>
-<tr><td><code>st_File_Checksum__c</code></td><td>Dedup — the same file uploaded twice resolves to one record</td><td>At upload · upload flow</td></tr>
+<thead><tr><th>Concern</th><th>Where the platform covers it</th></tr></thead><tbody>
+<tr><td>Bytes</td><td>ContentVersion (PNG stored as the file; SVG rasterized at upload)</td></tr>
+<tr><td>Name / type / dedup</td><td><code>Title</code> · <code>FileType</code> · <code>Checksum</code> (auto-computed)</td></tr>
+<tr><td>Library membership</td><td>one packaged custom checkbox on ContentVersion; the 50-cap counts marked latest versions</td></tr>
+<tr><td>Reference</td><td>stable <b>ContentDocumentId</b> — survives artwork replacement</td></tr>
+<tr><td>Delete-protection</td><td><b>soft</b>: on-demand "in use by" warning in the delete flow; colour+size fallback if deleted anyway</td></tr>
 </tbody></table></div>
 
 <h4>Delete-protection without a junction</h4>
 <div class="scroll"><table>
 <thead><tr><th>Mechanism</th><th>What it covers</th><th>How</th></tr></thead><tbody>
-<tr><td><code>st_Icon_Asset__c</code> on the template (Lookup · Restrict)</td><td>The Simple-mode icon — the common case</td><td>Real FK: the platform refuses the delete natively</td></tr>
-<tr><td><code>before delete</code> trigger on <code>Map_Style_Asset__c</code></td><td>Per-value <code>iconAssetId</code> references inside <code>st_Value_Styles__c</code></td><td>Chunked in-transaction scan (ids first, then LTA ~50/chunk with references dropped — heap-bounded to ~1.75 MB; Batch Apex can't block a synchronous delete); runs on every delete path incl. API; blocks with "in use by: X, Y"; the same pass computes the library's in-use badges</td></tr>
+<tr><td>Delete-flow UI check</td><td>All icon references (Simple field + per-value JSON)</td><td>On-demand chunked JSON scan → "in use by: X, Y" shown as a warning (soft — accepted 13 Aug)</td></tr>
+<tr><td>Render fallback</td><td>A referenced icon deleted anyway (API paths carry no warning)</td><td>Affected values draw colour+size — already a requirement; no trigger exists (a packaged global ContentDocument trigger was the deal-breaker)</td></tr>
 </tbody></table></div>
 
 <h4>Layer-side (on <code>Map_Layer__c</code> and <code>Map_Object_Configuration__c</code>, ×3 geometries)</h4>
@@ -793,7 +794,7 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><b>Import an ArcGIS layer</b></td><td>Layer syncs → its renderer is <b>forked</b> into a new template (created <b>unprotected</b> — fully editable; re-sync recognises vendor layers by the LAYER's source type, 13 Aug) → auto-applied to the layer → icons/colours land in the org asset library → user edits freely; nothing ever writes back to ArcGIS; the UI says so</td></tr>
 <tr><td><b>Upload a shapefile / GeoJSON</b></td><td>No styling exists in the file → layer falls through to the shipped protected default (geometry-agnostic: the renderer reads the scalars applying to each geometry) → user switches or creates a template from there. KML additionally parses its embedded styles into a seeded template (notice shown only if parsing fails)</td></tr>
 <tr><td><b>Edit a template others use</b></td><td>Publish updates the shared doc. Other sessions viewing affected layers get "this template was updated while you were away — load the latest / keep viewing yours" — never a silent restyle. The same message covers "someone published while you were editing"</td></tr>
-<tr><td><b>Delete an icon</b></td><td>The platform refuses if any template's <code>st_Icon_Asset__c</code> points at it (Restrict); the before-delete trigger scans per-value references and blocks with "in use by: X, Y"</td></tr>
+<tr><td><b>Delete an icon</b></td><td>The delete flow warns "in use by: X, Y" (on-demand JSON scan — advisory, 13 Aug soft model); deleting anyway degrades affected values to the colour+size fallback</td></tr>
 <tr><td><b>Delete / archive a template</b></td><td>Blocked while any layer links it: row-level delete AND archive controls disabled (bulk bar + right-click), "in use" badge explains why. Hard delete only at zero references</td></tr>
 <tr><td><b>Re-sync an ArcGIS layer</b></td><td>The only moment source-styling changes can surface (no auto-detection exists) → the layer's own <code>st_Style_Template__c</code> IS the fork (no source-id field needed) → sync flow offers "sync styles too": update it from source, or keep it</td></tr>
 </tbody></table></div></div>
@@ -817,7 +818,7 @@ leave them. Values are invented; shapes and relationships are exact.</p>
   <span class="k">"representBy"</span>: <span class="s">"Status__c"</span>,
   <span class="k">"values"</span>: [
     { <span class="k">"value"</span>: <span class="s">"Complete"</span>,    <span class="k">"fill"</span>: <span class="s">"#027E46"</span> },                                <span class="c">// only fill differs — everything else inherits from the scalar fields</span>
-    { <span class="k">"value"</span>: <span class="s">"Blocked"</span>,     <span class="k">"fill"</span>: <span class="s">"#C23934"</span>, <span class="k">"iconAssetId"</span>: <span class="s">"MSA-0002"</span> },  <span class="c">// icon by reference — data-URIs live on the asset record, never here</span>
+    { <span class="k">"value"</span>: <span class="s">"Blocked"</span>,     <span class="k">"fill"</span>: <span class="s">"#C23934"</span>, <span class="k">"iconDocumentId"</span>: <span class="s">"069…Bl0ck"</span> },  <span class="c">// icon by reference — the PNG lives in Files, never here</span>
     { <span class="k">"value"</span>: <span class="s">"In Progress"</span> }                                                       <span class="c">// listed, styled 100% by inheritance</span>
   ]
 }
@@ -834,21 +835,21 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td><code>st_Layer_Opacity__c</code></td><td>0.90</td><td>0.90 — applies to the whole layer either way</td></tr>
 
 <tr><td><code>st_Label_Field__c</code> / <code>st_Label_Min_Zoom__c</code> / halo</td><td>Name / 13 / #FFFFFF</td><td>Name / 13 / #FFFFFF</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td><b>null — Simple needs no JSON at all</b></td><td>the JSON above: <code>representBy</code> + sparse per-value entries; "Blocked" carries <code>iconAssetId: MSA-0002</code></td></tr>
+<tr><td><code>st_Value_Styles__c</code></td><td><b>null — Simple needs no JSON at all</b></td><td>the JSON above: <code>representBy</code> + sparse per-value entries; "Blocked" carries an <code>iconDocumentId</code></td></tr>
 </tbody></table></div>
 <p class="note" style="margin:8px 0 0">Reading the two columns together: Categorical is not a different
 data shape — it's the Simple base <i>plus</i> a value list. Switching a template's mode changes which
 parts the renderer reads, never where anything is stored.</p>
 
-<h4><code>Map_Style_Asset__c</code> — the org icon library (shared, not per-template)</h4>
+<h4>Icons in the sample — ContentVersion files (no icon object)</h4>
 <div class="scroll"><table>
-<thead><tr><th></th><th><code>Name</code></th><th><code>st_Asset_Type__c</code></th><th><code>st_File_Checksum__c</code></th><th>Referenced by</th></tr></thead><tbody>
-<tr><td class="mono">MSA-0001</td><td>vault</td><td>SVG (+PNG renditions)</td><td class="mono">e3b0…55</td><td>② — imported with the ArcGIS fork</td></tr>
-<tr><td class="mono">MSA-0002</td><td>blocked-flag</td><td>PNG</td><td class="mono">98fa…1c</td><td>③ — uploaded by the org</td></tr>
+<thead><tr><th>ContentDocumentId</th><th><code>Title</code></th><th><code>FileType</code></th><th><code>Checksum</code> (standard)</th><th>Referenced by</th></tr></thead><tbody>
+<tr><td class="mono">069…Vau1t</td><td>vault</td><td>PNG (rasterized at upload)</td><td class="mono">e3b0…55</td><td>② — imported with the ArcGIS fork (<code>st_Icon_Document_Id__c</code>)</td></tr>
+<tr><td class="mono">069…Bl0ck</td><td>blocked-flag</td><td>PNG</td><td class="mono">98fa…1c</td><td>③ — via <code>iconDocumentId</code> in the value JSON</td></tr>
 </tbody></table></div>
-
-<h4>Delete-protection in the sample</h4>
-<p class="note" style="margin:4px 0 8px">② references <span class="mono">MSA-0001</span> as its Simple icon → <code>st_Icon_Asset__c</code> Restrict makes that delete impossible natively. ③ references <span class="mono">MSA-0002</span> only inside <code>st_Value_Styles__c</code> → the before-delete trigger finds it and blocks with "in use by: Splice Points by Status".</p>
+<p class="note" style="margin:4px 0 8px">Deleting either file prompts a soft "in use by …" warning
+in the delete flow (13 Aug model); deleting anyway degrades the affected values to their
+colour+size fallback — the map never breaks.</p>
 
 <h4>Layer side — a segments layer (one asset type, as always; the ONLY new field)</h4>
 <div class="scroll"><table>
