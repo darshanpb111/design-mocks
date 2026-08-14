@@ -268,7 +268,7 @@
 <header class="mast">
   <p class="eyebrow">Sprint review &middot; Band Eagles &middot; Program Increment 11</p>
   <h1>Sprint D closed with three releases shipped and one new regression in the field</h1>
-  <p class="dek">Two Core patches and the 102.0.0 mobile release all landed inside the sprint, clearing the lapsed-release risk carried out of Sprint&nbsp;C. The release that shipped has introduced the largest single error source now running in production, and the next train is seven days out with an unstarted item on it.</p>
+  <p class="dek">Two Core patches and the 102.0.0 mobile release all landed inside the sprint, clearing the lapsed-release risk carried out of Sprint&nbsp;C. The release that shipped has introduced the largest single error source now running in production &mdash; on a screen this band does not own. The band&rsquo;s own mobile content is all queued for September.</p>
   <div class="factbar">
     <span><b>3&nbsp;–&nbsp;14 Aug 2026</b></span>
     <span>Sprint <b>D</b> (id 725)</span>
@@ -283,7 +283,7 @@
   <a href="#a2"><span class="n">02</span><span class="t">Beta implementation</span><span><span class="chip c-good">On track</span></span></a>
   <a href="#a3"><span class="n">03</span><span class="t">Path to reference-ability</span><span><span class="chip c-acc">Input needed</span></span></a>
   <a href="#a4"><span class="n">04</span><span class="t">Implementation support</span><span><span class="chip c-good">68% of capacity</span></span></a>
-  <a href="#a5"><span class="n">05</span><span class="t">Path to GA</span><span><span class="chip c-crit">Gate not met</span></span></a>
+  <a href="#a5"><span class="n">05</span><span class="t">Path to GA</span><span><span class="chip c-warn">Access gate open</span></span></a>
   <a href="#a6"><span class="n">06</span><span class="t">NFRs &amp; adoption metrics</span><span><span class="chip c-crit">No perf / usage data</span></span></a>
   <a href="#a7"><span class="n">07</span><span class="t">Designer &amp; KM</span><span><span class="chip c-acc">Input needed</span></span></a>
   <a href="#a8"><span class="n">08</span><span class="t">PM views &amp; concerns</span><span><span class="chip c-acc">Input needed</span></span></a>
@@ -319,23 +319,23 @@
       <tr>
         <td class="rowname">Mobile 102.0.0</td>
         <td class="num">8 Aug</td>
-        <td class="what">The 102.0 field release, including a fix for document generation failing to open.</td>
+        <td class="what">The 102.0 field release. <b>It carries none of this band&rsquo;s work</b> &mdash; the single sprint item on this train belongs to another band and was written by another team&rsquo;s engineer.</td>
         <td><span class="chip c-good">Shipped</span></td>
-        <td><b>Shipped five days later than the 3 Aug date carried at the last review.</b> Now carries a new field regression &mdash; see <a href="#R1">R1</a>.</td>
+        <td><b>Shipped five days later than the 3 Aug date carried at the last review.</b> Relevant here only because it is the release the regression in <a href="#R1">R1</a> arrived in.</td>
       </tr>
       <tr>
         <td class="rowname">Core 11.2</td>
         <td class="num">21 Aug</td>
         <td class="what">Admins can configure which fields mobile search and filter on; area outline colour becomes settable; records stop being visible on mobile after sharing is removed; markup viewer works on mobile and Safari; community users get markup permissions; daily construction log reaches the web.</td>
-        <td><span class="chip c-warn">At risk</span></td>
-        <td>Seven days out. Twelve items, most built; two in review awaiting merge. <b>One dated item never started and is not in any sprint</b> &mdash; see <a href="#R2">R2</a>.</td>
+        <td><span class="chip c-good">On track</span></td>
+        <td>Seven days out and <b>all committed content is built</b> &mdash; ten of twelve items released or ready, two in review with approvals, waiting only on merge. Nothing planned for this train is behind. <span class="sub">One unrefined backlog item carries an 11.2 tag without being 11.2 scope &mdash; a labelling issue, not a risk. See <a href="#R2">R2</a>.</span></td>
       </tr>
       <tr>
         <td class="rowname">Mobile 102.1.0</td>
         <td class="num">7 Sep</td>
         <td class="what">Saved and persisted filters; offline draft work logs that survive an edit; tapping a link field navigates in-app instead of showing a record id; smoother map adjust and lasso with the stuck-selection fix; work-log sort and filter that remember themselves; the element sheet honouring active map filters.</td>
-        <td><span class="chip c-warn">At risk</span></td>
-        <td>Nine items, eight already Ready for Release. <b>One dated item is On&nbsp;Hold and out of sprint</b> (<a href="#R3">R3</a>), and the September styling commitment rides this train (<a href="#R4">R4</a>).</td>
+        <td><span class="chip c-good">On track</span></td>
+        <td>Nine items, <b>eight already Ready for Release</b> &mdash; the band&rsquo;s September content is essentially done, three weeks early. Two scope questions rather than delivery risks: one item is On&nbsp;Hold (<a href="#R3">R3</a>), and the untracked styling commitment is pointed at this train (<a href="#R4">R4</a>).</td>
       </tr>
       <tr>
         <td class="rowname">Patch Core</td>
@@ -366,15 +366,14 @@
   </div>
 
   <h3>Is anything actually late?</h3>
-  <p style="color:var(--ink-soft);"><b>No delivered commitment slipped its date this increment</b> beyond the mobile 102.0.0 release moving from 3 to 8&nbsp;August. Everything dated inside PI-11 that has come due has shipped. What is at risk is entirely ahead of us:</p>
+  <p style="color:var(--ink-soft);"><b>No. No delivered commitment slipped its date this increment</b> beyond the mobile 102.0.0 release moving from 3 to 8&nbsp;August, and that train carried none of this band&rsquo;s work. Everything dated inside PI-11 that has come due has shipped, and both open trains are on track. The items below are the remaining dated work &mdash; listed for visibility, not because any is behind:</p>
   <div class="scroll">
   <table>
     <thead><tr><th class="num">Due</th><th>Train</th><th class="what">Open item &mdash; what it is</th><th>State</th></tr></thead>
     <tbody>
       <tr><td class="num">21 Aug</td><td>Core 11.2</td><td class="what">Admin-configurable mobile search and filter fields <span class="sub">SIT-66465</span></td><td><span class="chip c-warn">In review, approved</span></td></tr>
-      <tr><td class="num">21 Aug</td><td>Core 11.2</td><td class="what">Community-user permission sets for mobile Progress Tracking <span class="sub">SIT-65311</span></td><td><span class="chip c-crit">Not started</span></td></tr>
+      <tr><td class="num">21 Aug</td><td>Core 11.2</td><td class="what">Community-user permission sets for mobile Progress Tracking <span class="sub">SIT-65311</span></td><td><span class="chip c-acc">Tagged, not 11.2 scope</span></td></tr>
       <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">Controllable map layer draw order on mobile <span class="sub">SIT-62225</span></td><td><span class="chip c-crit">Not started</span></td></tr>
-      <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">Segment-creation workflow enhancements <span class="sub">SIT-63300</span></td><td><span class="chip c-warn">In progress</span></td></tr>
       <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">CI build speed-up <span class="sub">SIT-64100</span></td><td><span class="chip c-warn">In review</span></td></tr>
       <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">Planned Work widget: assigned-to-me and multi-select <span class="sub">SIT-65714</span></td><td><span class="chip c-crit">On hold</span></td></tr>
     </tbody>
@@ -428,14 +427,15 @@
     <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>EM to name a triage owner</b></span><span>Consequence &mdash; <b>the newest release has an unowned, high-volume defect in customer hands</b></span></div>
   </div>
 
-  <div class="risk sev-crit" id="R2">
+  <div class="risk sev-info" id="R2">
     <div class="risk-head">
       <span class="risk-id">R2</span>
-      <span class="risk-title">Core 11.2 ships in seven days with its GA-gating item unstarted</span>
+      <span class="risk-title">Unrefined backlog items carry dated release tags, which makes healthy trains report as at risk</span>
+      <span class="chip c-acc">Hygiene</span>
     </div>
-    <p>The permission sets that let a community &mdash; non-internal &mdash; user reach mobile Progress Tracking are dated to Core&nbsp;11.2. The story sits in Sprint Backlog, was not in this sprint at all, and has not started. Without it, mobile Progress Tracking remains effectively internal-only, which is precisely the gate this item exists to clear.</p>
-    <p>Either it is pulled into the remaining week, or 11.2 ships and the gate moves to the next train. That is a scope call, not an execution one.</p>
-    <div class="route"><span>Decided at &mdash; <b>sprint planning, Mon/Tue</b></span><span>Owner &mdash; <b>EM + PM</b></span><span>Consequence &mdash; <b>11.2 ships without the access model that makes the feature externally usable</b></span></div>
+    <p>The community permission-set story for mobile Progress Tracking carries a Core&nbsp;11.2 fix version, but <b>it is not 11.2 scope</b>: it is an unrefined backlog item whose own description still has open questions (one permission set or two, which community licences, which parent epic). A fix-version tag is not a release commitment, and reading it as one is what produced a false &ldquo;at risk&rdquo; verdict on a train whose committed content is fully built.</p>
+    <p>The permission-set work is still a genuine gate for external use of mobile Progress Tracking &mdash; it just needs refining and planning on its own merits, not rescuing into next week. <b>The action is to clear or move the tag</b> so release reporting stops mislabelling the train.</p>
+    <div class="route"><span>Decided at &mdash; <b>backlog refinement</b></span><span>Owner &mdash; <b>PM</b></span><span>Consequence &mdash; <b>release readiness keeps reading worse than it is, and real risk gets harder to see</b></span></div>
   </div>
 
   <div class="risk sev-warn" id="R3">
@@ -577,7 +577,7 @@
       <ul>
         <li><b>The mobile half is landing.</b> 102.0.0 shipped on 8&nbsp;August; nine further items are built and queued for 7&nbsp;September. Eight of those nine are already Ready for Release.</li>
         <li><b>The web half is built but not landed.</b> Of the 26 Metallica items the team worked, sixteen target the undated Patch Core train &mdash; finished work with no release date attached to it.</li>
-        <li><b>One access gate is open on both halves</b> &mdash; without the community permission sets (<a href="#R2">R2</a>), a customer's own field users cannot reach mobile Progress Tracking at all.</li>
+        <li><b>One access gate is open on both halves</b> &mdash; without the community permission sets, a customer&rsquo;s own field users cannot reach mobile Progress Tracking at all. That work is unrefined and unplanned (<a href="#R2">R2</a>), so it is a reference-ability dependency with no date behind it.</li>
       </ul>
       <p style="margin:14px 0 0;"><b>Question for the room:</b> which named customers are we driving to reference-ability, and does the September train carry what they were shown?</p>
     </div>
@@ -597,7 +597,7 @@
       <tr><td class="rowname">Metallica &mdash; web GIS</td><td class="num">26</td><td class="what">GIS V2 feature panel, map layer virtualization, layer sync and caching, basemap persistence, map scale and panel polish. The admin and office persona.</td></tr>
       <tr><td class="rowname">Eagles &mdash; mobile</td><td class="num">17</td><td class="what">The team's own remit: map-first Progress Tracking, offline work logs, filters, mobile record navigation. The field-technician persona.</td></tr>
       <tr><td class="rowname">The Doors &mdash; markup</td><td class="num">9</td><td class="what">Construction plan markup: mobile and Safari support, community permissions, daily construction log on the web.</td></tr>
-      <tr><td class="rowname">Nirvana &mdash; platform</td><td class="num">1</td><td class="what">The document generation fix that shipped in 102.0.0.</td></tr>
+      <tr><td class="rowname">Nirvana &mdash; platform</td><td class="num">1</td><td class="what">A document-generation fix that shipped in 102.0.0. <b>Counted here only because the Jira assignee is one of ours &mdash; the code was written and merged by another team&rsquo;s engineer</b>, so it is not this band&rsquo;s delivery. Treat the 53-item total as 52 of our own work plus one mis-assigned ticket.</td></tr>
     </tbody>
   </table>
   </div>
@@ -622,13 +622,13 @@
 <section id="a5">
   <h2><span class="num">Agenda 05</span>Path to GA</h2>
   <span class="src">From Jira</span>
-  <p class="lede"><span class="chip c-crit">One gate not met</span> &nbsp;Seven items this sprint carry a GA stage, and six of them are delivered &mdash; the sharing-visibility fix, in-app link navigation, record names on link fields, area outline colour, and saved filters. The gate that is not met is access.</p>
+  <p class="lede"><span class="chip c-warn">One gate open</span> &nbsp;Seven items this sprint carry a GA stage, and six of them are delivered &mdash; the sharing-visibility fix, in-app link navigation, record names on link fields, area outline colour, and saved filters. The gate that is not met is access.</p>
   <div class="scroll">
   <table>
     <thead><tr><th>Gate</th><th>State</th><th class="what">Detail</th></tr></thead>
     <tbody>
       <tr><td class="rowname">GA-stage functional items</td><td><span class="chip c-good">Met</span></td><td class="what">Six of seven delivered and Ready for Release across 11.2 and 102.1.0.</td></tr>
-      <tr><td class="rowname">Community user access</td><td><span class="chip c-crit">Not met</span></td><td class="what">No permission set exists that a community user can be assigned, so mobile Progress Tracking is internal-only. Dated 21 Aug, unstarted, out of sprint &mdash; <a href="#R2">R2</a>.</td></tr>
+      <tr><td class="rowname">Community user access</td><td><span class="chip c-warn">Open</span></td><td class="what">No permission set exists that a community user can be assigned, so mobile Progress Tracking is internal-only. <b>A real GA gate, but not committed to any release</b> &mdash; the story is unrefined and its 11.2 tag is a labelling artefact (<a href="#R2">R2</a>). It needs refining and planning on its own merits.</td></tr>
       <tr><td class="rowname">Security &mdash; record sharing</td><td><span class="chip c-good">Met</span></td><td class="what">Records no longer stay visible on mobile after sharing is removed; the fix is Ready for Release on 11.2 and its patch backport merged 14 Aug.</td></tr>
       <tr><td class="rowname">Field stability</td><td><span class="chip c-warn">Caveat</span></td><td class="what">The shipped release carries an unresolved high-volume error &mdash; <a href="#R1">R1</a>.</td></tr>
       <tr><td class="rowname">Adoption measurement</td><td><span class="chip c-crit">No data</span></td><td class="what">The instrumentation rides 102.1.0 and is unreleased, so nothing can be measured until after 7 Sep. See <a href="#a6">section 06</a>.</td></tr>
@@ -827,7 +827,7 @@
       <p style="margin-bottom:10px;"><b>Input needed.</b> The questions this report cannot answer, and where each one lands:</p>
       <ul>
         <li><b>Is there any external date or customer promise not represented on this board?</b> Last sprint this question surfaced the largest risk on the page, and it had no Jira footprint at all.</li>
-        <li><b>Keep or drop</b> the two dated items currently outside the sprint (<a href="#R2">R2</a>, <a href="#R3">R3</a>).</li>
+        <li><b>Keep or drop</b> the On&nbsp;Hold item pointed at the September train (<a href="#R3">R3</a>), and confirm the community permission-set work is genuinely unscheduled rather than quietly expected in 11.2 (<a href="#R2">R2</a>).</li>
         <li><b>Was the three-bands split intentional?</b> Two-thirds of the team's capacity served other bands' goals this sprint. If that is the plan, the Eagles band count should stop being read as the team's output.</li>
       </ul>
     </div>
