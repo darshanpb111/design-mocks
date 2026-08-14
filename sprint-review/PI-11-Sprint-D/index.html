@@ -300,8 +300,8 @@
   <div class="factbar">
     <span><b>3&nbsp;–&nbsp;14 Aug 2026</b></span>
     <span>Sprint <b>D</b> (id 725)</span>
-    <span><b>53</b> items &middot; <b>4</b> engineers</span>
-    <span><b>36</b> done &middot; 68%</span>
+    <span><b>44</b> items &middot; <b>3</b> engineers</span>
+    <span><b>32</b> done &middot; 73%</span>
     <span>Pulled <b>14 Aug, 11:00</b></span>
   </div>
 </header>
@@ -320,13 +320,13 @@
   <li>Delivered <b>14 of our 17 items</b>. The three that did not close all have code written &mdash; two in review, one customer defect on hold.</li>
   <li>Two Core patches and mobile 102.0.0 all shipped inside the sprint. The lapsed Core patch train from last sprint is cleared.</li>
   <li><b>Our own mobile content is queued for 102.1.0 on 7 September</b> &mdash; eight of nine items already Ready for Release, three weeks early.</li>
-  <li>Two thirds of the team's capacity went to other bands this sprint (web GIS and markup).</li>
+  <li><b>Nearly 60% of our capacity went to Metallica's web GIS push</b> &mdash; 26 of our 44 items.</li>
 </ul>
 
 <h2>Sprint Goals</h2>
 <ul>
   <li>Finish map-first PT beta hardening for the September train &mdash; <b>met</b>.</li>
-  <li>Keep supporting Metallica's GIS push and The Doors' markup work &mdash; <b>met</b>, and it was the majority of the sprint.</li>
+  <li>Keep supporting Metallica's GIS push &mdash; <b>met</b>, and it was the majority of the sprint.</li>
   <li>Spillover: two items in review awaiting merge, one customer-raised work-log defect on hold. No planned work went unstarted on our own line.</li>
 </ul>
 
@@ -363,8 +363,7 @@
 <h2>In Flight Implementation Support Provided</h2>
 <ul>
   <li><b>Web GIS (Metallica) &mdash; 26 items</b>, the largest single call on our capacity: feature panel, map layer virtualization, layer sync and caching, basemap persistence, map scale and panel polish.</li>
-  <li><b>Markup (The Doors) &mdash; 9 items</b>: mobile and Safari support, community permissions, daily construction log on the web.</li>
-  <li><b>Platform &mdash; 1 item</b> that shipped in 102.0.0.</li>
+  <li><b>Platform &mdash; 1 item</b> in 102.0.0, and even that is ours only by Jira assignee &mdash; another team wrote and merged it.</li>
   <li>Watch Hill Wireless working-session requests captured and logged.</li>
 </ul>
 
@@ -416,7 +415,7 @@
   <a href="#a1"><span class="n">01</span><span class="t">Sprint goals &amp; spillover</span><span><span class="chip c-warn">Mostly met</span></span></a>
   <a href="#a2"><span class="n">02</span><span class="t">Beta implementation</span><span><span class="chip c-good">On track</span></span></a>
   <a href="#a3"><span class="n">03</span><span class="t">Path to reference-ability</span><span><span class="chip c-acc">Input needed</span></span></a>
-  <a href="#a4"><span class="n">04</span><span class="t">Implementation support</span><span><span class="chip c-good">68% of capacity</span></span></a>
+  <a href="#a4"><span class="n">04</span><span class="t">Implementation support</span><span><span class="chip c-good">59% to Metallica</span></span></a>
   <a href="#a5"><span class="n">05</span><span class="t">Path to GA</span><span><span class="chip c-warn">Access gate open</span></span></a>
   <a href="#a6"><span class="n">06</span><span class="t">NFRs &amp; adoption metrics</span><span><span class="chip c-crit">No perf / usage data</span></span></a>
   <a href="#a7"><span class="n">07</span><span class="t">Designer &amp; KM</span><span><span class="chip c-acc">Input needed</span></span></a>
@@ -607,30 +606,30 @@
 <section id="a1">
   <h2><span class="num">Agenda 01</span>Sprint goals &mdash; and the spillover behind them</h2>
   <span class="src">From Jira &middot; GitHub</span>
-  <p class="lede">The team delivered 36 of 53 items. Of the 17 that did not close, ten have their code written and are moving through review or QA; seven never started, and six of those seven belong to the two bands the team is supporting rather than to its own mobile line.</p>
+  <p class="lede">The team delivered 32 of 44 items. Of the 12 that did not close, six have their code written and are moving through review or QA; six never started, and five of those six are Metallica support work rather than the band&rsquo;s own mobile line.</p>
 
   <div class="metrics">
-    <div class="metric"><div class="v">53</div><div class="k">Items worked</div><div class="note">Across four engineers and four bands</div></div>
-    <div class="metric"><div class="v">36</div><div class="k">Done &middot; 68%</div><div class="note">35 delivered, 1 closed as expected behaviour</div></div>
-    <div class="metric"><div class="v">30</div><div class="k">Carried in</div><div class="note">57% of the sprint was already in flight on day one</div></div>
-    <div class="metric"><div class="v">23</div><div class="k">Net new</div><div class="note">Started fresh this sprint</div></div>
-    <div class="metric"><div class="v">34</div><div class="k">Points (Beers)</div><div class="note">22 delivered; only 25 of 53 items are pointed</div></div>
+    <div class="metric"><div class="v">44</div><div class="k">Items worked</div><div class="note">Across three engineers and three bands</div></div>
+    <div class="metric"><div class="v">32</div><div class="k">Done &middot; 73%</div><div class="note">All delivered work &mdash; no no-change closures</div></div>
+    <div class="metric"><div class="v">24</div><div class="k">Carried in</div><div class="note">55% of the sprint was already in flight on day one</div></div>
+    <div class="metric"><div class="v">20</div><div class="k">Net new</div><div class="note">Started fresh this sprint</div></div>
+    <div class="metric"><div class="v">34</div><div class="k">Points (Beers)</div><div class="note">22 delivered; only 25 of 44 items are pointed</div></div>
   </div>
 
   <h3>Planned versus actual &mdash; not available for this sprint</h3>
   <div class="callout">
     <p style="margin-bottom:10px;"><b>This cannot be derived, and it should not be estimated.</b> The planning-Tuesday baseline for Sprint&nbsp;D does not exist: the 4&nbsp;August capture hit an Atlassian outage and every call timed out. Because Jira supports no historical query on sprint membership, the committed set and any mid-sprint additions are gone.</p>
-    <p style="margin-bottom:10px;">What can be said, clearly labelled as <b>a pre-planning reading rather than a commitment</b>: on 31&nbsp;July the sprint held eight items, all on one engineer. It now holds 17 in the Eagles band and 53 across the team. Four of those original eight left the sprint entirely &mdash; the per-service quantity story, the Planned Work widget, the Watch Hill Wireless requests, and the community permission sets &mdash; and all four now sit in Sprint Backlog or On&nbsp;Hold. Two of them carry dates (<a href="#R2">R2</a>, <a href="#R3">R3</a>).</p>
+    <p style="margin-bottom:10px;">What can be said, clearly labelled as <b>a pre-planning reading rather than a commitment</b>: on 31&nbsp;July the sprint held eight items, all on one engineer. It now holds 17 in the Eagles band and 44 across the team. Four of those original eight left the sprint entirely &mdash; the per-service quantity story, the Planned Work widget, the Watch Hill Wireless requests, and the community permission sets &mdash; and all four now sit in Sprint Backlog or On&nbsp;Hold. Two of them carry dates (<a href="#R2">R2</a>, <a href="#R3">R3</a>).</p>
     <p style="margin-bottom:0;">This reading cannot separate work committed at planning from work added mid-sprint. That distinction is exactly what the baseline exists to preserve, and for this sprint it is lost.</p>
   </div>
 
-  <h3>Where the 17 open items actually stand</h3>
+  <h3>Where the 12 open items actually stand</h3>
   <div class="scroll">
   <table>
     <thead><tr><th>State</th><th class="num">Count</th><th class="what">Reading</th></tr></thead>
     <tbody>
-      <tr><td><span class="chip c-warn">Finishing</span></td><td class="num">10</td><td class="what">Code written and moving &mdash; six in code review, three awaiting QA, one in QA. Two of the six review items are approved and waiting only on a merge.</td></tr>
-      <tr><td><span class="chip c-crit">Never started</span></td><td class="num">7</td><td class="what">The real miss. Three in Product Backlog, two in Sprint Backlog, one still in Discovery, one On&nbsp;Hold. <b>Six of the seven are Metallica or The Doors items</b> &mdash; support work the team took on &mdash; and one is the Eagles work-log save defect.</td></tr>
+      <tr><td><span class="chip c-warn">Finishing</span></td><td class="num">6</td><td class="what">Code written and moving &mdash; four in code review, one awaiting QA, one in QA. Two of the review items are approved and waiting only on a merge.</td></tr>
+      <tr><td><span class="chip c-crit">Never started</span></td><td class="num">6</td><td class="what">The real miss. Three in Product Backlog, one in Sprint Backlog, one in Discovery, one On&nbsp;Hold. <b>Five of the six are Metallica support work</b> the team took on; the sixth is our own work-log save defect.</td></tr>
     </tbody>
   </table>
   </div>
@@ -641,7 +640,7 @@
       <h3 style="margin-top:0;">Needs the team &mdash; Jira cannot answer these</h3>
       <ul>
         <li><b>Any capacity change this sprint?</b> Someone on leave, loaned out, or moved teams. This has been the single biggest driver of spillover every sprint and it never appears in Jira.</li>
-        <li><b>One roster member's entire sprint sits under The Doors band</b> &mdash; nine items, zero Eagles. Consistent with the team move noted at the last review, but Jira cannot confirm whether that capacity still counts as Eagles.</li>
+        <li><b>The band is three engineers, not four.</b> A name still on the roster of record spent the whole sprint on The Doors&rsquo; markup work &mdash; nine items, zero Eagles &mdash; and that is confirmed as no longer this band&rsquo;s capacity. Every figure here excludes it. Worth correcting the roster so it stops inflating the numbers.</li>
         <li><b>Was 57% carry-in intentional?</b> A sprint that starts more than half full behaves like a queue rather than a commitment.</li>
       </ul>
     </div>
@@ -658,7 +657,7 @@
   <ul class="tight">
     <li><b>No field evidence for the Beta itself</b> (<a href="#R1">R1</a>) is the roadblock that matters &mdash; the Beta ships with no way to show how it performs or whether anyone uses it.</li>
     <li><b>Two items were backed out of a patch release</b> mid-sprint because their content is not patch-eligible. No customer impact, but it cost rework twice in ten days.</li>
-    <li><b>Beta work is largely unpointed</b> &mdash; only 25 of 53 items carry an estimate, and the support work is the least pointed of all, so the point total understates what was done.</li>
+    <li><b>Beta work is largely unpointed</b> &mdash; only 25 of 44 items carry an estimate, and the support work is the least pointed of all, so the point total understates what was done.</li>
   </ul>
 
   <h3 id="L1">Learnings &mdash; what the sprint's own data shows</h3>
@@ -691,7 +690,7 @@
 <section id="a4">
   <h2><span class="num">Agenda 04</span>In-flight implementation support provided</h2>
   <span class="src">From Jira &middot; band allocation</span>
-  <p class="lede">This is the section the band view hides. Scoped to the Eagles band, the sprint looks like 17 items. Counted across what the team's people actually worked, it is <b>53</b> &mdash; and roughly two-thirds of that went to other bands' goals.</p>
+  <p class="lede">This is the section the band view hides. Scoped to the Eagles band, the sprint looks like 17 items. Counted across what the team's three engineers actually worked, it is <b>44</b> &mdash; and <b>59% of that went to Metallica's goals</b>, not this band's.</p>
 
   <div class="scroll">
   <table>
@@ -699,8 +698,7 @@
     <tbody>
       <tr><td class="rowname">Metallica &mdash; web GIS</td><td class="num">26</td><td class="what">GIS V2 feature panel, map layer virtualization, layer sync and caching, basemap persistence, map scale and panel polish. The admin and office persona.</td></tr>
       <tr><td class="rowname">Eagles &mdash; mobile</td><td class="num">17</td><td class="what">The team's own remit: map-first Progress Tracking, offline work logs, filters, mobile record navigation. The field-technician persona.</td></tr>
-      <tr><td class="rowname">The Doors &mdash; markup</td><td class="num">9</td><td class="what">Construction plan markup: mobile and Safari support, community permissions, daily construction log on the web.</td></tr>
-      <tr><td class="rowname">Nirvana &mdash; platform</td><td class="num">1</td><td class="what">A document-generation fix that shipped in 102.0.0. <b>Counted here only because the Jira assignee is one of ours &mdash; the code was written and merged by another team&rsquo;s engineer</b>, so it is not this band&rsquo;s delivery. Treat the 53-item total as 52 of our own work plus one mis-assigned ticket.</td></tr>
+      <tr><td class="rowname">Nirvana &mdash; platform</td><td class="num">1</td><td class="what">A document-generation fix that shipped in 102.0.0. <b>Counted here only because the Jira assignee is one of ours &mdash; the code was written and merged by another team&rsquo;s engineer</b>, so it is not this band&rsquo;s delivery. Treat the 44-item total as 43 of our own work plus one mis-assigned ticket.</td></tr>
     </tbody>
   </table>
   </div>
@@ -713,11 +711,10 @@
       <tr><td class="rowname">Darshan</td><td class="num">22</td><td class="num">19</td><td class="num">20</td><td class="what">16 mobile, 5 web GIS, 1 platform &mdash; the only engineer still carrying the mobile line</td></tr>
       <tr><td class="rowname">Akshat</td><td class="num">13</td><td class="num">8</td><td class="num">4</td><td class="what">12 web GIS, 1 mobile &mdash; effectively fully allocated to Metallica</td></tr>
       <tr><td class="rowname">Amit</td><td class="num">9</td><td class="num">5</td><td class="num">10</td><td class="what">Entirely web GIS</td></tr>
-      <tr><td class="rowname">Fourth roster member</td><td class="num">9</td><td class="num">4</td><td class="num">0</td><td class="what">Entirely markup / The Doors &mdash; <b>no Eagles items at all</b>; see the capacity question in <a href="#a1">section 01</a></td></tr>
     </tbody>
   </table>
   </div>
-  <p style="margin-top:14px;color:var(--ink-soft);font-size:14.5px;"><b>Read the band count with care.</b> Reporting &ldquo;17 items&rdquo; would describe a third of the team's actual output and would make three of four engineers invisible. Unlike last sprint, no item carried two bands at once, so nothing here is double-counted.</p>
+  <p style="margin-top:14px;color:var(--ink-soft);font-size:14.5px;"><b>Read the band count with care.</b> Reporting &ldquo;17 items&rdquo; would describe under 40% of the team's actual output and would make two of three engineers nearly invisible. Unlike last sprint, no item carried two bands at once, so nothing here is double-counted.</p>
   <p style="color:var(--ink-soft);font-size:14.5px;"><b>Do not compare throughput to Sprint&nbsp;C.</b> Headcount, band mix and item mix all moved, and half the work is unpointed. The comparison is not supported in either direction.</p>
 </section>
 
@@ -800,19 +797,18 @@
 <section id="components">
   <h2>Components and new widgets delivered</h2>
   <span class="src">From Jira components &middot; GitHub</span>
-  <p class="lede">By component, the sprint was <b>GIS-heavy</b>: 25 of the 53 items carry the GIS component against 10 for Progress Tracking &mdash; the numeric shape of the support allocation described in <a href="#a4">section 04</a>.</p>
+  <p class="lede">By component, the sprint was <b>GIS-heavy</b>: 25 of the 44 items carry the GIS component against 10 for Progress Tracking &mdash; the numeric shape of the support allocation described in <a href="#a4">section 04</a>.</p>
 
   <div class="scroll">
   <table>
     <thead><tr><th>Component</th><th class="num">Done</th><th class="num">Open</th><th class="what">Note</th></tr></thead>
     <tbody>
       <tr><td class="rowname">GIS</td><td class="num">18</td><td class="num">7</td><td class="what">Web GIS V2 &mdash; feature panel, map layers, basemap, scale, sync.</td></tr>
-      <tr><td class="rowname">Production Tracking</td><td class="num">9</td><td class="num">1</td><td class="what">The band's own mission area; nearly all closed.</td></tr>
-      <tr><td class="rowname">Markup</td><td class="num">1</td><td class="num">2</td><td class="what">Construction plan markup on mobile and Safari.</td></tr>
+      <tr><td class="rowname">Production Tracking</td><td class="num">8</td><td class="num">2</td><td class="what">The band's own mission area; nearly all closed.</td></tr>
       <tr><td class="rowname">Mobile</td><td class="num">3</td><td class="num">0</td><td class="what">Record navigation and link-field fixes.</td></tr>
       <tr><td class="rowname">Record Sharing</td><td class="num">2</td><td class="num">0</td><td class="what">The sharing-visibility enforcement fix and its patch backport.</td></tr>
-      <tr><td class="rowname">PDF Tool / PDF Annotations / Jobs / Document Generation / Platform</td><td class="num">4</td><td class="num">1</td><td class="what">Single items across four areas.</td></tr>
-      <tr><td class="rowname">No component set</td><td class="num">2</td><td class="num">4</td><td class="what"><b>Hygiene gap</b> &mdash; six items cannot be attributed to an area, four of them still open.</td></tr>
+      <tr><td class="rowname">Jobs / Document Generation / Platform</td><td class="num">1</td><td class="num">2</td><td class="what">Single items across three areas.</td></tr>
+      <tr><td class="rowname">No component set</td><td class="num">0</td><td class="num">2</td><td class="what"><b>Hygiene gap</b> &mdash; two open items cannot be attributed to an area.</td></tr>
     </tbody>
   </table>
   </div>
@@ -941,11 +937,11 @@
   <summary>More detail &mdash; how these numbers were derived</summary>
   <ul class="tight" style="margin-top:6px;">
     <li><b>Sprint identified by count match</b>, not guessed: an open-sprints query scoped to the band and a direct query on sprint 725 both returned 17, proving 725 is the only open Eagles sprint.</li>
-    <li><b>The band field holds multiple values</b>, and support work for another band is filed under <em>that</em> band. The 53-item figure comes from querying each roster member with no band filter and taking the union; the 17-item figure is the band-scoped view alone.</li>
+    <li><b>The band field holds multiple values</b>, and support work for another band is filed under <em>that</em> band. The 44-item figure comes from querying each roster member with no band filter, taking the union, then removing a name that has since moved teams; the 17-item figure is the band-scoped view alone.</li>
     <li><b>Carry-in is derived from status history</b> &mdash; items already in progress, review, QA or verification on Monday 3&nbsp;August. Sprint tags cannot answer this, because moved items do not reliably retain the previous sprint id.</li>
     <li><b>Scope changes are not derivable.</b> Jira exposes no historical operator on sprint membership. This is the entire reason the planning-Tuesday snapshot exists, and why its absence is reported rather than papered over.</li>
-    <li><b>"Done" means Released, Ready for Release, or Closed.</b> One of the nine closures was closed as expected behaviour rather than delivered, and is counted separately &mdash; a valid investigation outcome, not a delivery.</li>
-    <li><b>Points are the "Beers" field.</b> 25 of 53 items are pointed, so points and counts are both reported and neither is complete on its own.</li>
+    <li><b>"Done" means Released, Ready for Release, or Closed.</b> All five closures in scope are delivered work &mdash; the one item closed as expected behaviour belonged to the engineer who has moved teams, and is excluded with the rest of their sprint.</li>
+    <li><b>Points are the "Beers" field.</b> 25 of 44 items are pointed, so points and counts are both reported and neither is complete on its own.</li>
   </ul>
 </details>
 
