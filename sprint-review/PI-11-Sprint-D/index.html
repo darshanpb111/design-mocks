@@ -284,7 +284,7 @@
   <a href="#a3"><span class="n">03</span><span class="t">Path to reference-ability</span><span><span class="chip c-acc">Input needed</span></span></a>
   <a href="#a4"><span class="n">04</span><span class="t">Implementation support</span><span><span class="chip c-good">68% of capacity</span></span></a>
   <a href="#a5"><span class="n">05</span><span class="t">Path to GA</span><span><span class="chip c-crit">Gate not met</span></span></a>
-  <a href="#a6"><span class="n">06</span><span class="t">NFRs &amp; adoption metrics</span><span><span class="chip c-warn">Partly measured</span></span></a>
+  <a href="#a6"><span class="n">06</span><span class="t">NFRs &amp; adoption metrics</span><span><span class="chip c-crit">No perf / usage data</span></span></a>
   <a href="#a7"><span class="n">07</span><span class="t">Designer &amp; KM</span><span><span class="chip c-acc">Input needed</span></span></a>
   <a href="#a8"><span class="n">08</span><span class="t">PM views &amp; concerns</span><span><span class="chip c-acc">Input needed</span></span></a>
 </nav>
@@ -423,6 +423,7 @@
       <span class="chip c-crit">Unassigned</span>
     </div>
     <p>A type error on the record detail screen was first seen on 7&nbsp;August and has produced <b>52,581 events across 775 users</b>. It appears <b>only on 102.0.0 builds</b> &mdash; zero occurrences on 101.2.0 or any earlier release &mdash; so it arrived with this release rather than being inherited. It is an unhandled promise rejection, which means it degrades whatever the screen was loading rather than crashing the app, but it accounts for roughly a third of all error volume on the release. Sentry still lists it as unresolved and new.</p>
+    <p><b>The affected screen is the generic mobile record view, not one of this band’s surfaces</b> — so this is very unlikely to be our code. That is not a reason to drop it from the review: it ships in the release carrying our work, and it is the reason the ask below is <em>name an owner</em> rather than <em>assign it to us</em>.</p>
     <p>Two things make it harder than it needs to be: the stack arrives unsymbolicated, so nobody can see which module it is, and it is going unnoticed because error-rate-per-release is not something anyone currently watches.</p>
     <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>EM to name a triage owner</b></span><span>Consequence &mdash; <b>the newest release has an unowned, high-volume defect in customer hands</b></span></div>
   </div>
@@ -465,6 +466,16 @@
     <p>The snapshot that runs on planning Tuesday could not reach Jira on 4&nbsp;August &mdash; every call timed out, including a zero-argument connectivity probe. Jira keeps no sprint-membership history, so what was committed at planning and what was added mid-sprint <b>cannot be reconstructed for Sprint&nbsp;D</b>. This is not &ldquo;nothing changed&rdquo;; it is unknown. Detail in <a href="#a1">section 01</a>.</p>
     <p>The next planning Tuesday is 18&nbsp;August. The capture needs a connectivity check with a retry, and a failed run should raise an alert rather than write a file nobody reads.</p>
     <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>Darshan</b></span><span>Consequence &mdash; <b>a second consecutive sprint with no honest commitment number</b></span></div>
+  </div>
+
+  <div class="risk sev-crit" id="R8">
+    <div class="risk-head">
+      <span class="risk-id">R8</span>
+      <span class="risk-title">The band’s flagship work has no field evidence — no performance data, no usage data, and no defined targets</span>
+    </div>
+    <p>Map-first Progress Tracking is what this band is judged on, and today there is <b>no production measurement of it whatsoever</b>: no screen-load timing, no adoption events, and no agreed thresholds to judge either against. The instrumentation ships 7&nbsp;September; the story defining the performance targets is unscheduled with no release attached.</p>
+    <p>This is the one gap on the page that <b>cannot be closed after the fact</b> — field data only begins accumulating once the instrumented build is out. Every sprint it stays unscheduled is a sprint of evidence permanently unavailable for the GA and reference-ability conversations.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>EM + PM</b></span><span>Consequence &mdash; <b>we enter the September release and customer conversations asserting scale performance with no measurement behind it</b></span></div>
   </div>
 
   <div class="risk sev-warn" id="R7">
@@ -660,22 +671,16 @@
         <td><span class="chip c-warn">No measurement</span><span class="sub">second sprint running</span></td>
       </tr>
       <tr>
-        <td class="rowname">Performance &mdash; screen load<span class="sub">median and upper-quartile</span></td>
-        <td class="what"><b>Available and healthy at the median.</b> Across 14 days: record detail <b>p50 650&nbsp;ms / p75 931&nbsp;ms</b> on 167,581 samples; home screen <b>p50 194&nbsp;ms</b>; menu <b>p50 91&nbsp;ms</b>. Full table in <a href="#perf">the performance section</a>.</td>
+        <td class="rowname">Performance &mdash; this band's features</td>
+        <td class="what"><b>No measurement. N/A.</b> Not one of the band's surfaces &mdash; map-first Progress Tracking, the work-log map, the element sheet, the service and item pickers &mdash; emits field performance data. There is no number to report and no target to report it against. Detail in <a href="#perf">the performance section</a>.</td>
         <td>Sentry spans</td>
-        <td><span class="chip c-good">Met at p50/p75</span></td>
-      </tr>
-      <tr>
-        <td class="rowname">Performance &mdash; the tail</td>
-        <td class="what"><b>Unusable as measured.</b> The 95th percentile reports screen loads of 16 to 80&nbsp;minutes, which is not physically possible &mdash; load spans are not being closed when the app backgrounds. Two screens are also slow at <b>p75</b>, where outliers alone cannot explain it: files list <b>199&nbsp;s</b>, rapid photo capture <b>17.8&nbsp;s</b>.</td>
-        <td>Sentry spans</td>
-        <td><span class="chip c-warn">Instrumentation defect</span><span class="sub">no p95 SLO can be set until fixed</span></td>
+        <td><span class="chip c-crit">None today</span></td>
       </tr>
       <tr>
         <td class="rowname">Feature usage / adoption<span class="sub">Firebase events via GA4</span></td>
-        <td class="what"><b>N/A this sprint</b> &mdash; three separate reasons, only one of which is a tooling gap. Detail in <a href="#usage">the usage section</a>.</td>
+        <td class="what"><b>No measurement. N/A.</b> No feature this band has shipped reports usage today. Three compounding reasons, one of which is unscheduled and blocks per-customer reporting for the rest of the increment. Detail in <a href="#usage">the usage section</a>.</td>
         <td>GA4 / Firebase</td>
-        <td><span class="chip c-crit">Blocked</span><span class="sub">org-level breakdown is unscheduled</span></td>
+        <td><span class="chip c-crit">None today</span></td>
       </tr>
       <tr>
         <td class="rowname">Scalability</td>
@@ -737,72 +742,70 @@
 <section id="usage">
   <h2>Feature usage reports</h2>
   <span class="src">Firebase events via GA4 &mdash; source confirmed by the team</span>
-  <p class="lede"><span class="chip c-crit">N/A this sprint</span> &nbsp;No feature usage figures can be reported, for <b>three separate reasons</b>. Only the first is a tooling problem on my side; the other two are real and worth the room's attention.</p>
+  <p class="lede"><span class="chip c-crit">None today</span> &nbsp;<b>No feature this band has shipped reports usage.</b> Not a single adoption number exists for map-first Progress Tracking, saved filters, the work-log map, or any of the surfaces delivered this increment. The answer for every row in <a href="#components">the widget table</a> is N/A, and it is N/A for a reason that compounds.</p>
 
   <div class="scroll">
   <table>
-    <thead><tr><th class="num">#</th><th class="what">Reason</th><th>Nature</th></tr></thead>
+    <thead><tr><th class="num">#</th><th class="what">Reason</th><th>State</th></tr></thead>
     <tbody>
       <tr>
         <td class="num">1</td>
-        <td class="what"><b>The analytics property is not reachable from this environment.</b> The Google Analytics connector has no credentials configured here, so no event data could be read at all. Nothing about the product is implied by this.</td>
-        <td><span class="chip c-open">Tooling gap</span></td>
+        <td class="what"><b>The events are not in a released build.</b> The story extending adoption instrumentation across every new map-first feature is Ready for Release on the 7&nbsp;September train. The code exists; no device is sending it. Nothing can be measured before that date. <span class="sub">SIT-65144</span></td>
+        <td><span class="chip c-warn">Ships 7 Sep</span></td>
       </tr>
       <tr>
         <td class="num">2</td>
-        <td class="what"><b>The new features' events are not in the field yet.</b> The story that extends adoption instrumentation to every new map-first Progress Tracking feature is Ready for Release on the 7&nbsp;September train. The events exist in code; no device is sending them. <b>First usable numbers arrive after 7&nbsp;Sep</b> &mdash; that is a real measured zero, not a gap. <span class="sub">SIT-65144</span></td>
-        <td><span class="chip c-warn">No data yet</span></td>
+        <td class="what"><b>Once shipped, it still cannot be broken down by customer.</b> Firebase user properties &mdash; org, org type, user, offline state, bundle version &mdash; do not reach GA4 as event-scoped dimensions, so custom events cannot be sliced by org in explorations or funnels. The fix is a single whitelisted event parameter. <b>Sprint Backlog, no release, no sprint</b>; its pull request is open with changes requested. <span class="sub">SIT-65768</span></td>
+        <td><span class="chip c-crit">Unscheduled</span></td>
       </tr>
       <tr>
         <td class="num">3</td>
-        <td class="what"><b>Even once shipped, events cannot be broken down by customer.</b> Firebase user properties &mdash; org id, org type, user id, offline state, bundle version &mdash; do not carry through to GA4 as event-scoped dimensions, so custom events cannot be sliced by org or org type in explorations or funnels. The fix is a single whitelisted event parameter. <b>Status: Sprint Backlog, no fix version, no sprint</b>, and its pull request is open with changes requested. <span class="sub">SIT-65768</span></td>
-        <td><span class="chip c-crit">Blocked &amp; unscheduled</span></td>
+        <td class="what"><b>For completeness:</b> the analytics property was also unreachable from the environment this report was built in, so no query was run against it. Stated only so the N/A above is not read as "checked and found zero usage" &mdash; there was nothing to check, because of reason&nbsp;1.</td>
+        <td><span class="chip c-open">Not applicable</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <div class="callout info" style="margin-top:18px;">
-    <h3>What usage reporting <em>did</em> gain this sprint</h3>
-    <p style="margin-bottom:0;">Login analytics enrichment shipped in 102.0.0 on 8&nbsp;August: login failures and cancellations now carry a structured reason and an exit source, so the login funnel can distinguish a user backing out from a system dismissal or a network drop. That is live and reportable today &mdash; the one adoption surface that is not N/A. <span class="sub">SIT-66211</span></p>
+  <div class="callout" style="margin-top:20px;">
+    <h3>Reason 2 is the one to act on</h3>
+    <p style="margin-bottom:0;">Reason&nbsp;1 resolves itself on 7&nbsp;September. Reason&nbsp;2 does not resolve on its own, is small, is blocked by nothing, and is the difference between "the feature is used" and "<em>this customer</em> uses the feature" &mdash; which is the only form of the number a reference-ability conversation can use. It currently has no release and no sprint. See <a href="#R7">R7</a>.</p>
   </div>
-
-  <p style="margin-top:16px;color:var(--ink-soft);font-size:14.5px;"><b>The one to act on is reason 3.</b> It is not blocked by anything, it is small, and until it lands, no amount of shipped instrumentation produces a per-customer adoption number &mdash; which is what reference-ability conversations actually need. It has no release and no sprint. See <a href="#R7">R7</a>.</p>
 </section>
 
 <!-- ============ PERFORMANCE ============ -->
 <section id="perf">
   <h2>Performance data</h2>
-  <span class="src">From Sentry spans &middot; 14-day window</span>
-  <p class="lede"><span class="chip c-good">Available</span> &nbsp;Screen-load timing is instrumented and flowing, with large sample counts. <b>Median performance is healthy</b> &mdash; most screens open in under a second. Two things need attention: the upper tail is measured wrongly, and two screens are genuinely slow before the tail even starts.</p>
+  <span class="src">From Sentry spans &middot; scoped to this band's surfaces</span>
+  <p class="lede"><span class="chip c-crit">None today</span> &nbsp;<b>There is no field performance data for any feature this band owns.</b> Not a gap in this report &mdash; a gap in the product. Nothing in map-first Progress Tracking, the work-log map, the element sheet, or the service and item pickers is instrumented in a shipped build, so there is no median, no tail, and no trend to show.</p>
 
+  <h3>Why there is nothing to report</h3>
   <div class="scroll">
   <table>
-    <thead><tr><th>Screen</th><th class="num">Samples</th><th class="num">p50</th><th class="num">p75</th><th class="num">p95</th><th>Read</th></tr></thead>
+    <thead><tr><th class="what">Cause</th><th>State</th></tr></thead>
     <tbody>
-      <tr><td class="rowname">Record view</td><td class="num">167,581</td><td class="num">650 ms</td><td class="num">931 ms</td><td class="num">27.5 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
-      <tr><td class="rowname">Form view</td><td class="num">118,556</td><td class="num">698 ms</td><td class="num">945 ms</td><td class="num">19.4 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
-      <tr><td class="rowname">Form section view</td><td class="num">106,327</td><td class="num">579 ms</td><td class="num">651 ms</td><td class="num">16.6 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
-      <tr><td class="rowname">Route change</td><td class="num">81,413</td><td class="num">515 ms</td><td class="num">10.1 s</td><td class="num">27.6 min</td><td><span class="chip c-warn">Slow at p75</span></td></tr>
-      <tr><td class="rowname">Record detail view</td><td class="num">66,566</td><td class="num">748 ms</td><td class="num">935 ms</td><td class="num">25.8 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
-      <tr><td class="rowname">Auth loading</td><td class="num">56,060</td><td class="num">726 ms</td><td class="num">1.57 s</td><td class="num">10.0 s</td><td><span class="chip c-good">Bounded</span></td></tr>
-      <tr><td class="rowname">Home</td><td class="num">55,411</td><td class="num">194 ms</td><td class="num">395 ms</td><td class="num">1.35 s</td><td><span class="chip c-good">Healthy throughout</span></td></tr>
-      <tr><td class="rowname">Job execution</td><td class="num">51,139</td><td class="num">587 ms</td><td class="num">637 ms</td><td class="num">25.0 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
-      <tr><td class="rowname">Files list card</td><td class="num">49,809</td><td class="num">962 ms</td><td class="num">199.6 s</td><td class="num">70.3 min</td><td><span class="chip c-crit">Worst p75</span></td></tr>
-      <tr><td class="rowname">Rapid photo capture</td><td class="num">12,340</td><td class="num">681 ms</td><td class="num">17.8 s</td><td class="num">79.9 min</td><td><span class="chip c-crit">Slow at p75</span></td></tr>
-      <tr><td class="rowname">Login validation</td><td class="num">13,340</td><td class="num">1.40 s</td><td class="num">1.75 s</td><td class="num">3.38 s</td><td><span class="chip c-good">Slowest median, bounded</span></td></tr>
-      <tr><td class="rowname">Menu</td><td class="num">11,623</td><td class="num">91 ms</td><td class="num">121 ms</td><td class="num">543 ms</td><td><span class="chip c-good">Healthy throughout</span></td></tr>
+      <tr>
+        <td class="what"><b>The instrumentation is not in a released build.</b> The story that extends usage and performance capture across the new map-first features is Ready for Release on the 7&nbsp;September train. Written, reviewed, not shipped &mdash; therefore no device is emitting it. <span class="sub">SIT-65144</span></td>
+        <td><span class="chip c-warn">Ships 7 Sep</span></td>
+      </tr>
+      <tr>
+        <td class="what"><b>There is no defined target to measure against.</b> The story that captures the non-functional requirements for the map-first flow &mdash; the thresholds a number would be judged against &mdash; sits in Sprint Backlog with no release and no sprint. So even once events flow, nothing says what "fast enough" is. <span class="sub">SIT-61611</span></td>
+        <td><span class="chip c-crit">Unscheduled</span></td>
+      </tr>
+      <tr>
+        <td class="what"><b>The large-plan performance work has no field evidence.</b> The scale improvements delivered this increment were verified locally and in review, which is a legitimate check &mdash; but no production measurement exists to confirm the behaviour on real customer plans.</td>
+        <td><span class="chip c-warn">Verified, not measured</span></td>
+      </tr>
     </tbody>
   </table>
   </div>
 
-  <h3>Three readings</h3>
-  <ul class="tight">
-    <li><b>The product is fast for most people, most of the time.</b> Half of all record and form loads complete in roughly 0.6&ndash;0.75&nbsp;s, and three quarters inside a second. Home and menu are excellent. This is a genuine strength and it is measured, not asserted.</li>
-    <li><b>The 95th percentile is not a real number.</b> Screen loads reported at 16 to 80&nbsp;minutes are impossible; load spans are staying open when the app is backgrounded and closing on resume. <b>No p95 performance target can be set or defended until that is fixed</b>, which also means the map-first performance work has no trustworthy upper-bound metric to prove itself against.</li>
-    <li><b>Two screens are slow before the tail.</b> Files list at <b>p75 199.6&nbsp;s</b> across ~50,000 samples, and rapid photo capture at <b>17.8&nbsp;s</b>, cannot be explained by background outliers alone at the quartile &mdash; a quarter of loads are affected. Route change at 10.1&nbsp;s is a third case. These are worth a targeted look regardless of the span defect.</li>
-  </ul>
-  <p style="color:var(--ink-soft);font-size:14.5px;"><b>No map-first Progress Tracking screen appears in the instrumented set at all</b> &mdash; consistent with that instrumentation riding the 7&nbsp;September release. The feature area with the most active development is the one with no field performance data, and the story meant to define its targets is itself unscheduled (see <a href="#pi11">the PI-11 section</a>).</p>
+  <div class="callout" style="margin-top:20px;">
+    <h3>What this actually costs us</h3>
+    <p style="margin-bottom:0;">Performing at scale on large plans is this band's central technical claim for map-first Progress Tracking, and it is the claim a customer will test first. Today that claim rests entirely on local and review-time verification. <b>Going into a 7&nbsp;September release and a reference-ability conversation with no field performance evidence is the weakest part of the current position</b> &mdash; and unlike most items on this page, it cannot be fixed retroactively. Data only starts accumulating after the instrumentation ships. See <a href="#R8">R8</a>.</p>
+  </div>
+
+  <p style="margin-top:16px;color:var(--ink-faint);font-size:13.5px;"><b>A note on scope, so the absence is not misread.</b> App-wide screen-load telemetry does exist in Sentry and is flowing in volume &mdash; but every instrumented screen in it belongs to another team's surface area, not this band's. Those numbers are deliberately excluded here: they describe other people's work, they cannot answer any question about this sprint, and quoting them would produce a reassuring figure that means nothing for Progress Tracking. The pipeline works; it simply does not reach our screens yet.</p>
 </section>
 
 <!-- ============ 07 & 08 ============ -->
