@@ -257,7 +257,35 @@
   }
   .colophon b { color: var(--ink-soft); }
   hr.soft { border: 0; border-top: 1px solid var(--rule); margin: 30px 0; }
-  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  /* ---- tabs ---- */
+  .tabs { display:flex; gap:2px; margin:26px 0 0; border-bottom:2px solid var(--rule-strong); flex-wrap:wrap; }
+  .tabs button {
+    appearance:none; border:0; background:transparent; cursor:pointer; font-family:var(--sans);
+    font-size:14.5px; font-weight:600; color:var(--ink-faint); padding:11px 18px;
+    border-radius:5px 5px 0 0; margin-bottom:-2px; border-bottom:2px solid transparent;
+  }
+  .tabs button:hover { color:var(--ink-soft); background:var(--surface-sunk); }
+  .tabs button[aria-selected="true"] { color:var(--accent); border-bottom-color:var(--accent); }
+  .tabs button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .tabs .hint { margin-left:auto; align-self:center; font-family:var(--mono); font-size:11px; color:var(--ink-faint); letter-spacing:.05em; }
+  .panel[hidden] { display:none; }
+  /* ---- simple view ---- */
+  .simple { max-width:74ch; }
+  .simple h2 {
+    font-family:var(--sans); font-size:16.5px; font-weight:700; letter-spacing:.005em;
+    margin:34px 0 4px; padding-bottom:7px; border-bottom:1px solid var(--rule);
+  }
+  .simple h3 { font-family:var(--sans); font-size:14px; font-weight:650; color:var(--ink-soft); margin:20px 0 6px; }
+  .simple ul { margin:8px 0 0; padding-left:20px; }
+  .simple li { margin-bottom:7px; color:var(--ink-soft); }
+  .simple li b, .simple li strong { color:var(--ink); }
+  .simple > p { color:var(--ink-soft); }
+  .simple .status { margin:8px 0 2px; }
+  .need {
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--warn); background:var(--warn-soft); padding:2px 7px; border-radius:3px; white-space:nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
 </style>
 </head>
 <body>
@@ -277,6 +305,112 @@
     <span>Pulled <b>14 Aug, 11:00</b></span>
   </div>
 </header>
+
+
+<div class="tabs" role="tablist" aria-label="Review views">
+  <button role="tab" id="tab-simple" aria-controls="panel-simple" aria-selected="true">Sprint review</button>
+  <button role="tab" id="tab-detailed" aria-controls="panel-detailed" aria-selected="false">Detail &amp; evidence</button>
+  <span class="hint">agenda version &middot; deep dive</span>
+</div>
+
+<div class="panel simple" id="panel-simple" role="tabpanel" aria-labelledby="tab-simple">
+
+<h2>Overview</h2>
+<ul>
+  <li>Delivered <b>14 of our 17 items</b>. The three that did not close all have code written &mdash; two in review, one customer defect on hold.</li>
+  <li>Two Core patches and mobile 102.0.0 all shipped inside the sprint. The lapsed Core patch train from last sprint is cleared.</li>
+  <li><b>Our own mobile content is queued for 102.1.0 on 7 September</b> &mdash; eight of nine items already Ready for Release, three weeks early.</li>
+  <li>Two thirds of the team's capacity went to other bands this sprint (web GIS and markup).</li>
+</ul>
+
+<h2>Sprint Goals</h2>
+<ul>
+  <li>Finish map-first PT beta hardening for the September train &mdash; <b>met</b>.</li>
+  <li>Keep supporting Metallica's GIS push and The Doors' markup work &mdash; <b>met</b>, and it was the majority of the sprint.</li>
+  <li>Spillover: two items in review awaiting merge, one customer-raised work-log defect on hold. No planned work went unstarted on our own line.</li>
+</ul>
+
+<h2>Beta Implementation Status</h2>
+<h3>On / Off Track</h3>
+<p class="status"><span class="chip c-good">On track</span></p>
+<ul>
+  <li><b>Map-first PT beta</b> &mdash; on track. Every beta item is delivered or Ready for Release for 7 September: adjust and lasso fixes, the Production Work Log view, saved filters, offline draft work logs, the segment-creation button fix.</li>
+  <li><b>Watch Hill Wireless</b> &mdash; requests from the working session are on hold with no release attached, including logging work via plan allocations. Needs a decision at planning.</li>
+  <li><b>Per-customer beta health</b> &mdash; <span class="need">needs input</span> we hold no per-account health data for the mobile beta. Metallica tracks this customer by customer and we should do the same.</li>
+</ul>
+<h3>Risks and Roadblocks</h3>
+<ul>
+  <li><b>No performance or usage data for map-first PT.</b> Instrumentation ships 7 September; the story that defines the performance targets is unscheduled. We cannot currently show how the feature performs or whether anyone uses it.</li>
+  <li><b>Mobile PT is still internal-only.</b> No permission set exists that a community user can be assigned, so a customer's own field users cannot reach it.</li>
+  <li><b>The PT test automation suite is parked</b> &mdash; ten items, no sprint, no release. No regression safety net on our fastest-moving flows.</li>
+</ul>
+<h3>Learnings &amp; Improvements</h3>
+<ul>
+  <li>Patch eligibility was caught at release time twice in ten days &mdash; two changes had to be backed out of a patch. Split patch-safe bundled code from Apex and metadata when the PR is structured, not when the release is cut.</li>
+  <li>Crash triage was slower than it needed to be because symbolication was missing for over-the-air bundles. That fix merged 13 August, five days after the release it would have helped.</li>
+  <li>The sprint started 57% full of carried-over work. Worth a conversation about work in progress at planning.</li>
+</ul>
+
+<h2>Path to Referenceability Status</h2>
+<h3>On / Off Track</h3>
+<p class="status"><span class="chip c-warn">Blocked on access</span></p>
+<ul>
+  <li>Our half &mdash; the field-technician experience &mdash; is on track. 102.0.0 shipped 8 August and nine items are queued for 7 September.</li>
+  <li><b>The blocker is access, not features.</b> Until community users can be granted mobile PT, there is no customer whose own field users can be shown the product. This should be the first referenceability conversation, not a later one.</li>
+  <li>We also have no adoption evidence to bring to that conversation &mdash; see NFRs below.</li>
+</ul>
+
+<h2>In Flight Implementation Support Provided</h2>
+<ul>
+  <li><b>Web GIS (Metallica) &mdash; 26 items</b>, the largest single call on our capacity: feature panel, map layer virtualization, layer sync and caching, basemap persistence, map scale and panel polish.</li>
+  <li><b>Markup (The Doors) &mdash; 9 items</b>: mobile and Safari support, community permissions, daily construction log on the web.</li>
+  <li><b>Platform &mdash; 1 item</b> that shipped in 102.0.0.</li>
+  <li>Watch Hill Wireless working-session requests captured and logged.</li>
+</ul>
+
+<h2>Path to GA</h2>
+<h3>On / Off Track</h3>
+<p class="status"><span class="chip c-warn">One gate open</span></p>
+<ul>
+  <li>Per the Metallica Sprint D doc, <b>September GA readiness is being targeted for Map-First Production Tracking</b>, shipping behind the Field Construction flag for FTTX customers. Our content supports that date.</li>
+  <li>Functional GA items are delivered: the sharing-removal fix, in-app link navigation, record names on link fields, area outline colour, saved filters.</li>
+  <li><b>Gate open &mdash; community user access.</b> Unrefined and unscheduled, so the gate has no date behind it.</li>
+  <li><b>Gate open &mdash; no GA evidence.</b> Entering a GA decision with no performance and no adoption numbers is the weakest part of the position, and it cannot be fixed retroactively.</li>
+</ul>
+
+<h2>NFRs &amp; Adoption Tracking Metrics</h2>
+<ul>
+  <li><b>Code quality held.</b> Lowest branch coverage on touched files was 84%, above the gate; one module improved from 76% to 84%. 18,658 tests passing on the largest change; typecheck and lint clean on everything merged.</li>
+  <li><b>Performance &mdash; no data.</b> None of our surfaces emit field performance data. The instrumentation ships 7 September and the story defining the targets is unscheduled, so there is no number and nothing to judge it against.</li>
+  <li><b>Usage &mdash; no data.</b> No feature we have shipped reports usage. Events arrive with 102.1.0, and even then cannot be broken down by customer until user context reaches the analytics layer &mdash; that fix has no release and no sprint.</li>
+  <li><b>Crash-free rate &mdash; not captured</b>, second sprint running.</li>
+  <li>Needs an owner for closing these before the September GA date.</li>
+</ul>
+
+<h2>Designer &amp; KM Updates</h2>
+<p><span class="need">needs input</span></p>
+<ul>
+  <li>Design and KM updates for our surfaces are the design and docs owners' to add. Metallica's doc covers the symbology and style-template handover; the mobile-side equivalent is not recorded anywhere yet.</li>
+  <li>Open question for KM: mobile PT has no enablement or best-practice material, and the September GA target assumes it exists.</li>
+</ul>
+
+<h2>PM Views &amp; Concerns</h2>
+<p><span class="need">needs input</span></p>
+<ul>
+  <li>Already on record in the Metallica doc: SteerCo approval secured for Field Central GA; September GA targeted for Map-First PT behind the Field Construction flag for FTTX customers; enablement material needs to start now, drawing on beta learnings.</li>
+  <li>Our questions for PM: keep or drop the on-hold September item; confirm the community access work is genuinely unscheduled rather than quietly expected in 11.2; and confirm whether two thirds of this team on other bands' goals is the intended shape for Sprint E.</li>
+</ul>
+
+<h2>Additional Information</h2>
+<ul>
+  <li><b>Planned versus delivered could not be derived this sprint.</b> The planning-day snapshot failed on an outage, and Jira keeps no history of sprint membership, so the committed set is unrecoverable. Not "no change" &mdash; unknown. Next capture is 18 August.</li>
+  <li>PI-11 overall is on pace: 67% of scope delivered against 67% of the increment elapsed. Nothing that came due has slipped.</li>
+  <li>Full evidence, per-item detail and the measured numbers are on the <b>Detail &amp; evidence</b> tab.</li>
+</ul>
+
+</div>
+
+<div class="panel" id="panel-detailed" role="tabpanel" aria-labelledby="tab-detailed" hidden>
 
 <nav class="strip" aria-label="Agenda status">
   <a href="#a1"><span class="n">01</span><span class="t">Sprint goals &amp; spillover</span><span><span class="chip c-warn">Mostly met</span></span></a>
@@ -815,12 +949,36 @@
   </ul>
 </details>
 
+</div>
+
 <div class="colophon">
   <p><b>Sources.</b> Jira (sprint 725, pulled 14 Aug 2026), GitHub pull request state and merged-PR bodies for both repositories, and Sentry error data for the mobile project over a 14-day window. Every number on this page traces to one of those three.</p>
   <p><b>Marked as input needed</b> &mdash; agenda items 03, 07 and 08, plus the capacity and mission questions in section 01 &mdash; are prompts for the room. Nothing in those blocks is asserted as fact.</p>
   <p><b>Not written to Jira.</b> This review is read-only; no issue was created, edited or transitioned to produce it.</p>
 </div>
 
+
+<script>
+(function () {
+  var tabs = [document.getElementById('tab-simple'), document.getElementById('tab-detailed')];
+  function select(i) {
+    tabs.forEach(function (t, j) {
+      var panel = document.getElementById(t.getAttribute('aria-controls'));
+      t.setAttribute('aria-selected', j === i ? 'true' : 'false');
+      if (j === i) { panel.removeAttribute('hidden'); } else { panel.setAttribute('hidden', ''); }
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(i); window.scrollTo({ top: 0 }); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var n = (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+        tabs[n].focus(); select(n);
+      }
+    });
+  });
+})();
+</script>
 </div>
 
 </body>
