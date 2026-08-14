@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Eagles — PI-11 Sprint D Review</title>
+<style>
+  :root {
+    --ground: #F6F7F9;
+    --surface: #FFFFFF;
+    --surface-sunk: #EDEFF3;
+    --ink: #161B22;
+    --ink-soft: #4A5361;
+    --ink-faint: #737D8C;
+    --rule: #DDE1E8;
+    --rule-strong: #C3CAD4;
+    --accent: #1C6470;
+    --accent-soft: #E2EEF0;
+    --good: #256B4C;
+    --good-soft: #E0EFE7;
+    --warn: #8F5D0E;
+    --warn-soft: #F7EBD6;
+    --crit: #9C3229;
+    --crit-soft: #F7E3E1;
+    --open: #4C5769;
+    --open-soft: #E7EAEF;
+    --shadow: 0 1px 2px rgba(22,27,34,.06), 0 4px 12px rgba(22,27,34,.04);
+    --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #11151B;
+      --surface: #181D25;
+      --surface-sunk: #1F2530;
+      --ink: #E8EBEF;
+      --ink-soft: #A9B2BF;
+      --ink-faint: #7B8593;
+      --rule: #2A313C;
+      --rule-strong: #3A4350;
+      --accent: #6FBFCB;
+      --accent-soft: #163035;
+      --good: #6BC495;
+      --good-soft: #14291F;
+      --warn: #DDA646;
+      --warn-soft: #2E2413;
+      --crit: #E2857A;
+      --crit-soft: #2E1A18;
+      --open: #9AA5B5;
+      --open-soft: #212833;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #11151B;
+    --surface: #181D25;
+    --surface-sunk: #1F2530;
+    --ink: #E8EBEF;
+    --ink-soft: #A9B2BF;
+    --ink-faint: #7B8593;
+    --rule: #2A313C;
+    --rule-strong: #3A4350;
+    --accent: #6FBFCB;
+    --accent-soft: #163035;
+    --good: #6BC495;
+    --good-soft: #14291F;
+    --warn: #DDA646;
+    --warn-soft: #2E2413;
+    --crit: #E2857A;
+    --crit-soft: #2E1A18;
+    --open: #9AA5B5;
+    --open-soft: #212833;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+
+  /* ---- masthead ---- */
+  .mast { padding: 56px 0 28px; border-bottom: 2px solid var(--rule-strong); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(30px, 4.6vw, 46px);
+    line-height: 1.1; letter-spacing: -.015em; margin: 0 0 14px; text-wrap: balance;
+  }
+  .dek { font-size: 17px; color: var(--ink-soft); max-width: 62ch; margin: 0 0 22px; }
+  .factbar {
+    display: flex; flex-wrap: wrap; gap: 6px 26px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .factbar b { color: var(--ink); font-weight: 600; }
+
+  /* ---- sections ---- */
+  section { margin: 46px 0 0; }
+  h2 {
+    font-family: var(--serif); font-weight: 600; font-size: 25px; line-height: 1.25;
+    letter-spacing: -.01em; margin: 0 0 6px; text-wrap: balance;
+  }
+  h2 .num {
+    font-family: var(--mono); font-size: 12px; color: var(--accent);
+    letter-spacing: .1em; display: block; margin-bottom: 7px; font-weight: 500;
+  }
+  h3 {
+    font-family: var(--sans); font-weight: 650; font-size: 14.5px; letter-spacing: .01em;
+    margin: 26px 0 10px; color: var(--ink);
+  }
+  .lede { color: var(--ink-soft); max-width: 68ch; margin: 0 0 18px; }
+  p { margin: 0 0 14px; }
+  .src {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 2px 7px; display: inline-block; margin-bottom: 14px;
+  }
+
+  /* ---- chips ---- */
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 3px; font-weight: 500;
+  }
+  .c-good { background: var(--good-soft); color: var(--good); }
+  .c-warn { background: var(--warn-soft); color: var(--warn); }
+  .c-crit { background: var(--crit-soft); color: var(--crit); }
+  .c-open { background: var(--open-soft); color: var(--open); }
+  .c-acc  { background: var(--accent-soft); color: var(--accent); }
+
+  /* ---- agenda strip ---- */
+  .strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+    border-radius: 6px; overflow: hidden; margin: 26px 0 0;
+  }
+  .strip a {
+    background: var(--surface); padding: 13px 15px; text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .strip a:hover { background: var(--surface-sunk); }
+  .strip .t { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+  .strip .n { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); letter-spacing: .1em; }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+  th {
+    text-align: left; font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 500;
+    padding: 11px 14px; border-bottom: 1px solid var(--rule-strong); background: var(--surface-sunk);
+    vertical-align: bottom; white-space: nowrap;
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.5; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.what { min-width: 250px; }
+  .rowname { font-weight: 600; }
+  .sub { color: var(--ink-faint); font-size: 12.5px; display: block; margin-top: 3px; }
+
+  /* ---- risk cards ---- */
+  .risk {
+    background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--rule-strong);
+    border-radius: 5px; padding: 16px 18px; margin-bottom: 12px; box-shadow: var(--shadow);
+  }
+  .risk.sev-crit { border-left-color: var(--crit); }
+  .risk.sev-warn { border-left-color: var(--warn); }
+  .risk.sev-info { border-left-color: var(--accent); }
+  .risk-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .risk-id { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink-faint); letter-spacing: .06em; }
+  .risk-title { font-weight: 650; font-size: 15.5px; flex: 1 1 300px; line-height: 1.35; }
+  .risk p { margin: 0 0 10px; color: var(--ink-soft); font-size: 14.5px; }
+  .risk p:last-child { margin-bottom: 0; }
+  .route {
+    display: flex; flex-wrap: wrap; gap: 4px 22px; padding-top: 10px; margin-top: 4px;
+    border-top: 1px dashed var(--rule); font-size: 13px;
+  }
+  .route span { color: var(--ink-faint); }
+  .route b { color: var(--ink); font-weight: 600; }
+
+  /* ---- metric row ---- */
+  .metrics {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden;
+  }
+  .metric { background: var(--surface); padding: 15px 16px; }
+  .metric .v {
+    font-family: var(--mono); font-size: 26px; font-weight: 600; line-height: 1.1;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  }
+  .metric .k {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); margin-top: 7px;
+  }
+  .metric .note { font-size: 12.5px; color: var(--ink-soft); margin-top: 5px; line-height: 1.4; }
+
+  /* ---- callout ---- */
+  .callout {
+    background: var(--surface); border: 1px solid var(--rule); border-top: 3px solid var(--crit);
+    border-radius: 5px; padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .callout.info { border-top-color: var(--accent); }
+  .callout h3 { margin-top: 0; }
+
+  /* ---- prompt (input needed) ---- */
+  .prompt {
+    background: repeating-linear-gradient(135deg, transparent, transparent 9px, var(--surface-sunk) 9px, var(--surface-sunk) 18px);
+    border: 1px dashed var(--rule-strong); border-radius: 5px; padding: 16px 18px;
+  }
+  .prompt .inner { background: var(--surface); border-radius: 3px; padding: 14px 16px; }
+  .prompt ul { margin: 8px 0 0; padding-left: 20px; }
+  .prompt li { margin-bottom: 7px; color: var(--ink-soft); }
+
+  ul.tight { margin: 0 0 14px; padding-left: 20px; }
+  ul.tight li { margin-bottom: 8px; color: var(--ink-soft); }
+  ul.tight li b, ul.tight li strong { color: var(--ink); }
+
+  code, .k {
+    font-family: var(--mono); font-size: .88em; background: var(--surface-sunk);
+    padding: 1px 5px; border-radius: 3px; color: var(--ink-soft);
+  }
+  a.k { text-decoration: none; color: var(--accent); background: var(--accent-soft); }
+  a.k:hover { text-decoration: underline; }
+
+  details {
+    border: 1px solid var(--rule); border-radius: 5px; background: var(--surface);
+    padding: 0 18px; margin-top: 16px;
+  }
+  details[open] { padding-bottom: 16px; }
+  summary {
+    cursor: pointer; padding: 13px 0; font-weight: 600; font-size: 14px;
+    list-style: none; display: flex; align-items: center; gap: 9px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before {
+    content: "+"; font-family: var(--mono); color: var(--accent); font-size: 15px; font-weight: 600;
+  }
+  details[open] summary::before { content: "\2013"; }
+
+  .colophon {
+    margin-top: 58px; padding-top: 22px; border-top: 2px solid var(--rule-strong);
+    font-size: 13px; color: var(--ink-faint);
+  }
+  .colophon b { color: var(--ink-soft); }
+  hr.soft { border: 0; border-top: 1px solid var(--rule); margin: 30px 0; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Sprint review &middot; Band Eagles &middot; Program Increment 11</p>
+  <h1>Sprint D closed with three releases shipped and one new regression in the field</h1>
+  <p class="dek">Two Core patches and the 102.0.0 mobile release all landed inside the sprint, clearing the lapsed-release risk carried out of Sprint&nbsp;C. The release that shipped has introduced the largest single error source now running in production, and the next train is seven days out with an unstarted item on it.</p>
+  <div class="factbar">
+    <span><b>3&nbsp;–&nbsp;14 Aug 2026</b></span>
+    <span>Sprint <b>D</b> (id 725)</span>
+    <span><b>53</b> items &middot; <b>4</b> engineers</span>
+    <span><b>36</b> done &middot; 68%</span>
+    <span>Pulled <b>14 Aug, 11:00</b></span>
+  </div>
+</header>
+
+<nav class="strip" aria-label="Agenda status">
+  <a href="#a1"><span class="n">01</span><span class="t">Sprint goals &amp; spillover</span><span><span class="chip c-warn">Mostly met</span></span></a>
+  <a href="#a2"><span class="n">02</span><span class="t">Beta implementation</span><span><span class="chip c-good">On track</span></span></a>
+  <a href="#a3"><span class="n">03</span><span class="t">Path to reference-ability</span><span><span class="chip c-acc">Input needed</span></span></a>
+  <a href="#a4"><span class="n">04</span><span class="t">Implementation support</span><span><span class="chip c-good">68% of capacity</span></span></a>
+  <a href="#a5"><span class="n">05</span><span class="t">Path to GA</span><span><span class="chip c-crit">Gate not met</span></span></a>
+  <a href="#a6"><span class="n">06</span><span class="t">NFRs &amp; adoption metrics</span><span><span class="chip c-warn">Partly measured</span></span></a>
+  <a href="#a7"><span class="n">07</span><span class="t">Designer &amp; KM</span><span><span class="chip c-acc">Input needed</span></span></a>
+  <a href="#a8"><span class="n">08</span><span class="t">PM views &amp; concerns</span><span><span class="chip c-acc">Input needed</span></span></a>
+</nav>
+
+<!-- ============ RELEASES ============ -->
+<section id="releases">
+  <h2>Dated release commitments</h2>
+  <p class="lede">Everything with a date attached, in date order. The three trains dated inside this sprint all shipped.</p>
+  <span class="src">From Jira fix versions &middot; GitHub</span>
+  <div class="scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Train</th><th class="num">Date</th><th class="what">What the customer gets</th><th>Ready?</th><th>Verdict &amp; action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="rowname">Core 11.1.2</td>
+        <td class="num">6 Aug</td>
+        <td class="what">A cleaner loading indicator across the GIS map surfaces.</td>
+        <td><span class="chip c-good">Shipped</span></td>
+        <td>Released on date. No action.</td>
+      </tr>
+      <tr>
+        <td class="rowname">Core 11.1.3</td>
+        <td class="num">12 Aug</td>
+        <td class="what">Richer GIS feature panel (weather, locale-correct dates, linked record names, permission-aware actions), consistent zoom-and-highlight when moving between Progress Tracking tabs, and an end to the misleading &ldquo;changes will be lost&rdquo; warnings.</td>
+        <td><span class="chip c-good">Shipped</span></td>
+        <td>Released on date, six items. No action.</td>
+      </tr>
+      <tr>
+        <td class="rowname">Mobile 102.0.0</td>
+        <td class="num">8 Aug</td>
+        <td class="what">The 102.0 field release, including a fix for document generation failing to open.</td>
+        <td><span class="chip c-good">Shipped</span></td>
+        <td><b>Shipped five days later than the 3 Aug date carried at the last review.</b> Now carries a new field regression &mdash; see <a href="#R1">R1</a>.</td>
+      </tr>
+      <tr>
+        <td class="rowname">Core 11.2</td>
+        <td class="num">21 Aug</td>
+        <td class="what">Admins can configure which fields mobile search and filter on; area outline colour becomes settable; records stop being visible on mobile after sharing is removed; markup viewer works on mobile and Safari; community users get markup permissions; daily construction log reaches the web.</td>
+        <td><span class="chip c-warn">At risk</span></td>
+        <td>Seven days out. Twelve items, most built; two in review awaiting merge. <b>One dated item never started and is not in any sprint</b> &mdash; see <a href="#R2">R2</a>.</td>
+      </tr>
+      <tr>
+        <td class="rowname">Mobile 102.1.0</td>
+        <td class="num">7 Sep</td>
+        <td class="what">Saved and persisted filters; offline draft work logs that survive an edit; tapping a link field navigates in-app instead of showing a record id; smoother map adjust and lasso with the stuck-selection fix; work-log sort and filter that remember themselves; the element sheet honouring active map filters.</td>
+        <td><span class="chip c-warn">At risk</span></td>
+        <td>Nine items, eight already Ready for Release. <b>One dated item is On&nbsp;Hold and out of sprint</b> (<a href="#R3">R3</a>), and the September styling commitment rides this train (<a href="#R4">R4</a>).</td>
+      </tr>
+      <tr>
+        <td class="rowname">Patch Core</td>
+        <td class="num">rolling</td>
+        <td class="what">GIS V2 feature-panel and map-layer work, delivered continuously rather than to a date.</td>
+        <td><span class="chip c-open">No date</span></td>
+        <td>Sixteen items. No date to miss, but two items had to be backed out of a patch this sprint &mdash; see <a href="#L1">Learnings</a>.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:14px;color:var(--ink-soft);font-size:14.5px;"><b>Carried risk now cleared.</b> The last review flagged Core&nbsp;11.1 and 11.1.1 as lapsed and unreleased. Both are released, and 11.1.2 and 11.1.3 have shipped on top of them. The Core patch train is current.</p>
+</section>
+
+<!-- ============ PI-11 SCOPE ============ -->
+<section id="pi11">
+  <h2>Delay against PI-11 planned scope</h2>
+  <p class="lede"><span class="chip c-good">On pace by volume</span> <span class="chip c-warn">Tail is at risk</span> &nbsp;Four of the increment's six sprints are done &mdash; 67% of the elapsed plan &mdash; and <b>67% of the scope is delivered</b>. By count, PI-11 is tracking almost exactly to plan. The concern is not the burn rate; it is that a third of what remains has never been scheduled.</p>
+  <span class="src">From Jira &middot; PI-11, Eagles band</span>
+
+  <div class="metrics">
+    <div class="metric"><div class="v">131</div><div class="k">PI-11 items</div><div class="note">Eagles band, whole increment</div></div>
+    <div class="metric"><div class="v">88</div><div class="k">Delivered &middot; 67%</div><div class="note">36 released, 27 ready, 25 closed</div></div>
+    <div class="metric"><div class="v">43</div><div class="k">Still open</div><div class="note">Two sprints remain (E, F)</div></div>
+    <div class="metric"><div class="v">21</div><div class="k">In no sprint</div><div class="note">PI-tagged but never scheduled</div></div>
+    <div class="metric"><div class="v">33</div><div class="k">Open, no release</div><div class="note">No fix version attached at all</div></div>
+    <div class="metric"><div class="v">81<span style="font-size:16px;color:var(--ink-faint);">/92</span></div><div class="k">Points delivered</div><div class="note">70 of 131 items are pointed</div></div>
+  </div>
+
+  <h3>Is anything actually late?</h3>
+  <p style="color:var(--ink-soft);"><b>No delivered commitment slipped its date this increment</b> beyond the mobile 102.0.0 release moving from 3 to 8&nbsp;August. Everything dated inside PI-11 that has come due has shipped. What is at risk is entirely ahead of us:</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="num">Due</th><th>Train</th><th class="what">Open item &mdash; what it is</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td class="num">21 Aug</td><td>Core 11.2</td><td class="what">Admin-configurable mobile search and filter fields <span class="sub">SIT-66465</span></td><td><span class="chip c-warn">In review, approved</span></td></tr>
+      <tr><td class="num">21 Aug</td><td>Core 11.2</td><td class="what">Community-user permission sets for mobile Progress Tracking <span class="sub">SIT-65311</span></td><td><span class="chip c-crit">Not started</span></td></tr>
+      <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">Controllable map layer draw order on mobile <span class="sub">SIT-62225</span></td><td><span class="chip c-crit">Not started</span></td></tr>
+      <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">Segment-creation workflow enhancements <span class="sub">SIT-63300</span></td><td><span class="chip c-warn">In progress</span></td></tr>
+      <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">CI build speed-up <span class="sub">SIT-64100</span></td><td><span class="chip c-warn">In review</span></td></tr>
+      <tr><td class="num">7 Sep</td><td>Mobile 102.1.0</td><td class="what">Planned Work widget: assigned-to-me and multi-select <span class="sub">SIT-65714</span></td><td><span class="chip c-crit">On hold</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The arithmetic, stated plainly</h3>
+  <p style="color:var(--ink-soft);">The team's own band delivered <b>14 of its 17 items (82%)</b> this sprint. At that rate, two remaining sprints absorb roughly 28 items against <b>43 open</b> &mdash; a gap of about 15. That gap closes only if the team's allocation shifts back toward its own band, or if the unscheduled tail was never really PI-11 scope.</p>
+  <p style="color:var(--ink-soft);"><b>That second reading is the more likely one, and it is the scope question worth asking:</b> 21 PI-tagged items sit in no sprint and 33 carry no release, with two sprints left. If they belong to PI-12, the PI-11 number is honest and the tag is wrong. If they belong to PI-11, the increment is over-committed by roughly a third. The board cannot tell you which, and the difference is the whole answer.</p>
+
+  <h3>Scope changes visible in the increment</h3>
+  <ul class="tight">
+    <li><b>One whole component is parked.</b> Ten items &mdash; the Maestro Progress Tracking test-automation suite and its CI re-enablement &mdash; sit in Product Backlog with no release and no sprint. That is 8% of PI-11 scope, and it is the automation that would catch regressions like the one now in the field (<a href="#R1">R1</a>).</li>
+    <li><b>The map-first NFR baseline is itself unscheduled.</b> The story to capture non-functional requirements for map-first Progress Tracking sits in Sprint Backlog with no release date &mdash; which is why <a href="#a6">section 06</a> has gaps rather than targets to measure against.</li>
+    <li><b>The layer-styling family (three items) never entered a sprint</b> &mdash; the epic plus both build stories. See <a href="#R4">R4</a>.</li>
+    <li><b>One item was cancelled</b> during the increment; the rest of the reduction is re-planning rather than de-scoping.</li>
+  </ul>
+
+  <h3>Where PI-11 effort went, by component</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Component</th><th class="num">Items</th><th class="what">Note</th></tr></thead>
+    <tbody>
+      <tr><td class="rowname">Production Tracking</td><td class="num">65</td><td class="what">Half the increment. The band's primary mission.</td></tr>
+      <tr><td class="rowname">Mobile</td><td class="num">18</td><td class="what">General mobile app work outside Progress Tracking.</td></tr>
+      <tr><td class="rowname">Maps (Mobile)</td><td class="num">16</td><td class="what">Map surfaces on the device.</td></tr>
+      <tr><td class="rowname">GIS</td><td class="num">12</td><td class="what">Web GIS, largely the support work for the other band.</td></tr>
+      <tr><td class="rowname">Mobile Automation Framework</td><td class="num">10</td><td class="what"><b>All ten open and unscheduled</b> &mdash; see above.</td></tr>
+      <tr><td class="rowname">Mobile Core / Record Sharing / Jobs / Platform</td><td class="num">7</td><td class="what">Analytics, sharing enforcement, and platform fixes.</td></tr>
+      <tr><td class="rowname">No component set</td><td class="num">10</td><td class="what">Hygiene gap &mdash; these cannot be reported on by area.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="color:var(--ink-faint);font-size:13.5px;margin-top:12px;">Release stage across the increment: 33 GA &middot; 32 Beta &middot; 6 Customer Preview &middot; 7 Discovery &middot; 53 with no stage set.</p>
+</section>
+
+<!-- ============ RISKS ============ -->
+<section id="risks">
+  <h2>Risks and asks</h2>
+  <p class="lede">Ranked by consequence. Each says where it should actually be decided &mdash; most of these belong to planning on Monday or Tuesday, not to this hour.</p>
+
+  <div class="risk sev-crit" id="R1">
+    <div class="risk-head">
+      <span class="risk-id">R1</span>
+      <span class="risk-title">A new error appeared with 102.0.0 and is now the largest single error source in the field</span>
+      <span class="chip c-crit">Unassigned</span>
+    </div>
+    <p>A type error on the record detail screen was first seen on 7&nbsp;August and has produced <b>52,581 events across 775 users</b>. It appears <b>only on 102.0.0 builds</b> &mdash; zero occurrences on 101.2.0 or any earlier release &mdash; so it arrived with this release rather than being inherited. It is an unhandled promise rejection, which means it degrades whatever the screen was loading rather than crashing the app, but it accounts for roughly a third of all error volume on the release. Sentry still lists it as unresolved and new.</p>
+    <p>Two things make it harder than it needs to be: the stack arrives unsymbolicated, so nobody can see which module it is, and it is going unnoticed because error-rate-per-release is not something anyone currently watches.</p>
+    <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>EM to name a triage owner</b></span><span>Consequence &mdash; <b>the newest release has an unowned, high-volume defect in customer hands</b></span></div>
+  </div>
+
+  <div class="risk sev-crit" id="R2">
+    <div class="risk-head">
+      <span class="risk-id">R2</span>
+      <span class="risk-title">Core 11.2 ships in seven days with its GA-gating item unstarted</span>
+    </div>
+    <p>The permission sets that let a community &mdash; non-internal &mdash; user reach mobile Progress Tracking are dated to Core&nbsp;11.2. The story sits in Sprint Backlog, was not in this sprint at all, and has not started. Without it, mobile Progress Tracking remains effectively internal-only, which is precisely the gate this item exists to clear.</p>
+    <p>Either it is pulled into the remaining week, or 11.2 ships and the gate moves to the next train. That is a scope call, not an execution one.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning, Mon/Tue</b></span><span>Owner &mdash; <b>EM + PM</b></span><span>Consequence &mdash; <b>11.2 ships without the access model that makes the feature externally usable</b></span></div>
+  </div>
+
+  <div class="risk sev-warn" id="R3">
+    <div class="risk-head">
+      <span class="risk-id">R3</span>
+      <span class="risk-title">A dated 7 September item is On Hold and no longer in a sprint</span>
+    </div>
+    <p>The Planned Work widget improvements &mdash; defaulting to work assigned to you, and letting you pick more than one type at a time &mdash; carry the 7&nbsp;September date but sit On&nbsp;Hold, outside the sprint. With two sprints left before that release, a hold that nobody breaks is a silent scope reduction.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>PM to confirm keep or drop</b></span><span>Consequence &mdash; <b>the September train quietly loses content</b></span></div>
+  </div>
+
+  <div class="risk sev-warn" id="R4">
+    <div class="risk-head">
+      <span class="risk-id">R4</span>
+      <span class="risk-title">The September layer-styling commitment still has no footprint in the tracked backlog</span>
+    </div>
+    <p>This was the headline risk at the last review and it needs re-stating with what actually changed. <b>Real design work landed this sprint</b>: a consolidated technical design was frozen on 12&nbsp;August, the data model was settled, and four engineering questions were verified directly against the code. That is substantial and it is genuine progress.</p>
+    <p>None of it is visible in Jira. The epic is still in Discovery with a due date of 7&nbsp;March, now five months lapsed. Both build stories remain in Product Backlog &mdash; unrefined, unestimated, unscheduled, no fix version, no points. Two sprints remain before 7&nbsp;September.</p>
+    <p><b>I am not calling the date.</b> I am flagging that the design is far enough along to be planned, and that nothing in the tracked backlog currently supports the commitment. The fix is cheap: refine and size the two build stories at the next refinement, and the risk becomes a schedule question instead of an unknown.</p>
+    <div class="route"><span>Decided at &mdash; <b>backlog refinement</b></span><span>Owner &mdash; <b>PM + EM</b></span><span>Consequence &mdash; <b>a customer-facing September date with no scheduled build work behind it</b></span></div>
+  </div>
+
+  <div class="risk sev-warn" id="R5">
+    <div class="risk-head">
+      <span class="risk-id">R5</span>
+      <span class="risk-title">The planning baseline for this sprint was never captured, so committed-versus-delivered is unrecoverable</span>
+    </div>
+    <p>The snapshot that runs on planning Tuesday could not reach Jira on 4&nbsp;August &mdash; every call timed out, including a zero-argument connectivity probe. Jira keeps no sprint-membership history, so what was committed at planning and what was added mid-sprint <b>cannot be reconstructed for Sprint&nbsp;D</b>. This is not &ldquo;nothing changed&rdquo;; it is unknown. Detail in <a href="#a1">section 01</a>.</p>
+    <p>The next planning Tuesday is 18&nbsp;August. The capture needs a connectivity check with a retry, and a failed run should raise an alert rather than write a file nobody reads.</p>
+    <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>Darshan</b></span><span>Consequence &mdash; <b>a second consecutive sprint with no honest commitment number</b></span></div>
+  </div>
+
+  <div class="risk sev-warn" id="R7">
+    <div class="risk-head">
+      <span class="risk-id">R7</span>
+      <span class="risk-title">Adoption cannot be reported per customer, and the fix is unscheduled</span>
+    </div>
+    <p>Firebase user properties &mdash; org, org type, user, offline state &mdash; do not reach GA4 as event-scoped dimensions, so mobile usage events cannot be broken down by customer. Every feature we ship instrumented still produces an unsliceable number. The fix is one whitelisted event parameter and it sits in Sprint Backlog with <b>no release and no sprint</b>.</p>
+    <p>This is the cheapest high-leverage item on the page: until it lands, reference-ability conversations have no per-customer adoption evidence to draw on. Detail in <a href="#usage">the usage section</a>.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>EM to schedule</b></span><span>Consequence &mdash; <b>adoption stays unmeasurable per customer for the rest of the increment</b></span></div>
+  </div>
+
+  <div class="risk sev-info" id="R6">
+    <div class="risk-head">
+      <span class="risk-id">R6</span>
+      <span class="risk-title">Two customer-originated items are On Hold with no release attached</span>
+    </div>
+    <p>Requests from the Watch Hill Wireless working session, and a reported failure to save a work log when the planned resource is missing, are both On&nbsp;Hold with no fix version. Customer-origin work with no date attached tends to resurface as an escalation rather than as a plan.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>PM</b></span><span>Consequence &mdash; <b>commitments made in front of a customer with nothing scheduled behind them</b></span></div>
+  </div>
+</section>
+
+<hr class="soft">
+
+<!-- ============ 01 ============ -->
+<section id="a1">
+  <h2><span class="num">Agenda 01</span>Sprint goals &mdash; and the spillover behind them</h2>
+  <span class="src">From Jira &middot; GitHub</span>
+  <p class="lede">The team delivered 36 of 53 items. Of the 17 that did not close, ten have their code written and are moving through review or QA; seven never started, and six of those seven belong to the two bands the team is supporting rather than to its own mobile line.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="v">53</div><div class="k">Items worked</div><div class="note">Across four engineers and four bands</div></div>
+    <div class="metric"><div class="v">36</div><div class="k">Done &middot; 68%</div><div class="note">35 delivered, 1 closed as expected behaviour</div></div>
+    <div class="metric"><div class="v">30</div><div class="k">Carried in</div><div class="note">57% of the sprint was already in flight on day one</div></div>
+    <div class="metric"><div class="v">23</div><div class="k">Net new</div><div class="note">Started fresh this sprint</div></div>
+    <div class="metric"><div class="v">34</div><div class="k">Points (Beers)</div><div class="note">22 delivered; only 25 of 53 items are pointed</div></div>
+  </div>
+
+  <h3>Planned versus actual &mdash; not available for this sprint</h3>
+  <div class="callout">
+    <p style="margin-bottom:10px;"><b>This cannot be derived, and it should not be estimated.</b> The planning-Tuesday baseline for Sprint&nbsp;D does not exist: the 4&nbsp;August capture hit an Atlassian outage and every call timed out. Because Jira supports no historical query on sprint membership, the committed set and any mid-sprint additions are gone.</p>
+    <p style="margin-bottom:10px;">What can be said, clearly labelled as <b>a pre-planning reading rather than a commitment</b>: on 31&nbsp;July the sprint held eight items, all on one engineer. It now holds 17 in the Eagles band and 53 across the team. Four of those original eight left the sprint entirely &mdash; the per-service quantity story, the Planned Work widget, the Watch Hill Wireless requests, and the community permission sets &mdash; and all four now sit in Sprint Backlog or On&nbsp;Hold. Two of them carry dates (<a href="#R2">R2</a>, <a href="#R3">R3</a>).</p>
+    <p style="margin-bottom:0;">This reading cannot separate work committed at planning from work added mid-sprint. That distinction is exactly what the baseline exists to preserve, and for this sprint it is lost.</p>
+  </div>
+
+  <h3>Where the 17 open items actually stand</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>State</th><th class="num">Count</th><th class="what">Reading</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip c-warn">Finishing</span></td><td class="num">10</td><td class="what">Code written and moving &mdash; six in code review, three awaiting QA, one in QA. Two of the six review items are approved and waiting only on a merge.</td></tr>
+      <tr><td><span class="chip c-crit">Never started</span></td><td class="num">7</td><td class="what">The real miss. Three in Product Backlog, two in Sprint Backlog, one still in Discovery, one On&nbsp;Hold. <b>Six of the seven are Metallica or The Doors items</b> &mdash; support work the team took on &mdash; and one is the Eagles work-log save defect.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:14px;color:var(--ink-soft);font-size:14.5px;">The team's own mobile line delivered nearly everything it held. The unstarted tail sits almost entirely in the support commitments, which is a capacity question for planning rather than an execution problem.</p>
+
+  <div class="prompt" style="margin-top:22px;">
+    <div class="inner">
+      <h3 style="margin-top:0;">Needs the team &mdash; Jira cannot answer these</h3>
+      <ul>
+        <li><b>Any capacity change this sprint?</b> Someone on leave, loaned out, or moved teams. This has been the single biggest driver of spillover every sprint and it never appears in Jira.</li>
+        <li><b>One roster member's entire sprint sits under The Doors band</b> &mdash; nine items, zero Eagles. Consistent with the team move noted at the last review, but Jira cannot confirm whether that capacity still counts as Eagles.</li>
+        <li><b>Was 57% carry-in intentional?</b> A sprint that starts more than half full behaves like a queue rather than a commitment.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 ============ -->
+<section id="a2">
+  <h2><span class="num">Agenda 02</span>Beta implementation status</h2>
+  <span class="src">From Jira &middot; GitHub &middot; Sentry</span>
+  <p class="lede"><span class="chip c-good">On track</span> &nbsp;Sixteen items carry a Beta stage this sprint. On the mobile side, every Beta item is delivered or Ready for Release for the 7&nbsp;September train: the map adjust and lasso fixes, the Progress Tracking work log view, and the segment-creation button fix all landed. On the web side, GIS V2 Beta work shipped through the two Core patches.</p>
+
+  <h3>Risks and roadblocks</h3>
+  <ul class="tight">
+    <li><b>The regression in the shipped release</b> (<a href="#R1">R1</a>) is the roadblock that matters &mdash; it is in customers' hands now, unlike everything else on this page.</li>
+    <li><b>Two items were backed out of a patch release</b> mid-sprint because their content is not patch-eligible. No customer impact, but it cost rework twice in ten days.</li>
+    <li><b>Beta work is largely unpointed</b> &mdash; only 25 of 53 items carry an estimate, and the support work is the least pointed of all, so the point total understates what was done.</li>
+  </ul>
+
+  <h3 id="L1">Learnings &mdash; what the sprint's own data shows</h3>
+  <ul class="tight">
+    <li><b>Patch eligibility is being discovered at release time instead of at authoring time.</b> The preferred-basemap feature was reverted out of the patch release, and patch-ineligible labels had to be stripped from the patch branch &mdash; two separate incidents, same root cause. The working rule already exists (keep patch-safe bundled code in a separate PR from Apex and metadata that a patch cannot carry); this sprint is the evidence for applying it when the PR is structured rather than when the release is cut.</li>
+    <li><b>Crash triage is slower than it should be because symbolication was missing.</b> The largest error on the new release arrives as raw bundle offsets with no module name. The fix &mdash; publishing source maps and debug ids with the over-the-air bundles &mdash; merged on 13&nbsp;August, five days after the release it would have helped.</li>
+    <li><b>Test discipline held.</b> Every merged change checked reported clean typecheck and lint, and coverage on touched files stayed above gate, including a change that lifted branch coverage on an existing module from 76% to 84%.</li>
+  </ul>
+  <p style="color:var(--ink-faint);font-size:13.5px;">These are the data-backed learnings. The retrospective's own learnings are the team's to add.</p>
+</section>
+
+<!-- ============ 03 ============ -->
+<section id="a3">
+  <h2><span class="num">Agenda 03</span>Path to reference-ability</h2>
+  <span class="src">PM / CS input needed &mdash; with one hard data point</span>
+  <div class="prompt">
+    <div class="inner">
+      <p style="margin-bottom:12px;">This is a product and customer-success read, not a Jira one. What the data does support:</p>
+      <ul>
+        <li><b>The mobile half is landing.</b> 102.0.0 shipped on 8&nbsp;August; nine further items are built and queued for 7&nbsp;September. Eight of those nine are already Ready for Release.</li>
+        <li><b>The web half is built but not landed.</b> Of the 26 Metallica items the team worked, sixteen target the undated Patch Core train &mdash; finished work with no release date attached to it.</li>
+        <li><b>One access gate is open on both halves</b> &mdash; without the community permission sets (<a href="#R2">R2</a>), a customer's own field users cannot reach mobile Progress Tracking at all.</li>
+      </ul>
+      <p style="margin:14px 0 0;"><b>Question for the room:</b> which named customers are we driving to reference-ability, and does the September train carry what they were shown?</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 ============ -->
+<section id="a4">
+  <h2><span class="num">Agenda 04</span>In-flight implementation support provided</h2>
+  <span class="src">From Jira &middot; band allocation</span>
+  <p class="lede">This is the section the band view hides. Scoped to the Eagles band, the sprint looks like 17 items. Counted across what the team's people actually worked, it is <b>53</b> &mdash; and roughly two-thirds of that went to other bands' goals.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Where the work went</th><th class="num">Items</th><th class="what">What it is</th></tr></thead>
+    <tbody>
+      <tr><td class="rowname">Metallica &mdash; web GIS</td><td class="num">26</td><td class="what">GIS V2 feature panel, map layer virtualization, layer sync and caching, basemap persistence, map scale and panel polish. The admin and office persona.</td></tr>
+      <tr><td class="rowname">Eagles &mdash; mobile</td><td class="num">17</td><td class="what">The team's own remit: map-first Progress Tracking, offline work logs, filters, mobile record navigation. The field-technician persona.</td></tr>
+      <tr><td class="rowname">The Doors &mdash; markup</td><td class="num">9</td><td class="what">Construction plan markup: mobile and Safari support, community permissions, daily construction log on the web.</td></tr>
+      <tr><td class="rowname">Nirvana &mdash; platform</td><td class="num">1</td><td class="what">The document generation fix that shipped in 102.0.0.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Per engineer</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Engineer</th><th class="num">Items</th><th class="num">Done</th><th class="num">Points</th><th class="what">Allocation</th></tr></thead>
+    <tbody>
+      <tr><td class="rowname">Darshan</td><td class="num">22</td><td class="num">19</td><td class="num">20</td><td class="what">16 mobile, 5 web GIS, 1 platform &mdash; the only engineer still carrying the mobile line</td></tr>
+      <tr><td class="rowname">Akshat</td><td class="num">13</td><td class="num">8</td><td class="num">4</td><td class="what">12 web GIS, 1 mobile &mdash; effectively fully allocated to Metallica</td></tr>
+      <tr><td class="rowname">Amit</td><td class="num">9</td><td class="num">5</td><td class="num">10</td><td class="what">Entirely web GIS</td></tr>
+      <tr><td class="rowname">Fourth roster member</td><td class="num">9</td><td class="num">4</td><td class="num">0</td><td class="what">Entirely markup / The Doors &mdash; <b>no Eagles items at all</b>; see the capacity question in <a href="#a1">section 01</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:14px;color:var(--ink-soft);font-size:14.5px;"><b>Read the band count with care.</b> Reporting &ldquo;17 items&rdquo; would describe a third of the team's actual output and would make three of four engineers invisible. Unlike last sprint, no item carried two bands at once, so nothing here is double-counted.</p>
+  <p style="color:var(--ink-soft);font-size:14.5px;"><b>Do not compare throughput to Sprint&nbsp;C.</b> Headcount, band mix and item mix all moved, and half the work is unpointed. The comparison is not supported in either direction.</p>
+</section>
+
+<!-- ============ 05 ============ -->
+<section id="a5">
+  <h2><span class="num">Agenda 05</span>Path to GA</h2>
+  <span class="src">From Jira</span>
+  <p class="lede"><span class="chip c-crit">One gate not met</span> &nbsp;Seven items this sprint carry a GA stage, and six of them are delivered &mdash; the sharing-visibility fix, in-app link navigation, record names on link fields, area outline colour, and saved filters. The gate that is not met is access.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Gate</th><th>State</th><th class="what">Detail</th></tr></thead>
+    <tbody>
+      <tr><td class="rowname">GA-stage functional items</td><td><span class="chip c-good">Met</span></td><td class="what">Six of seven delivered and Ready for Release across 11.2 and 102.1.0.</td></tr>
+      <tr><td class="rowname">Community user access</td><td><span class="chip c-crit">Not met</span></td><td class="what">No permission set exists that a community user can be assigned, so mobile Progress Tracking is internal-only. Dated 21 Aug, unstarted, out of sprint &mdash; <a href="#R2">R2</a>.</td></tr>
+      <tr><td class="rowname">Security &mdash; record sharing</td><td><span class="chip c-good">Met</span></td><td class="what">Records no longer stay visible on mobile after sharing is removed; the fix is Ready for Release on 11.2 and its patch backport merged 14 Aug.</td></tr>
+      <tr><td class="rowname">Field stability</td><td><span class="chip c-warn">Caveat</span></td><td class="what">The shipped release carries an unresolved high-volume error &mdash; <a href="#R1">R1</a>.</td></tr>
+      <tr><td class="rowname">Adoption measurement</td><td><span class="chip c-crit">No data</span></td><td class="what">The instrumentation rides 102.1.0 and is unreleased, so nothing can be measured until after 7 Sep. See <a href="#a6">section 06</a>.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ 06 ============ -->
+<section id="a6">
+  <h2><span class="num">Agenda 06</span>NFRs and adoption metrics &mdash; measured values</h2>
+  <span class="src">From merged PR bodies &middot; Sentry</span>
+  <p class="lede">Measured values only. Where nothing was measured, the zero is reported as the finding rather than replaced with the ticket that will measure it later.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Non-functional requirement</th><th class="what">Measured value</th><th>Source</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="rowname">Unit test coverage<span class="sub">touched files, mobile</span></td>
+        <td class="what">Lowest measured branch coverage <b>84%</b> (two modules in the map adjust/lasso change, up from a 76% baseline). Elsewhere: 91.4% branches on the segment-creation fix, 96.5% / 90.0% on a modified hook, 100% on all new files.</td>
+        <td>PR bodies</td>
+        <td><span class="chip c-good">Above gate</span><span class="sub">modified-file floor is 75%</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Build health</td>
+        <td class="what"><b>18,658 tests</b> passing on the largest change; typecheck and lint clean on every merged change inspected.</td>
+        <td>PR bodies</td>
+        <td><span class="chip c-good">Met</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Field stability<span class="sub">102.0.0 vs 101.2.0, 14 days</span></td>
+        <td class="what"><b>102.0.0 &mdash; 149,300 error events / 1,722 users</b> (~87 events per user).<br><b>101.2.0 &mdash; 147,579 events / 2,513 users</b> (~59 per user).<br>A single issue new to 102.0.0 accounts for 52,566 of the new release's events.</td>
+        <td>Sentry</td>
+        <td><span class="chip c-crit">Regression</span><span class="sub">102.0.0 has had fewer days of exposure, so the gap is if anything understated</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Crash-free rate</td>
+        <td class="what"><b>Not captured.</b> No session-based measurement was taken. Error-event counts above are <b>not</b> a crash-free rate and should not be quoted as one.</td>
+        <td>&mdash;</td>
+        <td><span class="chip c-warn">No measurement</span><span class="sub">second sprint running</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Performance &mdash; screen load<span class="sub">median and upper-quartile</span></td>
+        <td class="what"><b>Available and healthy at the median.</b> Across 14 days: record detail <b>p50 650&nbsp;ms / p75 931&nbsp;ms</b> on 167,581 samples; home screen <b>p50 194&nbsp;ms</b>; menu <b>p50 91&nbsp;ms</b>. Full table in <a href="#perf">the performance section</a>.</td>
+        <td>Sentry spans</td>
+        <td><span class="chip c-good">Met at p50/p75</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Performance &mdash; the tail</td>
+        <td class="what"><b>Unusable as measured.</b> The 95th percentile reports screen loads of 16 to 80&nbsp;minutes, which is not physically possible &mdash; load spans are not being closed when the app backgrounds. Two screens are also slow at <b>p75</b>, where outliers alone cannot explain it: files list <b>199&nbsp;s</b>, rapid photo capture <b>17.8&nbsp;s</b>.</td>
+        <td>Sentry spans</td>
+        <td><span class="chip c-warn">Instrumentation defect</span><span class="sub">no p95 SLO can be set until fixed</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Feature usage / adoption<span class="sub">Firebase events via GA4</span></td>
+        <td class="what"><b>N/A this sprint</b> &mdash; three separate reasons, only one of which is a tooling gap. Detail in <a href="#usage">the usage section</a>.</td>
+        <td>GA4 / Firebase</td>
+        <td><span class="chip c-crit">Blocked</span><span class="sub">org-level breakdown is unscheduled</span></td>
+      </tr>
+      <tr>
+        <td class="rowname">Scalability</td>
+        <td class="what"><b>No new measurement this sprint.</b> The row-ceiling limits documented at the last review remain open and unmeasured.</td>
+        <td>&mdash;</td>
+        <td><span class="chip c-warn">No measurement</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ COMPONENTS / WIDGETS ============ -->
+<section id="components">
+  <h2>Components and new widgets delivered</h2>
+  <span class="src">From Jira components &middot; GitHub</span>
+  <p class="lede">By component, the sprint was <b>GIS-heavy</b>: 25 of the 53 items carry the GIS component against 10 for Progress Tracking &mdash; the numeric shape of the support allocation described in <a href="#a4">section 04</a>.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Component</th><th class="num">Done</th><th class="num">Open</th><th class="what">Note</th></tr></thead>
+    <tbody>
+      <tr><td class="rowname">GIS</td><td class="num">18</td><td class="num">7</td><td class="what">Web GIS V2 &mdash; feature panel, map layers, basemap, scale, sync.</td></tr>
+      <tr><td class="rowname">Production Tracking</td><td class="num">9</td><td class="num">1</td><td class="what">The band's own mission area; nearly all closed.</td></tr>
+      <tr><td class="rowname">Markup</td><td class="num">1</td><td class="num">2</td><td class="what">Construction plan markup on mobile and Safari.</td></tr>
+      <tr><td class="rowname">Mobile</td><td class="num">3</td><td class="num">0</td><td class="what">Record navigation and link-field fixes.</td></tr>
+      <tr><td class="rowname">Record Sharing</td><td class="num">2</td><td class="num">0</td><td class="what">The sharing-visibility enforcement fix and its patch backport.</td></tr>
+      <tr><td class="rowname">PDF Tool / PDF Annotations / Jobs / Document Generation / Platform</td><td class="num">4</td><td class="num">1</td><td class="what">Single items across four areas.</td></tr>
+      <tr><td class="rowname">No component set</td><td class="num">2</td><td class="num">4</td><td class="what"><b>Hygiene gap</b> &mdash; six items cannot be attributed to an area, four of them still open.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>New user-facing widgets and surfaces, and whether usage is captured</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="what">Widget / surface</th><th>Where</th><th>State</th><th>Usage captured?</th></tr></thead>
+    <tbody>
+      <tr><td class="what"><b>Map layer list, server-paged</b> &mdash; large layer sets load a page at a time instead of all at once <span class="sub">SIT-66273</span></td><td>GIS web</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Last-used basemap remembered</b> per user <span class="sub">SIT-66049</span></td><td>GIS web</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Map scale bar</b> with switchable, remembered metric or imperial units <span class="sub">SIT-65254</span></td><td>GIS web</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Weather tab</b> in the feature panel <span class="sub">SIT-61948</span></td><td>GIS web</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Feature panel rework</b> &mdash; quick versus custom actions, locale-correct dates, clickable record names, permission-aware buttons <span class="sub">SIT-65530&ndash;65533, 63117</span></td><td>GIS web</td><td><span class="chip c-good">Shipped 11.1.3</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Zoom control</b> moved beside the actions menu in the open table <span class="sub">SIT-65764</span></td><td>GIS web</td><td><span class="chip c-good">Shipped 11.1.3</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Circular loading spinner</b>, no background plate <span class="sub">SIT-61311</span></td><td>GIS web</td><td><span class="chip c-good">Shipped 11.1.2</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Street view and zoom-to</b> <span class="sub">SIT-62379</span></td><td>GIS web</td><td><span class="chip c-warn">In QA</span></td><td><span class="chip c-open">N/A</span></td></tr>
+      <tr><td class="what"><b>Production Work Log view</b> &mdash; the mobile work-log reading experience <span class="sub">SIT-65606</span></td><td>Mobile</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-warn">Instrumented, no data until 7 Sep</span></td></tr>
+      <tr><td class="what"><b>Saved filters</b> &mdash; filter selections persist and can be saved <span class="sub">SIT-62476</span></td><td>Mobile</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-warn">Instrumented, no data until 7 Sep</span></td></tr>
+      <tr><td class="what"><b>Work-log sort and filter remembered</b> per record <span class="sub">SIT-66154</span></td><td>Mobile</td><td><span class="chip c-good">Ready</span></td><td><span class="chip c-warn">Instrumented, no data until 7 Sep</span></td></tr>
+      <tr><td class="what"><b>Admin-configurable mobile search and filter fields</b> &mdash; new configuration record type plus resolver <span class="sub">SIT-66465</span></td><td>Core + Mobile</td><td><span class="chip c-warn">In review</span></td><td><span class="chip c-crit">Not instrumented</span></td></tr>
+      <tr><td class="what"><b>Daily construction log on the web</b> &mdash; photos and videos <span class="sub">SIT-66091</span></td><td>Web</td><td><span class="chip c-warn">In review</span></td><td><span class="chip c-open">N/A</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:14px;color:var(--ink-soft);font-size:14.5px;"><b>Why so many N/A.</b> The usage-event pipeline that exists is the mobile one &mdash; Firebase events forwarded into GA4. I found no equivalent instrumentation for the GIS web surfaces, which would mean <b>the majority of this sprint's new widgets emit no usage events by design, not by oversight</b>. Worth confirming with the team rather than taking from this page: if web analytics does exist somewhere, these rows should be filled in.</p>
+</section>
+
+<!-- ============ USAGE ============ -->
+<section id="usage">
+  <h2>Feature usage reports</h2>
+  <span class="src">Firebase events via GA4 &mdash; source confirmed by the team</span>
+  <p class="lede"><span class="chip c-crit">N/A this sprint</span> &nbsp;No feature usage figures can be reported, for <b>three separate reasons</b>. Only the first is a tooling problem on my side; the other two are real and worth the room's attention.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="num">#</th><th class="what">Reason</th><th>Nature</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num">1</td>
+        <td class="what"><b>The analytics property is not reachable from this environment.</b> The Google Analytics connector has no credentials configured here, so no event data could be read at all. Nothing about the product is implied by this.</td>
+        <td><span class="chip c-open">Tooling gap</span></td>
+      </tr>
+      <tr>
+        <td class="num">2</td>
+        <td class="what"><b>The new features' events are not in the field yet.</b> The story that extends adoption instrumentation to every new map-first Progress Tracking feature is Ready for Release on the 7&nbsp;September train. The events exist in code; no device is sending them. <b>First usable numbers arrive after 7&nbsp;Sep</b> &mdash; that is a real measured zero, not a gap. <span class="sub">SIT-65144</span></td>
+        <td><span class="chip c-warn">No data yet</span></td>
+      </tr>
+      <tr>
+        <td class="num">3</td>
+        <td class="what"><b>Even once shipped, events cannot be broken down by customer.</b> Firebase user properties &mdash; org id, org type, user id, offline state, bundle version &mdash; do not carry through to GA4 as event-scoped dimensions, so custom events cannot be sliced by org or org type in explorations or funnels. The fix is a single whitelisted event parameter. <b>Status: Sprint Backlog, no fix version, no sprint</b>, and its pull request is open with changes requested. <span class="sub">SIT-65768</span></td>
+        <td><span class="chip c-crit">Blocked &amp; unscheduled</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout info" style="margin-top:18px;">
+    <h3>What usage reporting <em>did</em> gain this sprint</h3>
+    <p style="margin-bottom:0;">Login analytics enrichment shipped in 102.0.0 on 8&nbsp;August: login failures and cancellations now carry a structured reason and an exit source, so the login funnel can distinguish a user backing out from a system dismissal or a network drop. That is live and reportable today &mdash; the one adoption surface that is not N/A. <span class="sub">SIT-66211</span></p>
+  </div>
+
+  <p style="margin-top:16px;color:var(--ink-soft);font-size:14.5px;"><b>The one to act on is reason 3.</b> It is not blocked by anything, it is small, and until it lands, no amount of shipped instrumentation produces a per-customer adoption number &mdash; which is what reference-ability conversations actually need. It has no release and no sprint. See <a href="#R7">R7</a>.</p>
+</section>
+
+<!-- ============ PERFORMANCE ============ -->
+<section id="perf">
+  <h2>Performance data</h2>
+  <span class="src">From Sentry spans &middot; 14-day window</span>
+  <p class="lede"><span class="chip c-good">Available</span> &nbsp;Screen-load timing is instrumented and flowing, with large sample counts. <b>Median performance is healthy</b> &mdash; most screens open in under a second. Two things need attention: the upper tail is measured wrongly, and two screens are genuinely slow before the tail even starts.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Screen</th><th class="num">Samples</th><th class="num">p50</th><th class="num">p75</th><th class="num">p95</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td class="rowname">Record view</td><td class="num">167,581</td><td class="num">650 ms</td><td class="num">931 ms</td><td class="num">27.5 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
+      <tr><td class="rowname">Form view</td><td class="num">118,556</td><td class="num">698 ms</td><td class="num">945 ms</td><td class="num">19.4 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
+      <tr><td class="rowname">Form section view</td><td class="num">106,327</td><td class="num">579 ms</td><td class="num">651 ms</td><td class="num">16.6 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
+      <tr><td class="rowname">Route change</td><td class="num">81,413</td><td class="num">515 ms</td><td class="num">10.1 s</td><td class="num">27.6 min</td><td><span class="chip c-warn">Slow at p75</span></td></tr>
+      <tr><td class="rowname">Record detail view</td><td class="num">66,566</td><td class="num">748 ms</td><td class="num">935 ms</td><td class="num">25.8 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
+      <tr><td class="rowname">Auth loading</td><td class="num">56,060</td><td class="num">726 ms</td><td class="num">1.57 s</td><td class="num">10.0 s</td><td><span class="chip c-good">Bounded</span></td></tr>
+      <tr><td class="rowname">Home</td><td class="num">55,411</td><td class="num">194 ms</td><td class="num">395 ms</td><td class="num">1.35 s</td><td><span class="chip c-good">Healthy throughout</span></td></tr>
+      <tr><td class="rowname">Job execution</td><td class="num">51,139</td><td class="num">587 ms</td><td class="num">637 ms</td><td class="num">25.0 min</td><td><span class="chip c-warn">Tail invalid</span></td></tr>
+      <tr><td class="rowname">Files list card</td><td class="num">49,809</td><td class="num">962 ms</td><td class="num">199.6 s</td><td class="num">70.3 min</td><td><span class="chip c-crit">Worst p75</span></td></tr>
+      <tr><td class="rowname">Rapid photo capture</td><td class="num">12,340</td><td class="num">681 ms</td><td class="num">17.8 s</td><td class="num">79.9 min</td><td><span class="chip c-crit">Slow at p75</span></td></tr>
+      <tr><td class="rowname">Login validation</td><td class="num">13,340</td><td class="num">1.40 s</td><td class="num">1.75 s</td><td class="num">3.38 s</td><td><span class="chip c-good">Slowest median, bounded</span></td></tr>
+      <tr><td class="rowname">Menu</td><td class="num">11,623</td><td class="num">91 ms</td><td class="num">121 ms</td><td class="num">543 ms</td><td><span class="chip c-good">Healthy throughout</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Three readings</h3>
+  <ul class="tight">
+    <li><b>The product is fast for most people, most of the time.</b> Half of all record and form loads complete in roughly 0.6&ndash;0.75&nbsp;s, and three quarters inside a second. Home and menu are excellent. This is a genuine strength and it is measured, not asserted.</li>
+    <li><b>The 95th percentile is not a real number.</b> Screen loads reported at 16 to 80&nbsp;minutes are impossible; load spans are staying open when the app is backgrounded and closing on resume. <b>No p95 performance target can be set or defended until that is fixed</b>, which also means the map-first performance work has no trustworthy upper-bound metric to prove itself against.</li>
+    <li><b>Two screens are slow before the tail.</b> Files list at <b>p75 199.6&nbsp;s</b> across ~50,000 samples, and rapid photo capture at <b>17.8&nbsp;s</b>, cannot be explained by background outliers alone at the quartile &mdash; a quarter of loads are affected. Route change at 10.1&nbsp;s is a third case. These are worth a targeted look regardless of the span defect.</li>
+  </ul>
+  <p style="color:var(--ink-soft);font-size:14.5px;"><b>No map-first Progress Tracking screen appears in the instrumented set at all</b> &mdash; consistent with that instrumentation riding the 7&nbsp;September release. The feature area with the most active development is the one with no field performance data, and the story meant to define its targets is itself unscheduled (see <a href="#pi11">the PI-11 section</a>).</p>
+</section>
+
+<!-- ============ 07 & 08 ============ -->
+<section id="a7">
+  <h2><span class="num">Agenda 07</span>Designer &amp; KM updates</h2>
+  <span class="src">Design / KM input needed</span>
+  <div class="prompt">
+    <div class="inner">
+      <p style="margin-bottom:0;"><b>Input needed &mdash; not fabricated here.</b> One data point worth bringing: the layer-styling technical design was consolidated and frozen on 12&nbsp;August, with the data model settled and four engineering questions verified against the code. If that counts as design output for this sprint, it belongs in this update &mdash; and it needs a home in Jira, because today it exists only as working documents (<a href="#R4">R4</a>).</p>
+    </div>
+  </div>
+</section>
+
+<section id="a8">
+  <h2><span class="num">Agenda 08</span>PM views and concerns</h2>
+  <span class="src">PM input needed</span>
+  <div class="prompt">
+    <div class="inner">
+      <p style="margin-bottom:10px;"><b>Input needed.</b> The questions this report cannot answer, and where each one lands:</p>
+      <ul>
+        <li><b>Is there any external date or customer promise not represented on this board?</b> Last sprint this question surfaced the largest risk on the page, and it had no Jira footprint at all.</li>
+        <li><b>Keep or drop</b> the two dated items currently outside the sprint (<a href="#R2">R2</a>, <a href="#R3">R3</a>).</li>
+        <li><b>Was the three-bands split intentional?</b> Two-thirds of the team's capacity served other bands' goals this sprint. If that is the plan, the Eagles band count should stop being read as the team's output.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<details>
+  <summary>More detail &mdash; how these numbers were derived</summary>
+  <ul class="tight" style="margin-top:6px;">
+    <li><b>Sprint identified by count match</b>, not guessed: an open-sprints query scoped to the band and a direct query on sprint 725 both returned 17, proving 725 is the only open Eagles sprint.</li>
+    <li><b>The band field holds multiple values</b>, and support work for another band is filed under <em>that</em> band. The 53-item figure comes from querying each roster member with no band filter and taking the union; the 17-item figure is the band-scoped view alone.</li>
+    <li><b>Carry-in is derived from status history</b> &mdash; items already in progress, review, QA or verification on Monday 3&nbsp;August. Sprint tags cannot answer this, because moved items do not reliably retain the previous sprint id.</li>
+    <li><b>Scope changes are not derivable.</b> Jira exposes no historical operator on sprint membership. This is the entire reason the planning-Tuesday snapshot exists, and why its absence (<a href="#R5">R5</a>) is reported rather than papered over.</li>
+    <li><b>"Done" means Released, Ready for Release, or Closed.</b> One of the nine closures was closed as expected behaviour rather than delivered, and is counted separately &mdash; a valid investigation outcome, not a delivery.</li>
+    <li><b>Points are the "Beers" field.</b> 25 of 53 items are pointed, so points and counts are both reported and neither is complete on its own.</li>
+  </ul>
+</details>
+
+<div class="colophon">
+  <p><b>Sources.</b> Jira (sprint 725, pulled 14 Aug 2026), GitHub pull request state and merged-PR bodies for both repositories, and Sentry error data for the mobile project over a 14-day window. Every number on this page traces to one of those three.</p>
+  <p><b>Marked as input needed</b> &mdash; agenda items 03, 07 and 08, plus the capacity and mission questions in section 01 &mdash; are prompts for the room. Nothing in those blocks is asserted as fact.</p>
+  <p><b>Not written to Jira.</b> This review is read-only; no issue was created, edited or transitioned to produce it.</p>
+</div>
+
+</div>
+
+</body>
+</html>
