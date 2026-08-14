@@ -321,7 +321,7 @@
         <td class="num">8 Aug</td>
         <td class="what">The 102.0 field release. <b>It carries none of this band&rsquo;s work</b> &mdash; the single sprint item on this train belongs to another band and was written by another team&rsquo;s engineer.</td>
         <td><span class="chip c-good">Shipped</span></td>
-        <td><b>Shipped five days later than the 3 Aug date carried at the last review.</b> Relevant here only because it is the release the regression in <a href="#R1">R1</a> arrived in.</td>
+        <td><b>Shipped five days later than the 3 Aug date carried at the last review.</b> Relevant here only because it is the release a platform-owned regression arrived in &mdash; another team&rsquo;s screen, tracked outside this band.</td>
       </tr>
       <tr>
         <td class="rowname">Core 11.2</td>
@@ -335,7 +335,7 @@
         <td class="num">7 Sep</td>
         <td class="what">Saved and persisted filters; offline draft work logs that survive an edit; tapping a link field navigates in-app instead of showing a record id; smoother map adjust and lasso with the stuck-selection fix; work-log sort and filter that remember themselves; the element sheet honouring active map filters.</td>
         <td><span class="chip c-good">On track</span></td>
-        <td>Nine items, <b>eight already Ready for Release</b> &mdash; the band&rsquo;s September content is essentially done, three weeks early. Two scope questions rather than delivery risks: one item is On&nbsp;Hold (<a href="#R3">R3</a>), and the untracked styling commitment is pointed at this train (<a href="#R4">R4</a>).</td>
+        <td>Nine items, <b>eight already Ready for Release</b> &mdash; the band&rsquo;s September content is essentially done, three weeks early. Two scope questions rather than delivery risks: one item is On&nbsp;Hold (<a href="#R5">R5</a>), and the untracked GIS layer-styling commitment is pointed at this train (<a href="#pi11">PI-11 scope</a>).</td>
       </tr>
       <tr>
         <td class="rowname">Patch Core</td>
@@ -386,9 +386,9 @@
 
   <h3>Scope changes visible in the increment</h3>
   <ul class="tight">
-    <li><b>One whole component is parked.</b> Ten items &mdash; the Maestro Progress Tracking test-automation suite and its CI re-enablement &mdash; sit in Product Backlog with no release and no sprint. That is 8% of PI-11 scope, and it is the automation that would catch regressions like the one now in the field (<a href="#R1">R1</a>).</li>
+    <li><b>One whole component is parked.</b> Ten items &mdash; the Maestro Progress Tracking test-automation suite and its CI re-enablement &mdash; sit in Product Backlog with no release and no sprint. That is 8% of PI-11 scope, and it is the automation that would catch regressions in this band&rsquo;s own flows before customers do &mdash; see <a href="#R3">R3</a>.</li>
     <li><b>The map-first NFR baseline is itself unscheduled.</b> The story to capture non-functional requirements for map-first Progress Tracking sits in Sprint Backlog with no release date &mdash; which is why <a href="#a6">section 06</a> has gaps rather than targets to measure against.</li>
-    <li><b>The layer-styling family (three items) never entered a sprint</b> &mdash; the epic plus both build stories. See <a href="#R4">R4</a>.</li>
+    <li><b>The layer-styling family (three items) never entered a sprint</b> &mdash; the epic plus both build stories, all unrefined and unestimated against a September customer expectation, with the epic&rsquo;s own due date five months lapsed. Band-tagged, but a web GIS component, so it is recorded here rather than in this band&rsquo;s risk list.</li>
     <li><b>One item was cancelled</b> during the increment; the rest of the reduction is re-planning rather than de-scoping.</li>
   </ul>
 
@@ -413,89 +413,58 @@
 <!-- ============ RISKS ============ -->
 <section id="risks">
   <h2>Risks and asks</h2>
-  <p class="lede">Ranked by consequence. Each says where it should actually be decided &mdash; most of these belong to planning on Monday or Tuesday, not to this hour.</p>
+  <p class="lede">Scoped to what this band owns &mdash; <b>Production Tracking on Mobile</b> and <b>map-first PT on Mobile</b>. Items belonging to other bands' components are left out on purpose, however visible they were in the sprint data; they are someone else's to raise. Each row says where it should actually be decided.</p>
 
   <div class="risk sev-crit" id="R1">
     <div class="risk-head">
       <span class="risk-id">R1</span>
-      <span class="risk-title">A new error appeared with 102.0.0 and is now the largest single error source in the field</span>
-      <span class="chip c-crit">Unassigned</span>
+      <span class="risk-title">Map-first PT has no field evidence &mdash; no performance data, no usage data, and no agreed targets</span>
     </div>
-    <p>A type error on the record detail screen was first seen on 7&nbsp;August and has produced <b>52,581 events across 775 users</b>. It appears <b>only on 102.0.0 builds</b> &mdash; zero occurrences on 101.2.0 or any earlier release &mdash; so it arrived with this release rather than being inherited. It is an unhandled promise rejection, which means it degrades whatever the screen was loading rather than crashing the app, but it accounts for roughly a third of all error volume on the release. Sentry still lists it as unresolved and new.</p>
-    <p><b>The affected screen is the generic mobile record view, not one of this band’s surfaces</b> — so this is very unlikely to be our code. That is not a reason to drop it from the review: it ships in the release carrying our work, and it is the reason the ask below is <em>name an owner</em> rather than <em>assign it to us</em>.</p>
-    <p>Two things make it harder than it needs to be: the stack arrives unsymbolicated, so nobody can see which module it is, and it is going unnoticed because error-rate-per-release is not something anyone currently watches.</p>
-    <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>EM to name a triage owner</b></span><span>Consequence &mdash; <b>the newest release has an unowned, high-volume defect in customer hands</b></span></div>
+    <p>Map-first Progress Tracking is what this band is judged on, and there is <b>no production measurement of it at all</b>: no screen-load timing, no adoption events, and no thresholds to judge either against. Three things stack up &mdash; the instrumentation is Ready for Release but unshipped until 7&nbsp;September; the story that <em>defines</em> the performance targets sits in Sprint Backlog with no release and no sprint; and even once events flow they cannot be broken down by customer, because user context does not reach the analytics layer as an event dimension.</p>
+    <p><b>This is the only item here that cannot be closed after the fact.</b> Field data starts accumulating when the instrumented build ships and not a day earlier, so every sprint the target-setting stays unscheduled is a sprint of evidence permanently unavailable to the GA and reference-ability conversations. Detail in <a href="#perf">performance</a> and <a href="#usage">usage</a>.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>EM + PM</b></span><span>Consequence &mdash; <b>we enter the September release asserting scale performance with nothing behind it</b></span></div>
   </div>
 
-  <div class="risk sev-info" id="R2">
+  <div class="risk sev-crit" id="R2">
     <div class="risk-head">
       <span class="risk-id">R2</span>
-      <span class="risk-title">Unrefined backlog items carry dated release tags, which makes healthy trains report as at risk</span>
-      <span class="chip c-acc">Hygiene</span>
+      <span class="risk-title">Mobile PT still has no access model for community users, and the work is unrefined and unplanned</span>
     </div>
-    <p>The community permission-set story for mobile Progress Tracking carries a Core&nbsp;11.2 fix version, but <b>it is not 11.2 scope</b>: it is an unrefined backlog item whose own description still has open questions (one permission set or two, which community licences, which parent epic). A fix-version tag is not a release commitment, and reading it as one is what produced a false &ldquo;at risk&rdquo; verdict on a train whose committed content is fully built.</p>
-    <p>The permission-set work is still a genuine gate for external use of mobile Progress Tracking &mdash; it just needs refining and planning on its own merits, not rescuing into next week. <b>The action is to clear or move the tag</b> so release reporting stops mislabelling the train.</p>
-    <div class="route"><span>Decided at &mdash; <b>backlog refinement</b></span><span>Owner &mdash; <b>PM</b></span><span>Consequence &mdash; <b>release readiness keeps reading worse than it is, and real risk gets harder to see</b></span></div>
+    <p>There is no permission set a community &mdash; non-internal &mdash; user can be assigned for mobile Progress Tracking, so the feature is effectively <b>internal-only</b>. Today's access comes from a platform-licence permission set that grants View&nbsp;All and cannot be given to a community user at all. That makes this a hard gate on external use, and therefore on reference-ability.</p>
+    <p>It is not scheduled. The story is unrefined &mdash; its own description still has open questions about how many permission sets, which community licences, and which parent epic. <b>It also carries a Core&nbsp;11.2 tag it should not have</b>: that tag is what made a healthy release read as at risk earlier, and it should be cleared or moved so release reporting stops mislabelling the train.</p>
+    <div class="route"><span>Decided at &mdash; <b>backlog refinement, then planning</b></span><span>Owner &mdash; <b>PM</b></span><span>Consequence &mdash; <b>mobile PT cannot be put in a customer's hands, and the gate has no date</b></span></div>
   </div>
 
-  <div class="risk sev-warn" id="R3">
+  <div class="risk sev-crit" id="R3">
     <div class="risk-head">
       <span class="risk-id">R3</span>
-      <span class="risk-title">A dated 7 September item is On Hold and no longer in a sprint</span>
+      <span class="risk-title">Mobile PT has no regression safety net &mdash; the whole test-automation suite is parked</span>
     </div>
-    <p>The Planned Work widget improvements &mdash; defaulting to work assigned to you, and letting you pick more than one type at a time &mdash; carry the 7&nbsp;September date but sit On&nbsp;Hold, outside the sprint. With two sprints left before that release, a hold that nobody breaks is a silent scope reduction.</p>
-    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>PM to confirm keep or drop</b></span><span>Consequence &mdash; <b>the September train quietly loses content</b></span></div>
+    <p>Ten items covering the mobile Progress Tracking automated test suite &mdash; the create, edit, submit and delete work-log journeys, the viewer journeys, the end-to-end suites, and re-enabling them in CI &mdash; all sit in Product Backlog with <b>no sprint and no release</b>. That is 8% of the increment's scope, and it is the safety net for precisely the flows this band ships fastest.</p>
+    <p>The cost is not hypothetical: it is why regressions in this area would surface from the field rather than from a pipeline, and it compounds <a href="#R1">R1</a> &mdash; no automated coverage and no field telemetry means a break in map-first PT has no early detector at all.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>EM</b></span><span>Consequence &mdash; <b>PT regressions get found by customers instead of by CI</b></span></div>
   </div>
 
   <div class="risk sev-warn" id="R4">
     <div class="risk-head">
       <span class="risk-id">R4</span>
-      <span class="risk-title">The September layer-styling commitment still has no footprint in the tracked backlog</span>
+      <span class="risk-title">Two customer-raised mobile PT items are On Hold with no release attached</span>
     </div>
-    <p>This was the headline risk at the last review and it needs re-stating with what actually changed. <b>Real design work landed this sprint</b>: a consolidated technical design was frozen on 12&nbsp;August, the data model was settled, and four engineering questions were verified directly against the code. That is substantial and it is genuine progress.</p>
-    <p>None of it is visible in Jira. The epic is still in Discovery with a due date of 7&nbsp;March, now five months lapsed. Both build stories remain in Product Backlog &mdash; unrefined, unestimated, unscheduled, no fix version, no points. Two sprints remain before 7&nbsp;September.</p>
-    <p><b>I am not calling the date.</b> I am flagging that the design is far enough along to be planned, and that nothing in the tracked backlog currently supports the commitment. The fix is cheap: refine and size the two build stories at the next refinement, and the risk becomes a schedule question instead of an unknown.</p>
-    <div class="route"><span>Decided at &mdash; <b>backlog refinement</b></span><span>Owner &mdash; <b>PM + EM</b></span><span>Consequence &mdash; <b>a customer-facing September date with no scheduled build work behind it</b></span></div>
+    <p>A reported failure to save a work log against a job and its assigned plan lines &mdash; the planned resource is missing &mdash; is On&nbsp;Hold with no fix version. So are the requests from the Watch Hill Wireless working session, which include logging work via plan allocations, a core mobile PT flow.</p>
+    <p>Both are band-owned PT-on-Mobile work, both came from customers, and neither has a date. Customer-origin work with no release attached tends to return as an escalation rather than as a plan.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>PM</b></span><span>Consequence &mdash; <b>commitments made in front of customers with nothing scheduled behind them</b></span></div>
   </div>
 
   <div class="risk sev-warn" id="R5">
     <div class="risk-head">
       <span class="risk-id">R5</span>
-      <span class="risk-title">The planning baseline for this sprint was never captured, so committed-versus-delivered is unrecoverable</span>
+      <span class="risk-title">A dated September item is On Hold and outside the sprint</span>
     </div>
-    <p>The snapshot that runs on planning Tuesday could not reach Jira on 4&nbsp;August &mdash; every call timed out, including a zero-argument connectivity probe. Jira keeps no sprint-membership history, so what was committed at planning and what was added mid-sprint <b>cannot be reconstructed for Sprint&nbsp;D</b>. This is not &ldquo;nothing changed&rdquo;; it is unknown. Detail in <a href="#a1">section 01</a>.</p>
-    <p>The next planning Tuesday is 18&nbsp;August. The capture needs a connectivity check with a retry, and a failed run should raise an alert rather than write a file nobody reads.</p>
-    <div class="route"><span>Decided at &mdash; <b>this review</b></span><span>Owner &mdash; <b>Darshan</b></span><span>Consequence &mdash; <b>a second consecutive sprint with no honest commitment number</b></span></div>
+    <p>The Planned Work widget improvements &mdash; defaulting to the allocations assigned to you, and allowing more than one type to be selected &mdash; carry the 7&nbsp;September date but sit On&nbsp;Hold, outside the sprint. With two sprints left, a hold nobody breaks is a silent scope reduction rather than a delivery risk.</p>
+    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>PM to confirm keep or drop</b></span><span>Consequence &mdash; <b>the September train quietly loses content</b></span></div>
   </div>
 
-  <div class="risk sev-crit" id="R8">
-    <div class="risk-head">
-      <span class="risk-id">R8</span>
-      <span class="risk-title">The band’s flagship work has no field evidence — no performance data, no usage data, and no defined targets</span>
-    </div>
-    <p>Map-first Progress Tracking is what this band is judged on, and today there is <b>no production measurement of it whatsoever</b>: no screen-load timing, no adoption events, and no agreed thresholds to judge either against. The instrumentation ships 7&nbsp;September; the story defining the performance targets is unscheduled with no release attached.</p>
-    <p>This is the one gap on the page that <b>cannot be closed after the fact</b> — field data only begins accumulating once the instrumented build is out. Every sprint it stays unscheduled is a sprint of evidence permanently unavailable for the GA and reference-ability conversations.</p>
-    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>EM + PM</b></span><span>Consequence &mdash; <b>we enter the September release and customer conversations asserting scale performance with no measurement behind it</b></span></div>
-  </div>
-
-  <div class="risk sev-warn" id="R7">
-    <div class="risk-head">
-      <span class="risk-id">R7</span>
-      <span class="risk-title">Adoption cannot be reported per customer, and the fix is unscheduled</span>
-    </div>
-    <p>Firebase user properties &mdash; org, org type, user, offline state &mdash; do not reach GA4 as event-scoped dimensions, so mobile usage events cannot be broken down by customer. Every feature we ship instrumented still produces an unsliceable number. The fix is one whitelisted event parameter and it sits in Sprint Backlog with <b>no release and no sprint</b>.</p>
-    <p>This is the cheapest high-leverage item on the page: until it lands, reference-ability conversations have no per-customer adoption evidence to draw on. Detail in <a href="#usage">the usage section</a>.</p>
-    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>EM to schedule</b></span><span>Consequence &mdash; <b>adoption stays unmeasurable per customer for the rest of the increment</b></span></div>
-  </div>
-
-  <div class="risk sev-info" id="R6">
-    <div class="risk-head">
-      <span class="risk-id">R6</span>
-      <span class="risk-title">Two customer-originated items are On Hold with no release attached</span>
-    </div>
-    <p>Requests from the Watch Hill Wireless working session, and a reported failure to save a work log when the planned resource is missing, are both On&nbsp;Hold with no fix version. Customer-origin work with no date attached tends to resurface as an escalation rather than as a plan.</p>
-    <div class="route"><span>Decided at &mdash; <b>sprint planning</b></span><span>Owner &mdash; <b>PM</b></span><span>Consequence &mdash; <b>commitments made in front of a customer with nothing scheduled behind them</b></span></div>
-  </div>
+  <p style="color:var(--ink-faint);font-size:13.5px;margin-top:18px;"><b>Deliberately not listed as this band's risks:</b> the error regression that arrived with mobile 102.0.0 (it is on the generic record view, a platform-owned screen, and was not written by this band &mdash; it needs an owner named, but not here); the GIS&nbsp;V2 layer-styling commitment and its September date (band-tagged, but a web GIS component rather than PT on Mobile &mdash; carried in <a href="#pi11">the PI-11 section</a> instead); and the missing planning baseline, a process gap covered in <a href="#a1">section 01</a>. Say the word if you would rather any of these sat here.</p>
 </section>
 
 <hr class="soft">
@@ -553,7 +522,7 @@
 
   <h3>Risks and roadblocks</h3>
   <ul class="tight">
-    <li><b>The regression in the shipped release</b> (<a href="#R1">R1</a>) is the roadblock that matters &mdash; it is in customers' hands now, unlike everything else on this page.</li>
+    <li><b>No field evidence for the Beta itself</b> (<a href="#R1">R1</a>) is the roadblock that matters &mdash; the Beta ships with no way to show how it performs or whether anyone uses it.</li>
     <li><b>Two items were backed out of a patch release</b> mid-sprint because their content is not patch-eligible. No customer impact, but it cost rework twice in ten days.</li>
     <li><b>Beta work is largely unpointed</b> &mdash; only 25 of 53 items carry an estimate, and the support work is the least pointed of all, so the point total understates what was done.</li>
   </ul>
@@ -630,7 +599,7 @@
       <tr><td class="rowname">GA-stage functional items</td><td><span class="chip c-good">Met</span></td><td class="what">Six of seven delivered and Ready for Release across 11.2 and 102.1.0.</td></tr>
       <tr><td class="rowname">Community user access</td><td><span class="chip c-warn">Open</span></td><td class="what">No permission set exists that a community user can be assigned, so mobile Progress Tracking is internal-only. <b>A real GA gate, but not committed to any release</b> &mdash; the story is unrefined and its 11.2 tag is a labelling artefact (<a href="#R2">R2</a>). It needs refining and planning on its own merits.</td></tr>
       <tr><td class="rowname">Security &mdash; record sharing</td><td><span class="chip c-good">Met</span></td><td class="what">Records no longer stay visible on mobile after sharing is removed; the fix is Ready for Release on 11.2 and its patch backport merged 14 Aug.</td></tr>
-      <tr><td class="rowname">Field stability</td><td><span class="chip c-warn">Caveat</span></td><td class="what">The shipped release carries an unresolved high-volume error &mdash; <a href="#R1">R1</a>.</td></tr>
+      <tr><td class="rowname">Field stability</td><td><span class="chip c-open">Not this band</span></td><td class="what">The mobile release carries an unresolved high-volume error, but on a platform-owned screen outside this band&rsquo;s components. Numbers in <a href="#a6">section 06</a>; ownership sits elsewhere.</td></tr>
       <tr><td class="rowname">Adoption measurement</td><td><span class="chip c-crit">No data</span></td><td class="what">The instrumentation rides 102.1.0 and is unreleased, so nothing can be measured until after 7 Sep. See <a href="#a6">section 06</a>.</td></tr>
     </tbody>
   </table>
@@ -769,7 +738,7 @@
 
   <div class="callout" style="margin-top:20px;">
     <h3>Reason 2 is the one to act on</h3>
-    <p style="margin-bottom:0;">Reason&nbsp;1 resolves itself on 7&nbsp;September. Reason&nbsp;2 does not resolve on its own, is small, is blocked by nothing, and is the difference between "the feature is used" and "<em>this customer</em> uses the feature" &mdash; which is the only form of the number a reference-ability conversation can use. It currently has no release and no sprint. See <a href="#R7">R7</a>.</p>
+    <p style="margin-bottom:0;">Reason&nbsp;1 resolves itself on 7&nbsp;September. Reason&nbsp;2 does not resolve on its own, is small, is blocked by nothing, and is the difference between "the feature is used" and "<em>this customer</em> uses the feature" &mdash; which is the only form of the number a reference-ability conversation can use. It currently has no release and no sprint. See <a href="#R1">R1</a>.</p>
   </div>
 </section>
 
@@ -802,7 +771,7 @@
 
   <div class="callout" style="margin-top:20px;">
     <h3>What this actually costs us</h3>
-    <p style="margin-bottom:0;">Performing at scale on large plans is this band's central technical claim for map-first Progress Tracking, and it is the claim a customer will test first. Today that claim rests entirely on local and review-time verification. <b>Going into a 7&nbsp;September release and a reference-ability conversation with no field performance evidence is the weakest part of the current position</b> &mdash; and unlike most items on this page, it cannot be fixed retroactively. Data only starts accumulating after the instrumentation ships. See <a href="#R8">R8</a>.</p>
+    <p style="margin-bottom:0;">Performing at scale on large plans is this band's central technical claim for map-first Progress Tracking, and it is the claim a customer will test first. Today that claim rests entirely on local and review-time verification. <b>Going into a 7&nbsp;September release and a reference-ability conversation with no field performance evidence is the weakest part of the current position</b> &mdash; and unlike most items on this page, it cannot be fixed retroactively. Data only starts accumulating after the instrumentation ships. See <a href="#R1">R1</a>.</p>
   </div>
 
   <p style="margin-top:16px;color:var(--ink-faint);font-size:13.5px;"><b>A note on scope, so the absence is not misread.</b> App-wide screen-load telemetry does exist in Sentry and is flowing in volume &mdash; but every instrumented screen in it belongs to another team's surface area, not this band's. Those numbers are deliberately excluded here: they describe other people's work, they cannot answer any question about this sprint, and quoting them would produce a reassuring figure that means nothing for Progress Tracking. The pipeline works; it simply does not reach our screens yet.</p>
@@ -814,7 +783,7 @@
   <span class="src">Design / KM input needed</span>
   <div class="prompt">
     <div class="inner">
-      <p style="margin-bottom:0;"><b>Input needed &mdash; not fabricated here.</b> One data point worth bringing: the layer-styling technical design was consolidated and frozen on 12&nbsp;August, with the data model settled and four engineering questions verified against the code. If that counts as design output for this sprint, it belongs in this update &mdash; and it needs a home in Jira, because today it exists only as working documents (<a href="#R4">R4</a>).</p>
+      <p style="margin-bottom:0;"><b>Input needed &mdash; not fabricated here.</b> One data point worth bringing: the layer-styling technical design was consolidated and frozen on 12&nbsp;August, with the data model settled and four engineering questions verified against the code. If that counts as design output for this sprint, it belongs in this update &mdash; and it needs a home in Jira, because today it exists only as working documents (<a href="#pi11">PI-11 scope</a>).</p>
     </div>
   </div>
 </section>
@@ -840,7 +809,7 @@
     <li><b>Sprint identified by count match</b>, not guessed: an open-sprints query scoped to the band and a direct query on sprint 725 both returned 17, proving 725 is the only open Eagles sprint.</li>
     <li><b>The band field holds multiple values</b>, and support work for another band is filed under <em>that</em> band. The 53-item figure comes from querying each roster member with no band filter and taking the union; the 17-item figure is the band-scoped view alone.</li>
     <li><b>Carry-in is derived from status history</b> &mdash; items already in progress, review, QA or verification on Monday 3&nbsp;August. Sprint tags cannot answer this, because moved items do not reliably retain the previous sprint id.</li>
-    <li><b>Scope changes are not derivable.</b> Jira exposes no historical operator on sprint membership. This is the entire reason the planning-Tuesday snapshot exists, and why its absence (<a href="#R5">R5</a>) is reported rather than papered over.</li>
+    <li><b>Scope changes are not derivable.</b> Jira exposes no historical operator on sprint membership. This is the entire reason the planning-Tuesday snapshot exists, and why its absence is reported rather than papered over.</li>
     <li><b>"Done" means Released, Ready for Release, or Closed.</b> One of the nine closures was closed as expected behaviour rather than delivered, and is counted separately &mdash; a valid investigation outcome, not a delivery.</li>
     <li><b>Points are the "Beers" field.</b> 25 of 53 items are pointed, so points and counts are both reported and neither is complete on its own.</li>
   </ul>
