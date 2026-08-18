@@ -172,7 +172,7 @@ the children matching its geometry, remaining geometries use the shipped protect
   <text class="lbl" x="236" y="176">st_Style_Template__c</text>
   <text class="lbl" x="262" y="101">Lookup · Restrict</text>
   <path class="rel" d="M590 82 H740"/>
-  <text class="lbl" x="604" y="74">st_Icon_Document_Id__c (Text — stable doc id)</text>
+  <text class="lbl" x="604" y="74">iconDocumentId (inside st_Symbol_Styles__c JSON)</text>
   <path class="rel" d="M590 112 H740" stroke-dasharray="4 3"/>
   <text class="lbl" x="600" y="130">per-value iconDocumentId (JSON) → soft UI warning</text>
   <text class="lbl" x="756" y="152">bytes → ContentVersion (file storage)</text>
@@ -180,26 +180,17 @@ the children matching its geometry, remaining geometries use the shipped protect
 </div></div>
 
 <div class="card" style="margin-top:14px"><div class="pad fdict">
-<h4 style="margin-top:2px"><code>Map_Style_Template__c</code> <span class="tag new">NEW</span> — sharing: OWD Read · Write/Admin via <code>__Share</code></h4>
+<h4 style="margin-top:2px"><code>Map_Style_Template__c</code> <span class="tag new">NEW</span> — <b>PROTECTED (private) object</b>: <code>visibility=Protected</code>, invisible to subscribers, reachable ONLY through packaged Apex</h4>
 <div class="scroll"><table>
 <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Validation / rule</th></tr></thead><tbody>
 <tr><td><code>Name</code></td><td>Text(80)</td><td>—</td><td>required; uniqueness enforced at trigger/unique-field level</td></tr>
 <tr><td><code>st_Is_Protected__c</code></td><td>Checkbox</td><td>false</td><td><b>the shipped-template lock (13 Aug — replaces Provided_By + Status + org-default)</b>: true only on Sitetracker-shipped templates; VR blocks all edits when true (packaged bypass permission for upgrades); import forks are created unprotected — fully editable</td></tr>
 <tr><td><code>st_Map_Object_Configuration__c</code></td><td>Lookup(MOC), optional</td><td>—</td><td><b>asset-type context</b>: geometry + object for picker filtering and representBy; <b>VR: Categorical requires it</b>; how a shipped default declares its asset type. Distinct from the MOC-side binding lookup (kept)</td></tr>
 <tr><td><code>st_Styling_Mode__c</code></td><td>Picklist: Simple / Categorical</td><td>Simple</td><td>restricted; <b>Categorical requires the MOC-context lookup</b> (representBy needs an object); templates are geometry-agnostic — the renderer consumes the scalars that apply to the layer's geometry</td></tr>
-<tr><td><code>st_Symbol_Size__c</code></td><td>Number(3,0)</td><td>10</td><td>VR 1–100</td></tr>
-<tr><td><code>st_Fill_Color__c</code></td><td>Text(7)</td><td>#00847C</td><td>VR hex <code>#RRGGBB</code></td></tr>
-<tr><td><code>st_Outline_Color__c</code></td><td>Text(7)</td><td>#FFFFFF</td><td>VR hex</td></tr>
-<tr><td><code>st_Fill_Opacity__c</code> / <code>st_Outline_Opacity__c</code></td><td>Number(3,2)</td><td>1.00</td><td>VR 0–1 — <b>schema catches up to the mock</b> (13 Aug): the design's colour picker already emits {hex, alpha, none} per colour; fill 0 = None renders outline-only areas, which exist in live ArcGIS services (Area fill alpha 0 in the reference response)</td></tr>
-<tr><td><code>st_Outline_Width__c</code></td><td>Number(2,1)</td><td>1.0</td><td>VR 0–10</td></tr>
 <tr><td><code>st_Layer_Opacity__c</code></td><td>Number(3,2)</td><td>1.00</td><td><b>VR 0.10–1.00 — the 10% floor, declarative</b></td></tr>
-<tr><td><code>st_Offset_X__c</code> / <code>st_Offset_Y__c</code></td><td>Number(4,1)</td><td>0</td><td>VR −50–50, 1 decimal — real ArcGIS renderers carry fractional offsets (verified 13 Aug against a live layer response: xoffset 2.2); integer fields would round-shift forked icons</td></tr>
-<tr><td><code>st_Label_Field__c</code></td><td>Text(80)</td><td>— (labels off)</td><td>field API name; validated against Describe at save</td></tr>
-<tr><td><code>st_Label_Min_Zoom__c</code></td><td>Number(2,0)</td><td>system default</td><td>VR 0–23</td></tr>
-<tr><td><code>st_Label_Halo_Color__c</code></td><td>Text(7)</td><td>#FFFFFF</td><td>VR hex</td></tr>
-<tr><td><code>st_Symbol_Shape__c</code></td><td>Picklist (8 shapes)</td><td>circle</td><td>restricted. <b>REINSTATED 13 Aug — the 8 standard shapes live IN the JS bundles</b> (web static resource + RN app, rasterized at build from one design-owned SVG source). Bundled assets have no record id, so this field is the shape KEY. Protected by construction; day-zero offline on mobile (the spike's own bundled-default recommendation)</td></tr>
-<tr><td><code>st_Icon_Document_Id__c</code></td><td>Text(18), optional</td><td>—</td><td><b>ContentDocumentId of an uploaded icon</b> (13 Aug: the asset object is DROPPED — icons are Salesforce Files); stable across file versions, so replacing artwork updates every referencing template in place; set = icon overrides shape</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td>the ONLY JSON (per-value sparse overrides); closed-set validated <b>in the trigger</b> (every write path — API included; the service adds friendly errors); consumer keeps a defensive parse+fallback; ~20–35 KB at the 100-value cap. <b>131,072 is the platform ceiling</b> — no bigger field type exists; safe because icons are by-reference (<code>iconDocumentId</code> ~25 chars; images live in Files), so entries stay tiny; escape hatch if ever exceeded = child records (priced)</td></tr>
+<tr><td><code>st_Show_Labels__c</code></td><td>Checkbox</td><td>false</td><td><b>NEW 13 Aug</b> — the UI "Show labels" toggle; gates label rendering and the label-styles JSON</td></tr>
+<tr><td><code>st_Label_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td><b>NEW 13 Aug</b> — label styling as JSON: <code>{field, minZoom, halo:{hex,opacity,width}, offset:{x,y}}</code>; trigger-validated; label field Describe-checked at save AND re-checked at DTO build (unresolvable/FLS-invisible ⇒ labels suppressed, never echoed into the DTO). <b>Font info reserved for v2</b> — the Font section is out of v1 scope (supersedes the 12-Aug "fonts in v1"; design/product to be notified)</td></tr>
+<tr><td><code>st_Symbol_Styles__c</code></td><td>LongTextArea(131,072)</td><td>—</td><td><b>RENAMED from st_Symbol_Styles__c + WIDENED (13 Aug): ALL symbol styling consolidates here</b> — the scalar split for symbol properties is superseded (one uniform shape for both modes). Contract: <code>{representBy?, symbols:[…]}</code> — <b>Simple = exactly ONE entry; <code>symbols[0]</code> is the inherited base</b> for Categorical's sparse per-value entries <code>{value, label?, …overrides}</code>. Each entry: <code>shape</code> (bundled key) or <code>iconDocumentId</code> (uploaded — icon overrides shape) · <code>size</code> · <code>fill:{hex,opacity}</code> (0 = None → outline-only, live-ArcGIS-verified) · <code>outline:{hex,opacity,width}</code> · <code>offset:{x,y}</code> (1 decimal — real renderers carry 2.2). Trigger validates every write path: closed-set keys, hex, opacities 0–1, size 1–100, offsets ±50, 15/18-char doc ids, unknown shape → circle fallback, value cap ≤150. Worst case ≈ 9–35 KB vs 131,072</td></tr>
 </tbody></table></div>
 <p class="note" style="margin:8px 0 0">Staleness &amp; publish-conflict detection use the record's standard <code>SystemModstamp</code> — no custom field. Defaults marked here are the proposed shipped values; the ST Default templates ship per asset type with their MOC.</p>
 
@@ -312,7 +303,7 @@ the children matching its geometry, remaining geometries use the shipped protect
 "Why child Rule/Stop records when the template is JSON anyway?" — interrogated: the records bought
 nothing required (compiler parses JSON; whole-template locking; template-level sharing; the graph
 serializes to JSON for checksum regardless) and cost ~600-row reconciliation per Save vs one update.
-<b>Revised:</b> Template (metadata + <code>st_Value_Styles__c</code> snapshot — the mockup's exact
+<b>Revised:</b> Template (metadata + <code>st_Symbol_Styles__c</code> snapshot — the mockup's exact
 shape) · Asset (unchanged) · an Asset-Usage junction — <i>itself dropped later the same week (see the decision log): its rows were code-maintained, so the "platform-enforced" guarantee was only as strong as the sync code</i>. Final: the Simple icon is a real <code>Restrict</code> lookup on the template; per-value icons are guarded by a delete-time scan. The ERD above reflects the final model.</div>
 
 <!-- ============================== 2. DATA STORAGE ============================== -->
@@ -345,7 +336,7 @@ field/ContentVersion. Everything else in the storage design is settled.</div>
     <b style="font-size:13px">Caching &amp; delivery</b>
     <table style="margin-top:8px"><tbody>
       <tr><td>Server</td><td>Platform Cache (existing <code>'sitetracker'</code> partition), key <code>templateId:version</code></td></tr>
-      <tr><td>Web</td><td>@RemoteAction <code>getStyleTemplates()</code> returns the template records (scalar fields + <code>st_Value_Styles__c</code>) → modstamp-keyed store; the client builds Esri renderers exactly as it does today; fetched <b>per template per session, not per layer</b></td></tr>
+      <tr><td>Web</td><td>@RemoteAction <code>getStyleTemplates()</code> returns the template records (scalar fields + <code>st_Symbol_Styles__c</code>) → modstamp-keyed store; the client builds Esri renderers exactly as it does today; fetched <b>per template per session, not per layer</b></td></tr>
       <tr><td>Mobile (future)</td><td>REST <code>/StStyleTemplates</code> + ETag/304 — stub ships in v1, unused until mobile re-opens</td></tr>
       <tr><td>Assets</td><td>ride the doc as data-URIs — zero extra round-trips, offline-safe, no per-file ACLs</td></tr>
     </tbody></table>
@@ -388,14 +379,14 @@ layer.st_Style_Template__c                 <span class="c">// 1. layer link</spa
     </tr>
     <tr>
       <td><b>Is this template editable by me?</b></td>
-      <td><pre class="codeblock" style="padding:10px 12px;font-size:11px">editable =
-     !t.st_Is_Protected__c                       <span class="c">// 13 Aug: ONE checkbox — true only on shipped templates; forks/clones are unprotected</span>
+      <td><pre class="codeblock">editable =
+     !t.st_Is_Protected__c                       <span class="c">// ONE lock — trigger-enforced (shipped templates only)</span>
   && FeatureManagement.checkPermission('st_GISLink_ManageStyleTemplate')
-  && [SELECT HasEditAccess FROM UserRecordAccess
-      WHERE UserId=:uid AND RecordId=:t.Id].HasEditAccess  <span class="c">// __Share rows</span></pre>
+                                                 <span class="c">// PROTECTED object: no OWD, no __Share, no record sharing —</span>
+                                                 <span class="c">// authorisation is entirely this custom permission in packaged Apex</span></pre>
       <span class="note">Five independent predicates — the two locks are deliberately separate fields, the
       last one is the record-access model: <code>UserRecordAccess.HasEditAccess</code> natively reflects
-      OWD + our <code>__Share</code> rows, so the UI never re-implements sharing math. Not editable ≠ hidden:
+      The object is protected (13 Aug) — record sharing does not exist for it; not editable ≠ hidden:
       read-only opens the panel with controls disabled and "Save as new" as the escape hatch.</span></td>
     </tr>
   </tbody></table>
@@ -564,7 +555,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
   <div class="card"><div class="pad">
     <b style="font-size:13px">FLS &amp; per-template access</b>
     <table style="margin-top:8px"><tbody>
-      <tr><td>Record access</td><td>OWD Public Read (internal); Write/Admin via <code>__Share</code> rows, two custom rowCauses. UI asks <code>UserRecordAccess.HasEditAccess</code> — never re-implements sharing math</td></tr>
+      <tr><td>Record access</td><td><b>None to configure — the object is PROTECTED</b> (<code>visibility=Protected</code>, 13 Aug, docs-verified): invisible to subscribers, no Setup presence, no OWD/<code>__Share</code>/sharing rules apply. All access = packaged Apex checking <code>st_GISLink_ManageStyleTemplate</code>; reads/writes run in system context (USER_MODE impossible — subscriber users hold no permissions on a protected object). Protected→Unprotected is reversible any time via <code>FeatureManagement.changeProtection</code>; Public→Protected after release is impossible — protected-first is the reversible choice. ⚠ Records of protected objects are EXCLUDED from template-based sandbox copies (UAT starts empty; shipped default re-seeds). Files/icons unchanged: ordinary ContentVersions, standard file access, user-mode</td></tr>
       <tr><td>Read-only fields</td><td>none — validation runs in the trigger + save service (USER_MODE); <code>st_Is_Protected__c</code> is seed-written only (VR locks the whole record when true)</td></tr>
 <tr><td>Object visibility — precise wording</td><td><b>Salesforce has no <code>protected</code> flag for custom objects</b> (protected = custom settings / CMTs / labels / permissions only). The object and its fields are <b>public in the package</b> — subscribers hold customer-authored data and must query and edit it — but <b>administratively private</b>: no tab, no exposed layouts, no list views, reachable only through the GIS app UI + the packaged permset (v1 = SysAdmin). Say "public in package, admin-gated, no UI surface" in specs, never "protected object" or "private object"</td></tr>
       <tr><td>Admin role grants</td><td>SF system administrators only (ModifyAllData check in service)</td></tr>
@@ -611,7 +602,7 @@ users already hold. New objects ship in <b>1GP</b>, per the repo's own packaging
   <div class="ph"><div class="num">PHASE 0</div><div class="nm">Prerequisites</div>
     <div class="note">renderer write-order the renderer write-order story · verify-reads of the named classes · answer T1 (template association)</div></div>
   <div class="ph"><div class="num">PHASE 1</div><div class="nm">Schema &amp; security</div>
-    <div class="note">ONE object (template) · icons = Salesforce Files · 1 lookup on layer &amp; MOC · scalar style fields + validation rules · permset/custom perm · __Share · <b>storage measurement first</b></div></div>
+    <div class="note">ONE PROTECTED object (template) · icons = Salesforce Files · 1 lookup on layer &amp; MOC · 8 fields (2 JSON) · trigger validation · permset/custom perm · <b>storage measurement done</b></div></div>
   <div class="ph"><div class="num">PHASE 2</div><div class="nm">Compiler</div>
     <div class="note">validation · sparse-merge · opacity pre-multiply · FOR UPDATE publish</div></div>
   <div class="ph"><div class="num">PHASE 3</div><div class="nm">API</div>
@@ -643,7 +634,7 @@ fonts are IN v1). The full dated decision log, with what was superseded and why,
   <table style="margin-top:9px"><tbody>
     <tr><td class="mono">T1</td><td><b>Template association:</b> <span class="tag ok">CLOSED 12 Aug — PER LAYER, code-confirmed</span>: "source" is not an entity (Source Type is a formula field — nothing for a source-scoped lookup to live on); ArcGIS delivers styling per sub-layer with per-sub-layer geometry; per-geometry templates make per-source structurally impossible</td></tr>
     <tr><td class="mono">T4</td><td><b>Colour library:</b> <span class="tag ok">CLOSED 12 Aug — frozen.</span> Three tiers, one field of schema: "used in this template" = <b>derived</b> (zero storage) · "my recents" = <b>localStorage</b> (zero schema) · org brand palette = <b>one TextArea(255) on a hierarchy Custom Setting</b>, UI-capped at 24 (forced curation). Imports do NOT auto-feed the palette — only an explicit "add to org palette" writes it</td></tr>
-    <tr><td class="mono">T7</td><td><b>Permissions timing:</b> <span class="tag ok">CLOSED 12 Aug</span> — v1 ships coarse: <b>System Administrator full access to both objects</b> via the packaged permset; no sharing UI in v1. The record-sharing model (OWD/<code>__Share</code>/custom permission) stays in the schema ready for finer grants later, shipped as required</td></tr>
+    <tr><td class="mono">T7</td><td><b>Permissions timing:</b> <span class="tag ok">CLOSED 12 Aug</span> — v1 ships coarse: <b>System Administrator full access to both objects</b> via the packaged permset; no sharing UI in v1. The record-sharing model is <b>void since the object went PROTECTED (13 Aug)</b> — authorisation is the custom permission in packaged Apex; a sharing UI cannot apply while protected</td></tr>
     <tr><td class="mono">T8</td><td><b>Engineering verifications:</b> <span class="tag ok">ALL DONE 12 Aug, from code.</span> Panel width: no conflict — the 340px is the floating layers-control (the layers-control component), no docked right-panel standard exists → design's 280 stands. Dash math correct (the dash-compensation function: len−physW / gap+physW compensates cap extension exactly; preview-only, live map uses CIM). Verify-reads: all targets exist; sync-template trigger is org-wide single-default — ours must be per-geometry, adapt not copy. Storage measured: worst-case 100-value JSON = <b>9.1 KB (14× headroom)</b>; renditions capped at the 128px set ≈ 48 KB (2.7×)</td></tr>
   </tbody></table>
 </div></div>
@@ -679,6 +670,9 @@ backend can start now.</b></div>
 reviewers should see what changed and why, not just the final answer.</p>
 <div class="card"><div class="scroll"><table class="dlog">
 <thead><tr><th>When · who</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+<tr><td>13 Aug · Engineering</td><td><b>Symbol styling consolidates into <code>st_Symbol_Styles__c</code> JSON</b> (renamed) — nine scalars dropped incl. shape/size/colours/opacities/offsets/icon-id; <b>NEW</b> <code>st_Show_Labels__c</code> + <code>st_Label_Styles__c</code> JSON <span class="tag ok">final</span></td><td>Simple mode = one entry in the same <code>symbols[]</code> array Categorical uses (<code>symbols[0]</code> = the inherited base) — one uniform shape beat per-property fields; per-property validation moves into the trigger. Consequence: no filterable icon reference remains → the denormalized usage field (decision A) is now strongly recommended</td></tr>
+<tr><td>13 Aug · Engineering</td><td><b>Template object ships PROTECTED</b> (<code>visibility=Protected</code>) — invisible to subscribers, packaged-Apex-only <span class="tag ok">final · docs-verified</span></td><td>Corrects the earlier claim that custom objects can't be protected (they can — Metadata API + packaging guide). Protected-first is the reversible choice (Public→Protected after release is impossible). Consequences accepted: no USER_MODE on this object, sharing model void, mobile needs a packaged Apex REST endpoint, protected-object records don't copy to template-based sandboxes</td></tr>
+<tr><td>13 Aug · Engineering</td><td><b>v1 icons = Standard (bundled) + Custom (uploaded) only — the Font section moves to v2</b> <span class="tag dead">supersedes 12 Aug "fonts in v1"</span></td><td>Engineering descope; <code>st_Label_Styles__c</code> reserves the font slot. Design/product to be notified — the 12 Aug ruling was the call's</td></tr>
 <tr><td>12 Aug · code-verified</td><td><b>All four engineering checks done</b>: 280px panel stands (no docked-panel standard; 340 is the layers-control popover) · prototype dash compensation math correct · verify-read targets all exist (single-default trigger needs per-geometry adaptation) · storage measured: 100-value JSON = 9.1 KB (14×), renditions cap = 128px set (48 KB) <span class="tag ok">final</span></td><td>The Phase-1 "measure first" gate is satisfied before Phase 1 even starts</td></tr>
 <tr><td>13 Aug · Engineering</td><td><b>Fork translates classification fields through the layer's SYNC MAPPING</b> — <code>representBy</code> lands as the Salesforce field API name for synced layers; unmappable field → Simple-only fork + notice <span class="tag ok">final</span></td><td>Esri attribute names and Sitetracker API names never match (not by label, not by key); the bridge already exists — the sync configuration's SynchronizedField list. General rule: representBy resolves against the LAYER's attribute namespace (the Categorical-requires-MOC guard supplies the object for synced layers); re-sync re-translates the same way</td></tr>
 <tr><td>13 Aug · Engineering</td><td><b>Value entries carry <code>value</code> (code) + <code>label</code> (display name)</b>; UI/legend render <code>label ?? value</code>, matching always uses <code>value</code> <span class="tag ok">final</span></td><td>ArcGIS coded-value domains (and Salesforce picklists) split code from name — features carry <code>Conduit_Construction_in_Progress</code>, humans expect "Conduit Construction in Progress". The names arrive free in the layer response we already fetch; the vendor's own renderer ships the same value/label pair — the only new bit is the builder rule to resolve labels at value-add time so raw codes never reach end users</td></tr>
@@ -700,7 +694,7 @@ reviewers should see what changed and why, not just the final answer.</p>
 <tr><td>12 Aug · Engineering</td><td><b>Provenance merged into ONE picklist</b> — <code>st_Provided_By__c</code>: Sitetracker | ArcGIS | Vetro | KML | Organization <span class="tag ok">final</span></td><td>The two lock fields encoded mutually exclusive states — one dimension pretending to be two. Lock rule (corrected same day): read-only ⇔ Sitetracker — only the shipped template is protected; vendor forks stay fully editable per the fork-on-import call decision; clones stamp Organization</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Styling mode is a TEMPLATE field</b> — <code>st_Styling_Mode__c</code> joins the scalar fields; layer objects gain exactly ONE field (<code>st_Style_Template__c</code>) <span class="tag ok">final</span></td><td>"Why on Map Layer? It can be part of the template" — accepted: a template IS a look; different look = different template (copy-on-write). Layer-side mode split one appearance across two sources of truth, and the 12 Aug notification pattern already handles mode edits like any other shared edit. Reload persistence comes free (it's on the record)</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>One template lookup per layer object</b> — the per-geometry triplets removed <span class="tag ok">final</span></td><td>A <code>Map_Layer__c</code> is one asset type on Sitetracker (single MOC lookup, one <code>Layer_Type__c</code>) → one geometry. The triplet existed only for mixed-geometry file uploads; those now style matching-geometry children and default the rest</td></tr>
-<tr><td>12 Aug · Engineering</td><td><b>Scalars become typed fields; JSON keeps only the value list</b> (<code>st_Value_Styles__c</code>, ex Style_Definition) <span class="tag ok">final</span></td><td>Team suggestion (store the Simple/Categorical-overlapping attributes as individual fields OR one common-JSON field): <b>individual fields chosen</b> — a common-JSON field would still parse on every read and could still hold a typo'd key or malformed hex, while real fields make those states unrepresentable (picklist, Number, hex validation rule) and get platform validation, history and reports. The 10% opacity floor becomes a validation rule. Per-value styles are N slots and must stay JSON — but at the 100-value cap that's ~20–35 KB vs the 131 KB limit (4–5× headroom), because icons never ride the JSON (asset-id references only; renditions live on asset records)</td></tr>
+<tr><td>12 Aug · Engineering</td><td><b>Scalars become typed fields; JSON keeps only the value list</b> (<code>st_Symbol_Styles__c</code>, ex Style_Definition) <span class="tag ok">final</span></td><td>Team suggestion (store the Simple/Categorical-overlapping attributes as individual fields OR one common-JSON field): <b>individual fields chosen</b> — a common-JSON field would still parse on every read and could still hold a typo'd key or malformed hex, while real fields make those states unrepresentable (picklist, Number, hex validation rule) and get platform validation, history and reports. The 10% opacity floor becomes a validation rule. Per-value styles are N slots and must stay JSON — but at the 100-value cap that's ~20–35 KB vs the 131 KB limit (4–5× headroom), because icons never ride the JSON (asset-id references only; renditions live on asset records)</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Dropped <code>st_Published_Checksum__c</code> too</b> <span class="tag ok">final</span></td><td>"Why is it even needed when each template is a record" — it isn't: the standard <code>SystemModstamp</code> (free on every record) natively answers both "is my cache stale" and "did someone publish while I was editing". A SHA-256 added a compiler step and a field for questions the platform already answers</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Default templates ship per asset type with their Map Object Configuration</b> <span class="tag ok">final</span></td><td>MOCs are already shipped per supported asset type — the default template rides the same post-install path and is linked on the shipped MOC, instead of a separate standalone seed</td></tr>
 <tr><td>12 Aug · Engineering</td><td><b>Dropped <code>st_Published_Version__c</code> and <code>st_Cloned_From_Template__c</code></b> <span class="tag ok">final</span></td><td>The checksum already answers both "is my cache stale" and "did someone publish while I was editing" — a counter added nothing; clone lineage had no consumer (no history UI, no behaviour reads it). Clone-to-edit and copy-on-write remain as actions</td></tr>
@@ -762,10 +756,11 @@ means the publish/save server logic — users never write those fields directly.
 <tr><td><code>Name</code></td><td>What shows in every picker</td><td>Create / rename · user</td></tr>
 <tr><td><code>st_Is_Protected__c</code></td><td>The ONE lock: true only on Sitetracker-shipped templates — VR blocks all edits; forks and clones are created unprotected</td><td>Seed only · never by users</td></tr>
 <tr><td><code>st_Map_Object_Configuration__c</code></td><td>Asset-type context — picker filtering, the object behind representBy (required for Categorical), and how a shipped default declares its asset type</td><td>Create/import flow · user</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td>ONLY the per-value overrides (variable cardinality forces JSON). Everything single-valued is a typed <b>field</b> (rows below). Per-value icons are stored as <code>iconDocumentId</code> references — the images are ContentVersion files, same store the Simple icon field points at</td><td>Every builder Save · user via service</td></tr>
-<tr><td><code>st_Styling_Mode__c</code> (Simple/Categorical) · <code>st_Symbol_Size__c</code> · <code>st_Fill_Color__c</code> · <code>st_Outline_Color__c</code> · <code>st_Outline_Width__c</code> · <code>st_Layer_Opacity__c</code> · <code>st_Offset_X/Y__c</code> · <code>st_Label_Field__c</code> · <code>st_Label_Min_Zoom__c</code> · <code>st_Label_Halo_Color__c</code></td><td>The common base both modes inherit from, as typed fields: platform validation replaces compiler checks (the 10% opacity floor is a validation rule; colours are hex-validated; sizes/colours are typed — invalid values are impossible, not caught)</td><td>Builder edits · user</td></tr>
-<tr><td><code>st_Icon_Document_Id__c</code></td><td>The Simple-mode uploaded icon — a stable ContentDocumentId; replacing the file's artwork updates every referencing template in place</td><td>Builder edits · user</td></tr>
-<tr><td><code>__Share</code> rows</td><td>Who may edit (Write) or manage (Admin); everyone reads via OWD</td><td>Sharing UI · owner/admin</td></tr>
+<tr><td><code>st_Symbol_Styles__c</code></td><td>ONLY the per-value overrides (variable cardinality forces JSON). Everything single-valued is a typed <b>field</b> (rows below). Per-value icons are stored as <code>iconDocumentId</code> references — the images are ContentVersion files, same store the Simple icon field points at</td><td>Every builder Save · user via service</td></tr>
+<tr><td><code>st_Styling_Mode__c</code> · <code>st_Layer_Opacity__c</code></td><td>The two symbol-adjacent scalars that remain: mode (Simple/Categorical) and whole-layer opacity (the 10% floor stays a declarative VR)</td><td>Builder edits · user</td></tr>
+<tr><td><code>st_Symbol_Styles__c</code></td><td>ALL symbol styling as one JSON (13 Aug consolidation): <code>symbols[]</code> array — Simple = one entry, <code>symbols[0]</code> = the base Categorical entries inherit from; each entry carries shape-or-icon, size, fill/outline (hex+opacity), offsets; trigger validates every property on every write path</td><td>Builder Save · user via service</td></tr>
+<tr><td><code>st_Show_Labels__c</code> + <code>st_Label_Styles__c</code></td><td>The "Show labels" toggle and the label-style JSON (field, minZoom, halo, offset); font slot reserved for v2</td><td>Builder edits · user</td></tr>
+<tr><td><i>(no sharing rows)</i></td><td>The object is protected — record sharing does not apply; edit rights = the custom permission + the protection lock</td><td>—</td></tr>
 </tbody></table></div>
 
 <h4>Icons — Salesforce Files, not an object</h4>
@@ -781,7 +776,7 @@ means the publish/save server logic — users never write those fields directly.
 <h4>Delete-protection without a junction</h4>
 <div class="scroll"><table>
 <thead><tr><th>Mechanism</th><th>What it covers</th><th>How</th></tr></thead><tbody>
-<tr><td>"Which template uses this icon?"</td><td>Simple icons — the common case</td><td><b>Filterable</b>: <code>WHERE st_Icon_Document_Id__c = :docId</code> — indexed, exact, cheap</td></tr>
+<tr><td>"Which template uses this icon?"</td><td>ALL icon references (consolidated into the JSON, 13 Aug)</td><td>The chunked scan — no filterable scalar remains, which upgrades the proposed trigger-maintained <code>st_Icon_Document_Ids__c</code> denormalized field from optional to strongly recommended (open decision A)</td></tr>
 <tr><td>Delete-flow / library UI check</td><td>Per-value icon references (inside the LTA — not filterable)</td><td>On-demand <b>chunked scan</b> (ids first, JSON ~50/chunk, references dropped) → one pass yields the whole library's "in use by N" badges; shown as a warning (soft — 13 Aug). Runs on library open + delete only, never on save. <b>Advisory</b>: API-path deletes bypass it; the guarantee is the render fallback</td></tr>
 <tr><td>Render fallback</td><td>A referenced icon deleted anyway (API paths carry no warning)</td><td>Affected values draw colour+size — already a requirement; no trigger exists (a packaged global ContentDocument trigger was the deal-breaker)</td></tr>
 </tbody></table></div>
@@ -817,13 +812,14 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <tr><td><code>Name</code></td><td>Sitetracker Default</td><td>Fiber Backbone — ArcGIS</td><td>Splice Points by Status</td></tr>
 <tr><td><code>st_Is_Protected__c</code></td><td><b>true</b> — shipped; VR blocks every edit; clone to restyle</td><td>false — fork, fully editable</td><td>false — org-created</td></tr>
 <tr><td><code>st_Map_Object_Configuration__c</code></td><td>— (geometry-agnostic default)</td><td>→ Segment MOC (context from the imported layer)</td><td>→ Site MOC (required — Categorical)</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
+<tr><td><code>st_Symbol_Styles__c</code></td><td colspan="3">JSON snapshot — example below</td></tr>
 </tbody></table></div>
 
-<h4>③’s scalar fields (Simple mode = no JSON at all): shape=circle (bundled) · size=10 · fill=#00847C · outline=#FFFFFF/1.5 · opacity=0.9 · label=Name, minZoom 13. And inside <code>st_Value_Styles__c</code> — only the per-value list:</h4>
+<h4>③ in Simple mode would be just symbols[0]; in Categorical the same array grows sparse value entries. Inside <code>st_Symbol_Styles__c</code> — symbols[0] = the base, then sparse per-value entries:</h4>
 <pre class="codeblock">{
   <span class="k">"representBy"</span>: <span class="s">"Status__c"</span>,
-  <span class="k">"values"</span>: [
+  <span class="k">"symbols"</span>: [
+    { <span class="k">"shape"</span>: <span class="s">"circle"</span>, <span class="k">"size"</span>: <span class="n">10</span>, <span class="k">"fill"</span>: {<span class="k">"hex"</span>:<span class="s">"#00847C"</span>,<span class="k">"opacity"</span>:<span class="n">1</span>} },  <span class="c">// symbols[0] — the base every value inherits</span>
     { <span class="k">"value"</span>: <span class="s">"Splicing_Complete"</span>, <span class="k">"label"</span>: <span class="s">"Splicing complete"</span>, <span class="k">"fill"</span>: <span class="s">"#027E46"</span> },  <span class="c">// value = the CODE (matching); label = the display name (UI/legend)</span>
     { <span class="k">"value"</span>: <span class="s">"Blocked"</span>,     <span class="k">"fill"</span>: <span class="s">"#C23934"</span>, <span class="k">"iconDocumentId"</span>: <span class="s">"069…Bl0ck"</span> },  <span class="c">// icon by reference — the PNG lives in Files, never here</span>
     { <span class="k">"value"</span>: <span class="s">"In Progress"</span> }                                                       <span class="c">// listed, styled 100% by inheritance</span>
@@ -836,13 +832,13 @@ leave them. Values are invented; shapes and relationships are exact.</p>
 <thead><tr><th>Field</th><th>ⓐ Simple — "Handholes — Teal"</th><th>ⓑ Categorical — "Splice Points by Status"</th></tr></thead><tbody>
 <tr><td><code>st_Styling_Mode__c</code></td><td><b>Simple</b></td><td><b>Categorical</b></td></tr>
 <tr><td><code>st_Map_Object_Configuration__c</code></td><td>optional — set for picker filtering</td><td><b>required</b> — representBy needs the object</td></tr>
-<tr><td><code>st_Symbol_Size__c</code></td><td>10</td><td>10 — a value overrides only if its entry says so</td></tr>
-<tr><td><code>st_Fill_Color__c</code></td><td>#00847C — everything draws this colour</td><td>#00847C — used by values with <i>no</i> fill override (e.g. "In Progress")</td></tr>
-<tr><td><code>st_Outline_Color__c</code> / <code>st_Outline_Width__c</code></td><td>#FFFFFF / 1.0</td><td>#FFFFFF / 1.0 — inherited by all values</td></tr>
+<tr><td><code>symbols[].size</code> <span class="note">(in the JSON)</span></td><td>10</td><td>10 — a value entry overrides only if it says so</td></tr>
+<tr><td><code>symbols[].fill</code></td><td>#00847C — everything draws this colour</td><td>#00847C on <code>symbols[0]</code> — inherited by values with no fill override (e.g. "In Progress")</td></tr>
+<tr><td><code>symbols[].outline</code></td><td>#FFFFFF / 1.0</td><td>#FFFFFF / 1.0 — inherited from <code>symbols[0]</code></td></tr>
 <tr><td><code>st_Layer_Opacity__c</code></td><td>0.90</td><td>0.90 — applies to the whole layer either way</td></tr>
 
-<tr><td><code>st_Label_Field__c</code> / <code>st_Label_Min_Zoom__c</code> / halo</td><td>Name / 13 / #FFFFFF</td><td>Name / 13 / #FFFFFF</td></tr>
-<tr><td><code>st_Value_Styles__c</code></td><td><b>null — Simple needs no JSON at all</b></td><td>the JSON above: <code>representBy</code> + sparse per-value entries; "Blocked" carries an <code>iconDocumentId</code></td></tr>
+<tr><td><code>st_Show_Labels__c</code> + <code>st_Label_Styles__c</code></td><td>true · {field: Name, minZoom: 13, halo: #FFFFFF}</td><td>same — labels are template-level, not per-value</td></tr>
+<tr><td><code>st_Symbol_Styles__c</code></td><td><b>null — Simple needs no JSON at all</b></td><td>the JSON above: <code>representBy</code> + sparse per-value entries; "Blocked" carries an <code>iconDocumentId</code></td></tr>
 </tbody></table></div>
 <p class="note" style="margin:8px 0 0">Reading the two columns together: Categorical is not a different
 data shape — it's the Simple base <i>plus</i> a value list. Switching a template's mode changes which
@@ -851,7 +847,7 @@ parts the renderer reads, never where anything is stored.</p>
 <h4>Icons in the sample — ContentVersion files (no icon object)</h4>
 <div class="scroll"><table>
 <thead><tr><th>ContentDocumentId</th><th><code>Title</code></th><th><code>FileType</code></th><th><code>Checksum</code> (standard)</th><th>Referenced by</th></tr></thead><tbody>
-<tr><td class="mono">069…Vau1t</td><td>vault</td><td>PNG (rasterized at upload)</td><td class="mono">e3b0…55</td><td>② — imported with the ArcGIS fork (<code>st_Icon_Document_Id__c</code>)</td></tr>
+<tr><td class="mono">069…Vau1t</td><td>vault</td><td>PNG (rasterized at upload)</td><td class="mono">e3b0…55</td><td>② — imported with the ArcGIS fork (<code>iconDocumentId</code> in its <code>symbols[0]</code>)</td></tr>
 <tr><td class="mono">069…Bl0ck</td><td>blocked-flag</td><td>PNG</td><td class="mono">98fa…1c</td><td>③ — via <code>iconDocumentId</code> in the value JSON</td></tr>
 </tbody></table></div>
 <p class="note" style="margin:4px 0 8px">Deleting either file prompts a soft "in use by …" warning
