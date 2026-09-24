@@ -1,14 +1,5 @@
 [
   {
-    "slug": "draft-vs-submitted-marking",
-    "title": "Draft vs Submitted on Map-First Marking Screens",
-    "module": "Production Tracking \u00b7 Mobile",
-    "status": "In review",
-    "updated": "2026-09-24",
-    "summary": "SIT-68352: only Submitted work counts; Draft shows as a dotted line, legend row and amber chip; Mark as Complete asks before touching a draft.",
-    "notes": []
-  },
-  {
     "slug": "style-templates",
     "title": "Style Templates on Lightning Maps (Beta)",
     "module": "GIS Link \u00b7 Progress Tracking",
